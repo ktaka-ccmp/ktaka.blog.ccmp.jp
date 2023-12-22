@@ -1,4 +1,4 @@
-<textarea border-style:dotted="border-style:dotted" class="markdown" disabled="disabled">
+<!-- <textarea border-style:dotted="border-style:dotted" class="markdown" disabled="disabled"> -->
 <!-- <a href="" target="_blank"><img src="" width="30%"></a> -->
 
 <!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
@@ -70,4 +70,4 @@ FastAPIを使用して、Googleからの認証応答を処理するエンドポ�
 
 SvelteとFastAPIを組み合わせることで、効率的かつ安全にGoogleのサインイン機能をウェブアプリケーションに統合できることがわかりました。このアプローチは、ユーザビリティとセキュリティの両方を高めるための素晴らしい方法です。
 
-</textarea>
+<!-- </textarea> -->

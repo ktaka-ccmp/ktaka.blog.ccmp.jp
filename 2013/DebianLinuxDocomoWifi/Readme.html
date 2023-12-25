@@ -1,0 +1,17 @@
+<p>パソコンからドコモwifiに繋ぐための設定。</p>
+<pre><code>vaiox:~# cat /etc/wpa_supplicant.conf_docomo_wifi
+ctrl_interface=/var/run/wpa_supplicant
+network={
+ ssid=&quot;docomo&quot;
+ scan_ssid=1
+ key_mgmt=IEEE8021X
+ eap=TTLS
+ identity=&quot;xxxxx-spmode@docomo&quot;
+ password=&quot;xxxxxx&quot;
+ ca_cert=&quot;/etc/PCA-3.pem&quot;
+ phase2=&quot;auth=PAP&quot;
+}</code></pre>
+<p>無線LANチップのドライバーをロードし、wpa_supplicantをデーモンとして起動、dhcpでアドレスを取得すればOK。</p>
+<pre><code>modprobe ath9k
+wpa_supplicant -Dwext -iwlan0 -c /etc/wpa_supplicant.conf_docomo_wifi -B
+dhclient wlan0</code></pre>

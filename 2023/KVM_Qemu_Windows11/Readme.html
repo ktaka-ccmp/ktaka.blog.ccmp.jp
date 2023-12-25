@@ -1,0 +1,302 @@
+<h1 id="table-of-contents">Table of Contents</h1>
+<ul>
+<li><a href="#はじめに">はじめに</a></li>
+<li><a href="#window11のインストール">Window11のインストール</a>
+<ul>
+<li><a href="#kvm仮想マシンの起動方法">KVM仮想マシンの起動方法</a>
+<ul>
+<li><a
+href="#ホストのdevtpm0をパススルーで使う場合">ホストの/dev/tpm0をパススルーで使う場合</a></li>
+<li><a
+href="#ソフトウェアのtpmデバイスエミュレータを使う場合">ソフトウェアのTPMデバイスエミュレータを使う場合</a></li>
+</ul></li>
+<li><a
+href="#仮想マシンが立ち上がるとuefシェルが起動してしまう">仮想マシンが立ち上がると、UEFシェルが起動してしまう。</a></li>
+<li><a
+href="#インストール先のドライブが見えない">インストール先のドライブが見えない</a></li>
+<li><a
+href="#インストール時にmicrosoftアカウントへのサインインを求められる">インストール時にMicrosoftアカウントへのサインインを求められる</a></li>
+<li><a
+href="#残りのvirtioドライバーをインストール">残りのvirtioドライバーをインストール</a></li>
+</ul></li>
+<li><a href="#普段使いのために">普段使いのために</a>
+<ul>
+<li><a
+href="#linuxホストのネットワークセットアップ">Linuxホストのネットワークセットアップ</a></li>
+<li><a
+href="#windowsゲスト起動コマンド">Windowsゲスト起動コマンド</a></li>
+<li><a
+href="#windowsゲストのネットワーク設定">Windowsゲストのネットワーク設定</a></li>
+</ul></li>
+<li><a href="#その他のtips">その他のTips</a></li>
+<li><a href="#参考文献">参考文献</a>
+<ul>
+<li><a href="#qemuでのtpmの使い方">QemuでのTPMの使い方</a></li>
+<li><a href="#qemuでのuefi-secure-bootのやり方">QEMUでのUEFI Secure
+Bootのやり方</a></li>
+<li><a href="#どのuefi-firmwareを使うべきか">どのUEFI
+firmwareを使うべきか</a></li>
+</ul></li>
+<li><a href="#まとめ">まとめ</a></li>
+</ul>
+<h2 id="はじめに">はじめに</h2>
+<p><a
+href="/2023/03/kvmqemuwindows.html">前回</a>に引き続き、KVM仮想マシン上にWindows11をインストールするやり方をまとめておきます。</p>
+<p>Windows10の時とは以下のような違いがあります。 *
+Windows11の場合、TPMとUEFI Secure Bootが必須である。 *
+KVMでTPMを使うには、ホストの/dev/tpm0をパススルーで使う方法と、ソフトウェアのTPMデバイスエミュレーター(swtpm)を使う方法がある。
+* KVMでUEFI Secure Bootするには、ovmfパッケージにより提供されるUEFI
+firmwareを利用する。</p>
+<h2 id="window11のインストール">Window11のインストール</h2>
+<h3 id="kvm仮想マシンの起動方法">KVM仮想マシンの起動方法</h3>
+<p>Windows11のインストールメディア、virtioドライバインストール用のisoイメージをダウンロードしておきます。
+* <a
+href="https://www.microsoft.com/en-us/software-download/windows11">Download
+Windows 11</a> * <a
+href="https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/">Windows用virtioドライバのありか</a></p>
+<p>必要パッケジージのインストール</p>
+<pre><code>sudo apt-get install qemu-system-x86 virt-viewer ovmf</code></pre>
+<p>qcow2ディスクイメージを作成します。</p>
+<pre><code>qemu-img create -f qcow2 win11pro.qcow2 40G</code></pre>
+<p>書き込み用のFirmwareのローカルコピーを作成します。</p>
+<pre><code>cp /usr/share/OVMF/OVMF_VARS_4M.ms.fd ./</code></pre>
+<h4
+id="ホストのdevtpm0をパススルーで使う場合">ホストの/dev/tpm0をパススルーで使う場合</h4>
+<p>以下のコマンドで仮想マシンを起動できます。</p>
+<pre><code>sudo qemu-system-x86_64 \
+    -machine q35,accel=kvm \
+    -m 8192 -cpu host \
+    -smp 6,sockets=1,dies=1,cores=6,threads=1 \
+    -display spice-app \
+    -drive file=./win11pro.qcow2,if=virtio,format=qcow2,discard=unmap \
+    -drive file=~/Downloads/Win11_22H2_Japanese_x64v1.iso,index=0,media=cdrom \
+    -drive file=~/Downloads/virtio-win-0.1.229.iso,index=1,media=cdrom \
+    -drive if=pflash,format=raw,unit=0,file=/usr/share/OVMF/OVMF_CODE_4M.ms.fd,readonly=on \
+    -drive if=pflash,format=raw,file=./OVMF_VARS_4M.ms.fd \
+    -tpmdev passthrough,id=tpm0,path=/dev/tpm0,cancel-path=/dev/null \
+    -device tpm-tis,tpmdev=tpm0 \</code></pre>
+<h4
+id="ソフトウェアのtpmデバイスエミュレータを使う場合">ソフトウェアのTPMデバイスエミュレータを使う場合</h4>
+<p>TPMデバイスエミュレータswtpmを起動しておきます。</p>
+<pre><code>mkdir mytpm
+swtpm socket --tpmstate dir=./mytpm \
+--tpm2 \
+--ctrl type=unixio,path=./mytpm/swtpm-sock \
+--log level=20</code></pre>
+<p>以下のコマンドで仮想マシンを起動できます。</p>
+<pre><code>sudo qemu-system-x86_64 \
+    -machine q35,accel=kvm \
+    -m 8192 -cpu host \
+    -smp 6,sockets=1,dies=1,cores=6,threads=1 \
+    -display spice-app \
+    -drive file=./win11pro.qcow2,if=virtio,format=qcow2,discard=unmap \
+    -drive file=~/Downloads/Win11_22H2_Japanese_x64v1.iso,index=0,media=cdrom \
+    -drive file=~/Downloads/virtio-win-0.1.229.iso,index=1,media=cdrom \
+    -drive if=pflash,format=raw,unit=0,file=/usr/share/OVMF/OVMF_CODE_4M.ms.fd,readonly=on \
+    -drive if=pflash,format=raw,file=./OVMF_VARS_4M.ms.fd \
+    -chardev socket,id=chrtpm,path=./mytpm/swtpm-sock \
+    -tpmdev emulator,id=tpm0,chardev=chrtpm \
+    -device tpm-tis,tpmdev=tpm0 \</code></pre>
+<h3
+id="仮想マシンが立ち上がるとuefシェルが起動してしまう">仮想マシンが立ち上がると、UEFシェルが起動してしまう。</h3>
+<p>どうやらUEFIブートの場合、UEFIの設定画面でブートデバイスの優先順位を変更してやる必要があるようです。
+UEFIシェルをexitで抜けるとUEFIの設定メニューに入るので、そこでUEFIシェルの優先順位をCDROM/DVDROMなどインストールメディアよりも低くします。
+そして、RestまたはContinueで、Windowsインストール用のCDROMからブートします。</p>
+<!--[<img src="" width="50%">]() -->
+<!-- <a href="" target="_blank"><img src="" width="30%"></a> -->
+<p><a href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEihrFFZMkVRwJR1x-xab4eUrN5p6I7c62JEHufK8YTtEkCxEBmDekjeremksk36dFa2iVpHmYEfADbCMCpmqkXeXjxu5ALDkteHK3qXBNf24NC7H13pf3XH9NRoajeW-_9GC2zuehDbvF9TOoPTuE7N8tmcUmQ0DT-W57VMcHD-x7oM9gbG-2ZvMos2/s812/UEFI_Interactive_Shell01.png" target="_blank"><img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEihrFFZMkVRwJR1x-xab4eUrN5p6I7c62JEHufK8YTtEkCxEBmDekjeremksk36dFa2iVpHmYEfADbCMCpmqkXeXjxu5ALDkteHK3qXBNf24NC7H13pf3XH9NRoajeW-_9GC2zuehDbvF9TOoPTuE7N8tmcUmQ0DT-W57VMcHD-x7oM9gbG-2ZvMos2/s812/UEFI_Interactive_Shell01.png" width="30%"></a>
+<a href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiqHreJWPEoR0Fpe_jIgQraetmCskhYNlXq1lbhvB6TOO2J3cxcsAmqnRcdZyhHXrP2IfwjHl3q4Cv4uKjuihbAqCBph6QmXUzK1Lvn8pAFDxQ_kjhHv-kjxUju-VHeV53POKiUNGVlf49nKKsJHExJpJ6zTLZdR0H2F651Yz1mA--UPJ1m6nyljSas/s652/UEFI_Menu03_2.png" target="_blank"><img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiqHreJWPEoR0Fpe_jIgQraetmCskhYNlXq1lbhvB6TOO2J3cxcsAmqnRcdZyhHXrP2IfwjHl3q4Cv4uKjuihbAqCBph6QmXUzK1Lvn8pAFDxQ_kjhHv-kjxUju-VHeV53POKiUNGVlf49nKKsJHExJpJ6zTLZdR0H2F651Yz1mA--UPJ1m6nyljSas/s652/UEFI_Menu03_2.png" width="30%"></a>
+<a href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjLlqsFcDN-bPtB0kXDk5afq8Z00njv8JZAuTfKN-wsO8rKjY9KoGT7PNaqtUZ2WrKR3YxKiD2sdy55TLNC3Xd4TicCVA97ihFcd4vbcOLHst_cdqrWLhR9RUJLPKalK3w2460Tg55Yr49Ky3u86vbhh-FtuLOeJxaViFVtQreL6vfb0XEfcbsoFJuo/s652/UEFI_Menu05_2.png" target="_blank"><img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjLlqsFcDN-bPtB0kXDk5afq8Z00njv8JZAuTfKN-wsO8rKjY9KoGT7PNaqtUZ2WrKR3YxKiD2sdy55TLNC3Xd4TicCVA97ihFcd4vbcOLHst_cdqrWLhR9RUJLPKalK3w2460Tg55Yr49Ky3u86vbhh-FtuLOeJxaViFVtQreL6vfb0XEfcbsoFJuo/s652/UEFI_Menu05_2.png" width="30%"></a></p>
+<h3
+id="インストール先のドライブが見えない">インストール先のドライブが見えない</h3>
+<p>E:ドライブ(virtio-win-xx)にあるドライバを読み込むと、qcow2のディスクイメージが見えるようになるので、そこにWindows11をインストールします。</p>
+<p><a href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjPRUFpYwiM6pVv34_N62FADeDOf81gAY92gIJoY5MSI60k7KzcMDMgenuVKqNp_sffAyBDif-5s4GMCeW2yshRsw954np5BvRxYkNjExSJi522HXSUxiUcUsQuJu-EDC0Euqvmod6gwkn1SrWCz8QFbsEri07lV9gAmbrJRBJPQfgjD_dYM1coC5xS/s812/Win11Installer03.png" target="_blank"><img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjPRUFpYwiM6pVv34_N62FADeDOf81gAY92gIJoY5MSI60k7KzcMDMgenuVKqNp_sffAyBDif-5s4GMCeW2yshRsw954np5BvRxYkNjExSJi522HXSUxiUcUsQuJu-EDC0Euqvmod6gwkn1SrWCz8QFbsEri07lV9gAmbrJRBJPQfgjD_dYM1coC5xS/s812/Win11Installer03.png" width="30%"></a>
+<a href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiieg21QaYwI425apZUogwiSTcIAkZzddzzRVGDty6NHfGoSOH3U_zi2lRbuwMgoGdkOzChtbUq8E7hVlG44Gro40C5Ia_FMj1qtaEPLSD9IgOGBvlYQiRjC1xXQjEyMa8cgCiTl1SK546K9zNRFzNXnr0XPc1MS4n0FdY18GN218YlE1M4xfI_HPUz/s812/Win11Installer04.png" target="_blank"><img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiieg21QaYwI425apZUogwiSTcIAkZzddzzRVGDty6NHfGoSOH3U_zi2lRbuwMgoGdkOzChtbUq8E7hVlG44Gro40C5Ia_FMj1qtaEPLSD9IgOGBvlYQiRjC1xXQjEyMa8cgCiTl1SK546K9zNRFzNXnr0XPc1MS4n0FdY18GN218YlE1M4xfI_HPUz/s812/Win11Installer04.png" width="30%"></a>
+<a href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgj56FVNkvw7VGKBYY4J9UCf35bImgTQlvElka3lBn-9juHZjYUderh1dnnuuX0BExKce48fEdomkMBaANzi1OKPZVsA6szkgdS2uvjgxx2XN4qFP3oDCGuh2PWq52I8HlFcG-2_nHNh0VBe18r6ygCJJjldeFiTcrdn8nYwjHGbXFpnbjexDPVvRvj/s812/Win11Installer06.png" target="_blank"><img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgj56FVNkvw7VGKBYY4J9UCf35bImgTQlvElka3lBn-9juHZjYUderh1dnnuuX0BExKce48fEdomkMBaANzi1OKPZVsA6szkgdS2uvjgxx2XN4qFP3oDCGuh2PWq52I8HlFcG-2_nHNh0VBe18r6ygCJJjldeFiTcrdn8nYwjHGbXFpnbjexDPVvRvj/s812/Win11Installer06.png" width="30%"></a></p>
+<h3
+id="インストール時にmicrosoftアカウントへのサインインを求められる">インストール時にMicrosoftアカウントへのサインインを求められる</h3>
+<p>no@thankyou.comで一度サインインに失敗すると、ローカルアカウントが作成できます。</p>
+<p><a href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiDKU4bzc8PYfvrRNVgoQ038q5T9ZVFg2ebpZKjOdwh7njqrTQcp1jEsS3KmGgLqloBInsW-WJu3coySNApuL4JocTbTH6UcridWunnAqF_wPKt0t7OQfpoDc4SY8EncIOxUGXQJ8-cx87vLikZiHOTNGQEInp3nb_CeFw7y2yuJoZumpau3DBUx5V1/s812/Win11Installer10.png" target="_blank"><img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiDKU4bzc8PYfvrRNVgoQ038q5T9ZVFg2ebpZKjOdwh7njqrTQcp1jEsS3KmGgLqloBInsW-WJu3coySNApuL4JocTbTH6UcridWunnAqF_wPKt0t7OQfpoDc4SY8EncIOxUGXQJ8-cx87vLikZiHOTNGQEInp3nb_CeFw7y2yuJoZumpau3DBUx5V1/s812/Win11Installer10.png" width="30%"></a>
+<a href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEja31VpoXAyUeinucn0m8ug0f-aLRYzvOukM5hjMDsK1l8oStduZ_RavW6v-ciP09VFnmLg0ZCXXXuajWpS5TudHAR0lIigsKno9sZQ_wi1rDA-IfZ-LGkDUDPTbTTrz2pWXDDhfYyxlYP-P8NYjs1EAEMLJgsESmjKOMVDygagXwg548wQwnzh1Lvs/s812/Win11Installer12.png" target="_blank"><img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEja31VpoXAyUeinucn0m8ug0f-aLRYzvOukM5hjMDsK1l8oStduZ_RavW6v-ciP09VFnmLg0ZCXXXuajWpS5TudHAR0lIigsKno9sZQ_wi1rDA-IfZ-LGkDUDPTbTTrz2pWXDDhfYyxlYP-P8NYjs1EAEMLJgsESmjKOMVDygagXwg548wQwnzh1Lvs/s812/Win11Installer12.png" width="30%"></a>
+<a href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoIYyfVpPWVNmHFkx7aXVfBKjOhhfI0cEMZJD8ZuWRTjMxk5phUD6FvyQT3_vYAkp11U2zDrrXTIr2so5Nxcerx7F9r5xvCSslXd-WpxFvTKLu5MymZC1B1VeJxSSzic4VWfNELkh0xnrPdC08QnPNY3CwU1O_AZkPcC3OsJBOjl4hrLTzE8zNFkZf/s812/Win11Installer13.png" target="_blank"><img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoIYyfVpPWVNmHFkx7aXVfBKjOhhfI0cEMZJD8ZuWRTjMxk5phUD6FvyQT3_vYAkp11U2zDrrXTIr2so5Nxcerx7F9r5xvCSslXd-WpxFvTKLu5MymZC1B1VeJxSSzic4VWfNELkh0xnrPdC08QnPNY3CwU1O_AZkPcC3OsJBOjl4hrLTzE8zNFkZf/s812/Win11Installer13.png" width="30%"></a></p>
+<h3
+id="残りのvirtioドライバーをインストール">残りのvirtioドライバーをインストール</h3>
+<p>Windowsセットアップ完了後、Windows上でE:ドライブ（virtio-win-0.1.229）を開きます。そこにあるインストーラを起動し、virtioドライバをインストールしておきます。</p>
+<p><a href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgR_4IR-LHHigsJUqb__6_-AmY3GL1wfXo8G9-lsj7BdPzbkmox22bTZBYAwiuBxTLfdyc0kfg-ny2MhAlQtCLwQ8DKgu0N-l4bC8ftMjqemOkWrUQqp3bziniBOPh6ff1D8ssezNP4YfE9rr6d0V8Z8zxahcrHTvtU6SEAARKw-9N3p0vJk3o5ctUl/s812/virtio_install01.png" target="_blank"><img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgR_4IR-LHHigsJUqb__6_-AmY3GL1wfXo8G9-lsj7BdPzbkmox22bTZBYAwiuBxTLfdyc0kfg-ny2MhAlQtCLwQ8DKgu0N-l4bC8ftMjqemOkWrUQqp3bziniBOPh6ff1D8ssezNP4YfE9rr6d0V8Z8zxahcrHTvtU6SEAARKw-9N3p0vJk3o5ctUl/s812/virtio_install01.png" width="30%"></a>
+<a href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjni-rgb1JVtBCy-NMiEReK7pe5TW3w3Ecc3gzmRUHqweir9ebthWDOpS11vTSf3W3ekwB4wpoB-Tl7LCTR-3n-w4XhLxgnfDsPeGycsefskDmLGXXiN4WNTTcrzDTyTjH7Z_oS7plt5aSodaBvw8CRTOo_gbAWEdHp_8ZCmE58lAbCHAruZuPdC1Rn/s812/virtio_install02.png" target="_blank"><img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjni-rgb1JVtBCy-NMiEReK7pe5TW3w3Ecc3gzmRUHqweir9ebthWDOpS11vTSf3W3ekwB4wpoB-Tl7LCTR-3n-w4XhLxgnfDsPeGycsefskDmLGXXiN4WNTTcrzDTyTjH7Z_oS7plt5aSodaBvw8CRTOo_gbAWEdHp_8ZCmE58lAbCHAruZuPdC1Rn/s812/virtio_install02.png" width="30%"></a></p>
+<p>以上で、ネットワーク関連は未設定状態ですが、Windows11がインストールされたqcow2ディスクイメージ、win11pro.qcow2ができあがります。</p>
+<h2 id="普段使いのために">普段使いのために</h2>
+<p>Windows11のインストールは、ネットワーク無しで行った。仮想マシン上のWindows11を利用するには、ネットワークが使えないと困るでしょう。
+ネットワークを使えるようにするためには、次の3つの準備が必要です。 1.
+Linuxホスト上でのネットワーク設定 1.
+KVM起動コマンドをネットワークが使えるように修正 1.
+Windows11ゲストマシン上でネットワーク設定</p>
+<h3
+id="linuxホストのネットワークセットアップ">Linuxホストのネットワークセットアップ</h3>
+<p>Linuxホスト上では、以下の設定を行えば十分です。</p>
+<pre><code>brdg=kbr0
+outif=wlan0
+addr=10.0.0.254/24
+
+# ブリッジインターフェースの準備
+brctl addbr $brdg
+ip add add dev $brdg $addr
+ip link set dev $brdg up
+
+# IPマスカレード設定
+iptables -t nat -A POSTROUTING -s $addr -o $outif -j MASQUERADE
+
+# IPフォワーディング許可
+echo 1 &gt;  /proc/sys/net/ipv4/conf/$outif/forwarding
+echo 1 &gt;  /proc/sys/net/ipv4/conf/$brdg/forwarding</code></pre>
+<p>念の為、上記で用意したものをもとに戻すのは、以下のやり方で良いでしょう。</p>
+<pre><code># IPフォワーディング許可を取り消す
+echo 0 &gt;  /proc/sys/net/ipv4/conf/$outif/forwarding
+echo 0 &gt;  /proc/sys/net/ipv4/conf/$brdg/forwarding
+
+# ブリッジインターフェースを消す
+ip link set dev $brdg down
+brctl delbr $brdg
+
+# IPマスカレード設定を消す
+iptables -t nat -D POSTROUTING -s $addr -o $outif -j MASQUERADE</code></pre>
+<h3 id="windowsゲスト起動コマンド">Windowsゲスト起動コマンド</h3>
+<p>qemuコマンドはオプションが多いのでスクリプト化しておくと良いでしょう。</p>
+<pre><code>run.win11.sh:
+#!/bin/bash 
+
+sudo qemu-system-x86_64 \
+        -m 8192 -cpu host \
+        -smp 6,sockets=1,dies=1,cores=6,threads=1 \
+        -drive file=./win11pro.qcow2,if=virtio,format=qcow2,discard=unmap \
+        -display spice-app \
+        -machine q35,accel=kvm \
+        -rtc base=localtime,clock=host \
+        -drive if=pflash,format=raw,unit=0,file=/usr/share/OVMF/OVMF_CODE_4M.ms.fd,readonly=on \
+        -drive if=pflash,format=raw,file=./OVMF_VARS_4M.ms.fd \
+        -tpmdev passthrough,id=tpm0,path=/dev/tpm0,cancel-path=/dev/null \
+        -device tpm-tis,tpmdev=tpm0 \
+        -device virtio-net-pci,netdev=dev1,mac=52:54:00:11:00:12,id=net1 \
+        -netdev tap,id=dev1,vhost=on,script=./qemu-ifup</code></pre>
+<p>仮想マシン起動時にデバイスをホストのブリッジにアタッチします。</p>
+<pre><code>qemu-ifup:
+#!/bin/sh
+
+bridge=kbr0
+/sbin/ip link set dev $1 up promisc off
+/sbin/brctl addif $bridge $1</code></pre>
+<h3
+id="windowsゲストのネットワーク設定">Windowsゲストのネットワーク設定</h3>
+<p>次のアドレスを設定</p>
+<pre><code>IPv4アドレス: 10.0.0.1/24
+ゲートウェイ: 10.0.0.254
+DNSサーバ: 192.168.40.1(Linuxホストと同じ設定にすると良いと思う。)</code></pre>
+<p><a href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj5VRIXuwnZ1FiZHXeG2lmJDIVphJlT4sqLOKeOK3Sk4eXW-B4r1P_FsjfEq6jvwlFcWtgoMYbGmD2-EFBAPEkBzomgXZH8tuaYG_soLx81SkayPRt-3Vi4fyR0695IlxK3ifT7EmEnI-GWbQC3JWYBAnSjJOek_ZOM2o7ku5m0J-p3nQ3OZOseOxes/s812/network_setup01.png" target="_blank"><img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj5VRIXuwnZ1FiZHXeG2lmJDIVphJlT4sqLOKeOK3Sk4eXW-B4r1P_FsjfEq6jvwlFcWtgoMYbGmD2-EFBAPEkBzomgXZH8tuaYG_soLx81SkayPRt-3Vi4fyR0695IlxK3ifT7EmEnI-GWbQC3JWYBAnSjJOek_ZOM2o7ku5m0J-p3nQ3OZOseOxes/s812/network_setup01.png" width="30%"></a></p>
+<p>この他に、Windows 11 Proの場合はRemote
+Desktop機能があるので、利用可能にしておくと良いでしょう。</p>
+<h2 id="その他のtips">その他のTips</h2>
+<ul>
+<li>一旦ビューワーを閉じたあともう一度接続するには</li>
+</ul>
+<pre><code>$ sudo virt-viewer -c spice+unix:///tmp/.JVB811/spice.sock</code></pre>
+<ul>
+<li>Remote Desktop接続は、例えば次のようにする</li>
+</ul>
+<pre><code>user=ktaka
+xfreerdp /u:$user /size:1900x1000 +fonts +clipboard  /audio-mode:1 /v:10.0.0.1</code></pre>
+<ul>
+<li>qemu起動時にはwindowを表示せず、rdpのみで使うには
+<code>--display spice-app</code>を<code>--display none</code>にすれば良い。</li>
+</ul>
+<h2 id="参考文献">参考文献</h2>
+<h3 id="qemuでのtpmの使い方">QemuでのTPMの使い方</h3>
+<p>以下のドキュメントに十分な情報があります。 *
+https://qemu-project.gitlab.io/qemu/specs/tpm.html</p>
+<h3 id="qemuでのuefi-secure-bootのやり方">QEMUでのUEFI Secure
+Bootのやり方</h3>
+<ul>
+<li>https://wiki.debian.org/SecureBoot/VirtualMachine</li>
+<li>https://www.labbott.name/blog/2016/09/15/secure-ish-boot-with-qemu/</li>
+</ul>
+<h3 id="どのuefi-firmwareを使うべきか">どのUEFI
+firmwareを使うべきか</h3>
+<p>Debianのドキュメントに書いてあります。</p>
+<ul>
+<li>Secure Boot
+pre-enabledな、OVMF_CODE_4M.ms.fdとOVMF_VARS_4M.ms.fdをセットで使う。</li>
+<li>前者はRead Onlyで、後者はコピーしたものをRead
+Write可能な状態で利用する。</li>
+<li>UEFIのメニューでSaveした設定変更は、OVMF_VARS_4M.ms.fdのコピーに書き込まれる。</li>
+</ul>
+<p>/usr/share/doc/ovmf/README.Debian</p>
+<pre><code>The OVMF_CODE*.fd files provide UEFI firmware for a QEMU guest that is
+intended to be read-only. The OVMF_VARS*.fd files provide UEFI variable
+template images which are intended to be read-write, and therefore each
+guest should be given its own copy. Here&#39;s an overview of each of them:
+
+OVMF_CODE_4M.fd
+  Use this for booting guests in non-Secure Boot mode. While this image
+  technically supports Secure Boot, it does so without requiring SMM
+  support from QEMU, so it is less secure. Use the OVMF_VARS.fd template
+  with this.
+
+OVMF_CODE_4M.ms.fd
+  This is a symlink to OVMF_CODE_4M.secboot.fd. It is useful in the context
+  of libvirt because the included JSON firmware descriptors will tell libvirt
+  to pair OVMF_VARS.ms.fd with it, which has Secure Boot pre-enabled.
+
+OVMF_CODE_4M.secboot.fd
+  Like OVMF_CODE_4M.fd, but will abort if QEMU does not support SMM.
+  Use this for guests for which you may enable Secure Boot. Be aware
+  that the included JSON firmware descriptors associate this with
+  OVMF_CODE_4M.fd. Which means, if you specify this image in libvirt, you&#39;ll
+  get a guest that is Secure Boot-*capable*, but has Secure Boot disabled.
+  To enable it, you&#39;ll need to manually import PK/KEK/DB keys and activate
+  Secure Boot from the UEFI setup menu. If you want Secure Boot active from
+  the start, consider using OVMF_CODE.ms.fd instead.
+
+OVMF_VARS_4M.fd
+  This is an empty variable store template, which means it has no
+  built-in Secure Boot keys and Secure Boot is disabled. You can use
+  it with any OVMF_CODE image, but keep in mind that if you want to
+  boot in Secure Boot mode, you will have to enable it manually.
+
+OVMF_VARS_4M.ms.fd
+  This template has distribution-specific PK and KEK1 keys, and
+  the default Microsoft keys in KEK/DB. It also has Secure Boot
+  already activated. Using this with OVMF_CODE.ms.fd will boot a
+  guest directly in Secure Boot mode.
+
+OVMF32_CODE_4M.secboot.fd
+OVMF32_VARS_4M.fd
+  These images are the same as their &quot;OVMF&quot; variants, but for 32-bit guests.
+
+OVMF_CODE.fd
+OVMF_CODE.ms.fd
+OVMF_CODE.secboot.fd
+OVMF_VARS.fd
+OVMF_VARS.ms.fd
+  These images are the same as their &quot;4M&quot; variants, but for use with guests
+  using a 2MB flash device. 2MB flash is no longer considered sufficient for
+  use with Secure Boot. This is provided only for backwards compatibility.
+
+OVMF_VARS_4M.snakeoil.fd
+  This image is **for testing purposes only**. It includes an insecure
+  &quot;snakeoil&quot; key in PK, KEK &amp; DB. The private key and cert are also
+  shipped in this package as well, so that testers can easily sign
+  binaries that will be considered valid. Intended for use with
+  OVMF_CODE_4M.secboot.fd.
+
+PkKek-1-snakeoil.key
+PkKek-1-snakeoil.pem
+  The private key and certificate for the snakeoil key. Use these
+  to sign binaries that can be verified by the key in the
+  OVMF_VARS.snakeoil.fd template. The password for the key is
+  &#39;snakeoil&#39;.
+
+ -- dann frazier &lt;dannf@debian.org&gt;, Fri, 11 Dec 2020 17:30:59 -0700</code></pre>
+<h2 id="まとめ">まとめ</h2>
+<p>QEMUコマンドのみでKVM仮想マシンを起動し、Windows11をインストールする方法についてまとめました。
+Window10の場合との違いは、TPM及びUEFI Secure Bootが必須であることです。
+Windows11の場合も、GUIプログラムvirt-managerでのインストール方法はネット上でよく見かけますが、qemuコマンドのみでのやり方はあまり多くないようです。
+余計なものはなるべくインストールしたくない人、ソフトウェアスタックをミニマムに保って中身を理解しながら使いたい人の役に立てば幸いです。</p>

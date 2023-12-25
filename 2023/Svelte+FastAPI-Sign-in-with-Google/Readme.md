@@ -37,8 +37,7 @@ Googleから受け取ったJWTを、RequestヘッダにAuthorization: "Bearer: J
 認証が実装されると、未ログイン時のアクセスはログインページにリダイレクトされ、そこでGoogleアカウントでログインできる。
 
 <a href="https://raw.githubusercontent.com/ktaka-ccmp/react-api-oauth2-example/blob/master/images/AuthLogin3-2.png" target="_blank">
-<img src="https://raw.githubusercontent.com/ktaka-ccmp/react-api-oauth2-example/master/images/AuthLogin3-2.png
-" width="80%" alt="Login page" title="Login page">
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/react-api-oauth2-example/master/images/AuthLogin3-2.png" width="80%" alt="Login page" title="Login page">
 </a>
 
 Customerページは、認証に成功した場合にのみ表示することができます。

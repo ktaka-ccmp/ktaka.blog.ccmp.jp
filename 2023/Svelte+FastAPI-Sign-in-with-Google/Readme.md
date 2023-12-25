@@ -65,7 +65,7 @@ Google Sign Inに成功し、取得したJWTをバックエンドのAPIサーバ
 
 実装したコードは以下のレポジトリにあります。
 
-* https://github.com/ktaka-ccmp/react-api-oauth2-example/tree/master/google-oauth/frontend-svelte
+* [https://github.com/ktaka-ccmp/react-api-oauth2-example/tree/master/google-oauth/frontend-svelte](https://github.com/ktaka-ccmp/react-api-oauth2-example/tree/master/google-oauth/frontend-svelte)
 
 ログイン機能の実装ポイントについて以下に説明します。
 
@@ -312,7 +312,7 @@ FastAPIを使用して、バックエンドのAPIサーバを実装します。
 
 実装したコードは以下のレポジトリにあります。
 
-* https://github.com/ktaka-ccmp/react-api-oauth2-example/tree/master/google-oauth/backend-fastapi
+* [https://github.com/ktaka-ccmp/react-api-oauth2-example/tree/master/google-oauth/backend-fastapi](https://github.com/ktaka-ccmp/react-api-oauth2-example/tree/master/google-oauth/backend-fastapi)
 
 ログイン機能の実装ポイントについて以下に説明します。
 

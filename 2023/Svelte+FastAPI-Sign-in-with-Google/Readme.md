@@ -36,14 +36,24 @@ Googleから受け取ったJWTを、RequestヘッダにAuthorization: "Bearer: J
 
 認証が実装されると、匿名ユーザーのアクセスはログインページにリダイレクトされ、そこでGoogleアカウントでログインできる。
 
+<a href="" target="_blank">
+<img src="https://github.com/ktaka-ccmp/react-api-oauth2-example/blob/master/images/AuthLogin3-2.png" width="80%" alt="Login page" title="Login page">
+</a>
 ![Login page](https://github.com/ktaka-ccmp/react-api-oauth2-example/blob/master/images/AuthLogin3-2.png "Login page")
 
 Customerページは、認証に成功した場合にのみ表示することができます。
 
+
+<a href="" target="_blank">
+<img src="https://github.com/ktaka-ccmp/react-api-oauth2-example/blob/master/images/AuthCustomer.png" width="80%" alt="Customer page for authenticated users" title="Customer page for authenticated users">
+</a>
 ![Customer page for authenticated users](https://github.com/ktaka-ccmp/react-api-oauth2-example/blob/master/images/AuthCustomer.png "Customer page for authenticated users")
 
 FastAPIではSwagger UIによるドキュメントページが自動生成されます。
 
+<a href="" target="_blank">
+<img src="https://github.com/ktaka-ccmp/react-api-oauth2-example/blob/master/images/fastapi01.png" width="80%" alt="FastAPI OpenAPI doc page" title="FastAPI OpenAPI doc page">
+</a>
 ![FastAPI](https://github.com/ktaka-ccmp/react-api-oauth2-example/blob/master/images/fastapi01.png "FastAPI OpenAPI doc page")
 
 # Svelteでのフロントエンドの実装

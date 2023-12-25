@@ -1,0 +1,441 @@
+<!-- <textarea border-style:dotted="border-style:dotted" class="markdown" disabled="disabled"> -->
+<!-- <a href="" target="_blank"><img src="" width="30%"></a> -->
+<h1 id="table-of-contents">Table of Contents</h1>
+<ul>
+<li><a href="#はじめに">はじめに</a></li>
+<li><a href="#実装するもの">実装するもの</a></li>
+<li><a
+href="#svelteでのフロントエンドの実装">Svelteでのフロントエンドの実装</a>
+<ul>
+<li><a href="#ルーティング">ルーティング</a></li>
+<li><a href="#ログインページ">ログインページ</a></li>
+<li><a
+href="#axiosインスタンスのセットアップ">axiosインスタンスのセットアップ</a></li>
+<li><a
+href="#logoutbuttonコンポーネント">LogoutButtonコンポーネント</a></li>
+<li><a href="#customerコンポーネント">Customerコンポーネント</a></li>
+</ul></li>
+<li><a
+href="#fastapiでのバックエンド実装">FastAPIでのバックエンド実装</a>
+<ul>
+<li><a href="#apiloginエンドポイント">/api/loginエンドポイント</a></li>
+<li><a
+href="#アクティブユーザーを判別する関数">アクティブユーザーを判別する関数</a></li>
+<li><a
+href="#各種エンドポイントの保護">各種エンドポイントの保護</a></li>
+</ul></li>
+<li><a href="#まとめ">まとめ</a></li>
+</ul>
+<h1 id="はじめに">はじめに</h1>
+<p>SvelteとFastAPIを用いて構築したサンプルウェブサイトにGoogleのサインイン機能を実装してみました。
+Google Sign
+Inに成功したあとに、バックエンドのAPIサーバにログインするには様々な方法が考えれます。
+Googleから受け取ったJWTを、RequestヘッダにAuthorization: “Bearer:
+JWT”として送信し、正しいJWTであれば、そのままそのまま認証されたものとみなしたり、更に、バックエンドでJWTを発行して、Authorizationヘッダにセットすることで認証済みユーザを識別する方法が、ポピュラーなようです。
+しかしながら、JWTをそのままログインユーザの識別に利用する場合、JWTが漏洩した時に、即時の無効化が難しいという問題があります。
+(参考: <a
+href="http://cryto.net/~joepie91/blog/2016/06/13/stop-using-jwt-for-sessions/">Stop
+using JWT for sessions</a>)
+そこで、GoogleからJWTを受け取ったあと、FastAPI側であらたにsession_idを発行し、cookieを介してセッションを維持するやりかたで実装を行いました。</p>
+<p>セッション情報はFastAPIのセッションデータベースで管理しているので、いつでも管理者がセッションを無効にすることができます。
+またCookieにSecure属性とHttpOnly属性をつけることにより、経路での盗聴を防ぎ、JavaScriptからアクセスも防止することができ、より安全なWebサイトを構築することができます。</p>
+<p>なおSvelteもFastAPIも独学で学習中です。もしおかしなとことがありましたら、アドバイス頂けると嬉しいです。</p>
+<h1 id="実装するもの">実装するもの</h1>
+<p>認証が実装されると、未ログイン時のアクセスはログインページにリダイレクトされ、そこでGoogleアカウントでログインできる。</p>
+<p><a href="https://raw.githubusercontent.com/ktaka-ccmp/react-api-oauth2-example/blob/master/images/AuthLogin3-2.png" target="_blank">
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/react-api-oauth2-example/master/images/AuthLogin3-2.png
+" width="80%" alt="Login page" title="Login page"> </a></p>
+<p>Customerページは、認証に成功した場合にのみ表示することができます。</p>
+<p><a href="https://raw.githubusercontent.com/ktaka-ccmp/react-api-oauth2-example/blob/master/images/AuthCustomer.png" target="_blank">
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/react-api-oauth2-example/blob/master/images/AuthCustomer.png" width="80%" alt="Customer page for authenticated users" title="Customer page for authenticated users">
+</a></p>
+<p>FastAPIではSwagger UIによるドキュメントページが自動生成されます。</p>
+<p><a href="https://raw.githubusercontent.com/ktaka-ccmp/react-api-oauth2-example/blob/master/images/fastapi01.png" target="_blank">
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/react-api-oauth2-example/blob/master/images/fastapi01.png" width="80%" alt="FastAPI OpenAPI doc page" title="FastAPI OpenAPI doc page">
+</a></p>
+<h1
+id="svelteでのフロントエンドの実装">Svelteでのフロントエンドの実装</h1>
+<p>Svelteをフロントエンドを実装します。バックエンドからcustomerデータを取得しテーブル表示するページに、Google
+OAuth2を利用した認証機能を実装します。</p>
+<p>Google Sign
+Inに成功し、取得したJWTをバックエンドのAPIサーバに送信します。
+バックエンド側は、JWTをベリファイしユーザーアカウントを作成し、session_idをcookieにセットしてレスポンスを返信します。
+これ以降、バックエンドにリクエストを送る際には、常にcookieにsession_idをセットして、リクエストを送信します。</p>
+<p>実装したコードは以下のレポジトリにあります。 *
+https://github.com/ktaka-ccmp/react-api-oauth2-example/tree/master/google-oauth/frontend-svelte</p>
+<p>ログイン機能の実装ポイントについて以下に説明します。</p>
+<h2 id="ルーティング">ルーティング</h2>
+<ul>
+<li>svelete-routingを利用します。</li>
+<li><strong>/customer</strong>はCustomerコンポーネントを表示します。</li>
+<li><strong>/login</strong>はLoginPageコンポーネントを表示します。</li>
+</ul>
+<p>App.svelte</p>
+<pre><code>&lt;script&gt;
+  import { Router, Link, Route } from &quot;svelte-routing&quot;;
+  import Top from &quot;./components/Top.svelte&quot;;
+  import Customer from &quot;./components/Customer.svelte&quot;;
+  import NoMatch from &quot;./components/NoMatch.svelte&quot;;
+  import LoginPage from &quot;./components/LoginPage.svelte&quot;;
+
+  export let url = &quot;&quot;;
+&lt;/script&gt;
+
+&lt;div class=&quot;container-sm&quot;&gt;
+  &lt;Router {url}&gt;
+    &lt;nav&gt;
+      &lt;table class=&quot;table-borderless table-responsive&quot;&gt;
+        &lt;tbody&gt;
+          &lt;tr&gt;&lt;td&gt;&lt;Link to=&quot;/&quot;&gt;Top&lt;/Link&gt;&lt;/td&gt;&lt;/tr&gt;
+          &lt;tr&gt;&lt;td&gt;&lt;Link to=&quot;/customer&quot;&gt;Customer&lt;/Link&gt;&lt;/td&gt;&lt;/tr&gt;
+        &lt;/tbody&gt;
+      &lt;/table&gt;
+    &lt;/nav&gt;
+
+    &lt;div&gt;
+      &lt;Route path=&quot;/&quot;&gt;&lt;Top /&gt;&lt;/Route&gt;
+      &lt;Route path=&quot;/customer&quot;&gt;&lt;Customer /&gt;&lt;/Route&gt;
+      &lt;Route path=&quot;/login&quot;&gt;&lt;LoginPage /&gt;&lt;/Route&gt;
+      &lt;Route path=&quot;*&quot;&gt;&lt;NoMatch /&gt;&lt;/Route&gt;
+    &lt;/div&gt;
+  &lt;/Router&gt;
+&lt;/div&gt;</code></pre>
+<h2 id="ログインページ">ログインページ</h2>
+<ul>
+<li>GoogleのSign Inボタンを表示します。</li>
+<li>OneTapインターフェースも表示します。</li>
+<li>GoogleでSign
+In後に、コールバックファンクションbackendAuthを呼び出します。</li>
+<li>backendAuthで、Google Sign
+Inで得られたレスポンスをhttp://localhost/api/login
+に送信します。レスポンスにはJWTトークンが含まれます。</li>
+<li>バックエンドでのログインが成功した場合、<strong>/login</strong>
+の直前にいたページにリダイレクトします。</li>
+<li>バックエンドでのログインに失敗した場合、後述のapiAxios.interceptorのエラー処理が行われます。すなわち、もう一度<strong>/login</strong>
+ページにリダイレクトされます。</li>
+</ul>
+<p>LoginPage.svelte</p>
+<pre><code>&lt;script&gt;
+  import { onMount } from &quot;svelte&quot;;
+  import { apiAxios } from &quot;../lib/apiAxios&quot;;
+  import { useLocation, navigate } from &quot;svelte-routing&quot;;
+
+  let location = useLocation();
+  let origin = $location.state?.from;
+
+  const backendAuth = (response) =&gt; {
+    const data = JSON.stringify(response, null, 2);
+
+    apiAxios
+      .post(`/api/login/`, data)
+      .then((res) =&gt; {
+        navigate(origin, { replace: true });
+      });
+  };
+
+  onMount(() =&gt; {
+
+    google.accounts.id.initialize({
+      /* global google */
+      client_id: import.meta.env.VITE_APP_GOOGLE_OAUTH2_CLIENT_ID,
+      callback: (r) =&gt; backendAuth(r),
+      ux_mode: &quot;popup&quot;,
+    });
+
+    google.accounts.id.renderButton(document.getElementById(&quot;signInDiv&quot;), {
+      theme: &quot;filled_blue&quot;,
+      size: &quot;large&quot;,
+      shape: &quot;circle&quot;,
+    });
+
+    google.accounts.id.prompt();
+  });
+&lt;/script&gt;
+
+&lt;main&gt;
+  &lt;h2&gt;Login page&lt;/h2&gt;
+  &lt;div id=&quot;signInDiv&quot;&gt;&lt;/div&gt;
+&lt;/main&gt;</code></pre>
+<h2
+id="axiosインスタンスのセットアップ">axiosインスタンスのセットアップ</h2>
+<ul>
+<li><strong>withCredentials:
+true</strong>をセットすることにより、axiosはcookieを送信するようになります。</li>
+<li>axiosのinterceptorsで、error処理を行います。バックエンドから<strong>401
+Unauthorized</strong>、<strong>403 Forbidden</strong>
+が返ってきた場合、/loginへリダイレクトします。</li>
+</ul>
+<p>apiAxios.js</p>
+<pre><code>import axios from &quot;axios&quot;;
+import { navigate } from &quot;svelte-routing&quot;;
+
+export const apiAxios = axios.create({
+  baseURL: `${import.meta.env.VITE_APP_API_SERVER}`,
+  withCredentials: true,
+});
+
+apiAxios.interceptors.response.use(
+  (response) =&gt; {
+    return response;
+  },
+  (error) =&gt; {
+    if (error.response.status === 401 || error.response.status === 403) {
+        console.log(
+        &quot;apiAxios failed. Redirecting to /login... from&quot;,
+        location.pathname
+      );
+      navigate(&quot;/login&quot;, { state: { from: location.pathname }, replace: true });
+    }
+    return Promise.reject(error);
+  }
+);</code></pre>
+<h2 id="logoutbuttonコンポーネント">LogoutButtonコンポーネント</h2>
+<ul>
+<li>Logoutボタンを表示するコンポーネントです。</li>
+<li>onMount時に、バックエンドサーバにアクセスし、ログインしているユーザーのユーザー情報を取得します。</li>
+<li>cookieにsession_idが無い場合、すなわち未ログインの場合にはユーザー情報に失敗し、apiAxios.interceptorのエラー処理により、<strong>/login</strong>
+ページにリダイレクトされます。</li>
+</ul>
+<pre><code>&lt;script&gt;
+  import { onMount } from &quot;svelte&quot;;
+  import { apiAxios } from &quot;../lib/apiAxios.js&quot;;
+
+  let user;
+
+  onMount(() =&gt; {
+    console.log(&quot;Logout Component Mounted&quot;);
+    getUser();
+  });
+
+  const handleLogout = () =&gt; {
+    user = null;
+    apiAxios
+      .get(`/api/logout/`)
+      .then((res) =&gt; {
+        console.log(&quot;backendLogout&quot;, res);
+        getUser();
+      })
+      .catch((error) =&gt; console.log(&quot;Logout failed: &quot;, error));
+  };
+
+  const getUser = () =&gt; {
+    apiAxios
+      .get(`/api/user/`)
+      .then((res) =&gt; {
+        user = res.data;
+        console.log(&quot;getUser: user:&quot;, user);
+      })
+      .catch((error) =&gt; console.log(&quot;getUser faild: &quot;, error.response));
+  };
+
+  const onLogout = handleLogout;
+&lt;/script&gt;
+
+&lt;div&gt;
+  Authenticated as {user?.username} &amp;nbsp;
+  &lt;button type=&quot;button&quot; on:click={onLogout}&gt;Sign Out&lt;/button&gt;
+&lt;/div&gt;</code></pre>
+<h2 id="customerコンポーネント">Customerコンポーネント</h2>
+<ul>
+<li>バックエンドサーバからデータを取得し、テーブル表示するコンポーネント。</li>
+<li><strong>LogoutButton</strong>
+コンポーネントがページ内に配置されているので、未ログインの場合には、<strong>/login</strong>
+ページにリダイレクトされる。</li>
+</ul>
+<pre><code>&lt;script&gt;
+  import { onMount } from &quot;svelte&quot;;
+  import { apiAxios } from &quot;../lib/apiAxios&quot;;
+  import LogoutButton from &quot;./LogoutButton.svelte&quot;;
+
+  let customers = [];
+
+  const getCustomers = async () =&gt; {
+    await apiAxios
+      .get(`/api/customer/`)
+      .then((res) =&gt; {
+        customers = res.data.results;
+      })
+      .catch((error) =&gt; {
+        console.log(error);
+      });
+  };
+
+  onMount(async () =&gt; {
+    getCustomers();
+  });
+&lt;/script&gt;
+
+&lt;LogoutButton /&gt;
+
+&lt;h2&gt;This is Customer.&lt;/h2&gt;
+
+{#await customers}
+  &lt;p&gt;Loading ...&lt;/p&gt;
+{:then customers}
+  &lt;div class=&quot;table-responsive&quot;&gt;
+    &lt;table class=&quot;table table-bordered table-hover table-striped&quot;&gt;
+      &lt;thead class=&quot;table-light&quot;&gt;
+        &lt;tr&gt;
+          &lt;th&gt;id&lt;/th&gt;
+          &lt;th&gt;name&lt;/th&gt;
+          &lt;th&gt;email&lt;/th&gt;
+        &lt;/tr&gt;
+      &lt;/thead&gt;
+      &lt;tbody&gt;
+        {#each customers as cs}
+          &lt;tr&gt;
+            &lt;td&gt;{cs.id}&lt;/td&gt;
+            &lt;td&gt;{cs.name}&lt;/td&gt;
+            &lt;td&gt;{cs.email}&lt;/td&gt;
+          &lt;/tr&gt;
+        {/each}
+      &lt;/tbody&gt;
+    &lt;/table&gt;
+  &lt;/div&gt;
+{/await}</code></pre>
+<h1 id="fastapiでのバックエンド実装">FastAPIでのバックエンド実装</h1>
+<p>FastAPIを使用して、バックエンドのAPIサーバを実装します。
+フロントエンドから受け取ったJWTのVerifyに成功した場合、ログインユーザーのsession_idを発行しセッションデータベースに登録します。
+作成したsession_idをcookieにセットし、レスポンスを送信します。
+受け取ったJWTに対応するユーザーがデータベースに存在しない場合、あらたにユーザーを作成します。</p>
+<p>認証で保護されたエンドポイントへのリクエストを受け取った場合、cookieにセットされたsession_idとセッションデータベースを照合し、有効なセッション情報が存在している場合のみ、要求されたデータを返信します。</p>
+<p>実装したコードは以下のレポジトリにあります。 *
+https://github.com/ktaka-ccmp/react-api-oauth2-example/tree/master/google-oauth/backend-fastapi</p>
+<p>ログイン機能の実装ポイントについて以下に説明します。</p>
+<h2 id="apiloginエンドポイント">/api/loginエンドポイント</h2>
+<ul>
+<li>フロントエンドからJWTを受け取り、<a
+href="https://github.com/googleapis/google-auth-library-python/blob/main/google/oauth2/id_token.py#L107">verify</a>します。verifyにはgoogleのエンドポイントから取得した公開証明書を使います。</li>
+<li>verifyに成功すると、JWT内のemailアドレスを用いusername=“emailアドレス”、email=“emailアドレス”として、ユーザーデータベースにユーザーを登録します。</li>
+<li>作成したユーザーの情報と新に作成したsession_idをセッションデータベースに登録します。</li>
+<li>cookieにsession_idをセットし、レスポンスを返します。</li>
+</ul>
+<p>auth/auth.py</p>
+<pre><code>async def VerifyToken(jwt: str):
+    try:
+        idinfo = id_token.verify_oauth2_token(
+            jwt,
+            requests.Request(),
+            settings.google_oauth2_client_id)
+    except ValueError:
+        print(&quot;Error: Failed to validate JWT token with GOOGLE_OAUTH2_CLIENT_ID=&quot; + settings.google_oauth2_client_id +&quot;.&quot;)
+        return None
+
+    print(&quot;idinfo: &quot;, idinfo)
+    return idinfo
+
+@router.post(&quot;/login&quot;)
+async def login(request: Request, response: Response, ds: Session = Depends(get_db), cs: Session = Depends(get_cache)):
+    body = await request.body()
+    jwt = json.loads(body)[&quot;credential&quot;]
+    if jwt == None:
+        return  Response(&quot;Error: No JWT found&quot;)
+    print(&quot;JWT token: &quot; + jwt)
+
+    idinfo = await VerifyToken(jwt)
+    if not idinfo:
+        print(&quot;Error: Failed to validate JWT token&quot;)
+        return  Response(&quot;Error: Failed to validate JWT token&quot;)
+
+    user = await GetOrCreateUser(idinfo, ds)
+
+    if user:
+        user_dict = get_user_by_name(user.name, ds)
+        if not user_dict:
+            raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail=&quot;Error: User not exist in User table in DB.&quot;)
+        user = UserBase(**user_dict)
+        session_id = create_session(user, cs)
+        response.set_cookie(
+            key=&quot;session_id&quot;,
+            value=session_id,
+            httponly=True,
+            max_age=1800,
+            expires=1800,
+        )
+    else:
+        return Response(&quot;Error: Auth failed&quot;)
+    return {&quot;Authenticated_as&quot;: user.name}</code></pre>
+<h2
+id="アクティブユーザーを判別する関数">アクティブユーザーを判別する関数</h2>
+<ul>
+<li>FastAPIが受け取ったリクエストのCookieからsession_idを取り出し、セッションデータベース内のエントリと一致すればログイン済みとみなす。</li>
+<li><strong>get_current_active_user</strong>
+で、disabledのフラグが立っていないか判別している。</li>
+<li><strong>get_admin_user</strong>
+で、adminのフラグが立っているかどうか判別している。</li>
+</ul>
+<p>auth/auth.py</p>
+<pre><code>async def get_current_user(ds: Session = Depends(get_db), cs: Session = Depends(get_cache), session_id: str = Depends(oauth2_scheme)):
+    if not session_id:
+        return None
+
+    session = get_session_by_session_id(session_id, cs)
+    if not session:
+        return None
+
+    username = session[&quot;name&quot;]
+    user_dict = get_user_by_name(username, ds)
+    user=UserBase(**user_dict)
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=&quot;Invalid authentication credentials&quot;,
+        )
+    return user
+
+async def get_current_active_user(current_user: User = Depends(get_current_user)):
+    if not current_user:
+        raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail=&quot;NotAuthenticated&quot;)
+    if current_user.disabled:
+        raise HTTPException(status_code=HTTP_403_FORBIDDEN, detail=&quot;Inactive user&quot;)
+    return current_user
+
+async def get_admin_user(current_user: User = Depends(get_current_active_user)):
+    print(&quot;CurrentUser: &quot;, current_user)
+    if not current_user.admin:
+        raise HTTPException(status_code=HTTP_403_FORBIDDEN, detail=&quot;Admin Privilege Required&quot;)
+    return current_user</code></pre>
+<h2 id="各種エンドポイントの保護">各種エンドポイントの保護</h2>
+<ul>
+<li>Depends(get_current_active_user)
+により、<strong>(/api)/user/</strong>
+エンドポイントはログインユーザーのみがアクセスできる。</li>
+</ul>
+<p>auth/auth.py</p>
+<pre><code>@router.get(&quot;/user/&quot;)
+async def get_user(user: UserBase = Depends(get_current_active_user)):
+    return {&quot;username&quot;: user.name, &quot;email&quot;: user.email,}</code></pre>
+<ul>
+<li><strong>customer/customer.py</strong>
+で定義されたルートは<strong>dependencies=[Depends(auth.auth.get_current_active_user)]</strong>
+により、認証済みユーザーのみがアクセスできる。</li>
+<li><strong>admin/user.py</strong>
+で定義されたルートは<strong>dependencies=[Depends(auth.auth.get_admin_user)]</strong>
+により、Adminユーザーのみがアクセスできる。</li>
+</ul>
+<p>main.py</p>
+<pre><code>import admin.debug, admin.user, auth.auth, auth.debug
+import customer.customer
+
+app = FastAPI()
+
+app.include_router(
+    customer.customer.router,
+    prefix=&quot;/api&quot;,
+    tags=[&quot;CustomerForAuthenticatedUser&quot;],
+    dependencies=[Depends(auth.auth.get_current_active_user)],
+)
+
+app.include_router(
+    admin.user.router,
+    prefix=&quot;/api&quot;,
+    tags=[&quot;AdminOnly&quot;],
+    dependencies=[Depends(auth.auth.get_admin_user)],
+)</code></pre>
+<h1 id="まとめ">まとめ</h1>
+<p>SvelteとFastAPIを用いて構築したサンプルウェブサイトにGoogleのサインイン機能を実装してみました。
+、GoogleからJWTを受け取ったあと、FastAPI側であらたにsession_idを発行し、cookieを介してセッションを維持するやりかたで実装を行いました。
+セッション情報はFastAPIのセッションデータベースで管理しているので、いつでも管理者がセッションを無効にすることができます。
+またCookieにSecure属性とHttpOnly属性をつけることにより、経路での盗聴を防ぎ、JavaScriptからアクセスも防止することができ、より安全なWebサイトを構築することができます。</p>
+<!-- </textarea> -->

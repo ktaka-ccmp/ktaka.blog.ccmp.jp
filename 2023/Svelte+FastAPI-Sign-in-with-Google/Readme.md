@@ -36,20 +36,21 @@ Googleから受け取ったJWTを、RequestヘッダにAuthorization: "Bearer: J
 
 認証が実装されると、未ログイン時のアクセスはログインページにリダイレクトされ、そこでGoogleアカウントでログインできる。
 
-<a href="https://github.com/ktaka-ccmp/react-api-oauth2-example/blob/master/images/AuthLogin3-2.png" target="_blank">
-<img src="https://github.com/ktaka-ccmp/react-api-oauth2-example/blob/master/images/AuthLogin3-2.png" width="80%" alt="Login page" title="Login page">
+<a href="https://raw.githubusercontent.com/ktaka-ccmp/react-api-oauth2-example/blob/master/images/AuthLogin3-2.png" target="_blank">
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/react-api-oauth2-example/master/images/AuthLogin3-2.png
+" width="80%" alt="Login page" title="Login page">
 </a>
 
 Customerページは、認証に成功した場合にのみ表示することができます。
 
-<a href="https://github.com/ktaka-ccmp/react-api-oauth2-example/blob/master/images/AuthCustomer.png" target="_blank">
-<img src="https://github.com/ktaka-ccmp/react-api-oauth2-example/blob/master/images/AuthCustomer.png" width="80%" alt="Customer page for authenticated users" title="Customer page for authenticated users">
+<a href="https://raw.githubusercontent.com/ktaka-ccmp/react-api-oauth2-example/blob/master/images/AuthCustomer.png" target="_blank">
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/react-api-oauth2-example/blob/master/images/AuthCustomer.png" width="80%" alt="Customer page for authenticated users" title="Customer page for authenticated users">
 </a>
 
 FastAPIではSwagger UIによるドキュメントページが自動生成されます。
 
-<a href="https://github.com/ktaka-ccmp/react-api-oauth2-example/blob/master/images/fastapi01.png" target="_blank">
-<img src="https://github.com/ktaka-ccmp/react-api-oauth2-example/blob/master/images/fastapi01.png" width="80%" alt="FastAPI OpenAPI doc page" title="FastAPI OpenAPI doc page">
+<a href="https://raw.githubusercontent.com/ktaka-ccmp/react-api-oauth2-example/blob/master/images/fastapi01.png" target="_blank">
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/react-api-oauth2-example/blob/master/images/fastapi01.png" width="80%" alt="FastAPI OpenAPI doc page" title="FastAPI OpenAPI doc page">
 </a>
 
 # Svelteでのフロントエンドの実装

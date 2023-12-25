@@ -34,7 +34,7 @@ Googleから受け取ったJWTを、RequestヘッダにAuthorization: "Bearer: J
 
 # 実装するもの
 
-認証が実装されると、匿名ユーザーのアクセスはログインページにリダイレクトされ、そこでGoogleアカウントでログインできる。
+認証が実装されると、未ログイン時のアクセスはログインページにリダイレクトされ、そこでGoogleアカウントでログインできる。
 
 <a href="https://github.com/ktaka-ccmp/react-api-oauth2-example/blob/master/images/AuthLogin3-2.png" target="_blank">
 <img src="https://github.com/ktaka-ccmp/react-api-oauth2-example/blob/master/images/AuthLogin3-2.png" width="80%" alt="Login page" title="Login page">

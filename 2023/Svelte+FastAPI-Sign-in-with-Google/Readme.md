@@ -44,10 +44,9 @@ Googleから受け取ったJWTを、RequestヘッダにAuthorization: "Bearer: J
 Customerページは、認証に成功した場合にのみ表示することができます。
 
 
-<a href="" target="_blank">
+<a href="https://github.com/ktaka-ccmp/react-api-oauth2-example/blob/master/images/AuthCustomer.png" target="_blank">
 <img src="https://github.com/ktaka-ccmp/react-api-oauth2-example/blob/master/images/AuthCustomer.png" width="80%" alt="Customer page for authenticated users" title="Customer page for authenticated users">
 </a>
-![Customer page for authenticated users](https://github.com/ktaka-ccmp/react-api-oauth2-example/blob/master/images/AuthCustomer.png "Customer page for authenticated users")
 
 FastAPIではSwagger UIによるドキュメントページが自動生成されます。
 

@@ -64,6 +64,7 @@ Google Sign Inに成功し、取得したJWTをバックエンドのAPIサーバ
 これ以降、バックエンドにリクエストを送る際には、常にcookieにsession_idをセットして、リクエストを送信します。
 
 実装したコードは以下のレポジトリにあります。
+
 * https://github.com/ktaka-ccmp/react-api-oauth2-example/tree/master/google-oauth/frontend-svelte
 
 ログイン機能の実装ポイントについて以下に説明します。
@@ -310,6 +311,7 @@ FastAPIを使用して、バックエンドのAPIサーバを実装します。
 認証で保護されたエンドポイントへのリクエストを受け取った場合、cookieにセットされたsession_idとセッションデータベースを照合し、有効なセッション情報が存在している場合のみ、要求されたデータを返信します。
 
 実装したコードは以下のレポジトリにあります。
+
 * https://github.com/ktaka-ccmp/react-api-oauth2-example/tree/master/google-oauth/backend-fastapi
 
 ログイン機能の実装ポイントについて以下に説明します。

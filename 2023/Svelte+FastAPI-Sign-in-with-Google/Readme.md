@@ -1,6 +1,3 @@
-<!-- <textarea border-style:dotted="border-style:dotted" class="markdown" disabled="disabled"> -->
-<!-- <a href="" target="_blank"><img src="" width="30%"></a> -->
-
 Table of Contents
 =================
 
@@ -36,8 +33,10 @@ Googleから受け取ったJWTを、RequestヘッダにAuthorization: "Bearer: J
 
 認証が実装されると、未ログイン時のアクセスはログインページにリダイレクトされ、そこでGoogleアカウントでログインできる。
 
-<a href="https://raw.githubusercontent.com/ktaka-ccmp/react-api-oauth2-example/blob/master/images/AuthLogin3-2.png" target="_blank">
-<img src="https://raw.githubusercontent.com/ktaka-ccmp/react-api-oauth2-example/master/images/AuthLogin3-2.png" width="80%" alt="Login page" title="Login page">
+<a href="https://raw.githubusercontent.com/ktaka-ccmp/react-api-oauth2-example/master/images/AuthLogin3-2.png"
+target="_blank">
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/react-api-oauth2-example/master/images/AuthLogin3-2.png"
+width="80%" alt="Login page" title="Login page">
 </a>
 
 Customerページは、認証に成功した場合にのみ表示することができます。
@@ -449,5 +448,3 @@ SvelteとFastAPIを用いて構築したサンプルウェブサイトにGoogle�
 、GoogleからJWTを受け取ったあと、FastAPI側であらたにsession_idを発行し、cookieを介してセッションを維持するやりかたで実装を行いました。
 セッション情報はFastAPIのセッションデータベースで管理しているので、いつでも管理者がセッションを無効にすることができます。
 またCookieにSecure属性とHttpOnly属性をつけることにより、経路での盗聴を防ぎ、JavaScriptからアクセスも防止することができ、より安全なWebサイトを構築することができます。
-
-<!-- </textarea> -->

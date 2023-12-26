@@ -11,16 +11,16 @@ Table of Contents
 
 I have implemented Google Sign-In functionality in a sample website built using Svelte and FastAPI.
 There are various methods to log into the backend API server after a successful Google Sign In.
-One common approach is to send the JWT received from Google in the request header as `Authorization: "Bearer: JWT"`, and if the JWT is valid, authentication is granted.
+One common approach is to send the JWT received from Google in the request header as `Authorization: "Bearer: JWT,"` and if the JWT is valid, authentication is granted.
 Another typical method involves issuing a JWT on the backend and using it to identify authenticated users in the `Authorization` header.
 However, using JWT directly for user identification poses a challenge in immediate invalidation if the JWT is leaked.
 Reference: [Stop using JWT for sessions](http://cryto.net/~joepie91/blog/2016/06/13/stop-using-jwt-for-sessions/) .
 Therefore, I implemented a method where, after receiving the JWT from Google, FastAPI issues a new session_id, which is maintained through cookies.
 
-The session information is managed in FastAPI's session database, allowing administrators to invalidate sessions at any time.
+The session information is managed in FastAPI's session database, allowing administrators to invalidate sessions anytime.
 Additionally, by adding Secure and HttpOnly attributes to the cookies, interception during transmission and access from JavaScript are prevented, enabling the construction of a more secure website.
 
-Note: I am self-taught in both Svelte and FastAPI, so I would appreciate any advice if there are any mistakes.
+Note: I am self-taught in both Svelte and FastAPI, so I would appreciate any advice on improving anything.
 
 ## What I Implement
 
@@ -50,6 +50,14 @@ width="80%" alt="FastAPI OpenAPI doc page" title="FastAPI OpenAPI doc page">
 
 ## Implementing the Frontend with Svelte
 
+I implemented the frontend Javascript page using Svelte. 
+It includes authentication functionality using Google OAuth2 and retrieves customer data from the backend to display in a table.
+
+The obtained JWT is sent to the backend API server after successful Google Sign-In. The backend verifies the JWT, creates a user account, sets the session_id in a cookie, and returns a response. After that, the session_id is always sent in the cookie with each backend request.
+
+The implementation code is available in the following repository:
+
+
 I implemented the frontend using Svelte.
 It includes authentication functionality using Google OAuth2 and retrieves customer data from the backend to display in a table.
 
@@ -58,6 +66,7 @@ The backend verifies the JWT, creates a user account, sets the session_id in a c
 Thereafter, the session_id is always sent in the cookie with each backend request.
 
 The implementation code is available in the following repository: 
+
 - [frontend-svelte code](https://github.com/ktaka-ccmp/react-api-oauth2-example/tree/master/google-oauth/frontend-svelte)
 
 I will explain the key points of implementing the login functionality below.
@@ -65,6 +74,7 @@ I will explain the key points of implementing the login functionality below.
 ### Routing
 
 We use `svelete-routing` to set up routing as follows: 
+
 - **/customer** : Displays the Customer component. 
 - **/login** : Displays the LoginPage component.
 
@@ -104,12 +114,12 @@ Sample code for `App.svelte` is as follows:
 
 ### Login Page
 
-We display Google's Sign In button and also use the OneTap interface.
-After signing in with Google, the callback function `backendAuth` is called.
-`backendAuth` sends the response obtained from Google Sign In to `http://localhost/api/login`.
-The response includes the JWT token.
-If the backend login is successful, it redirects to the previous page.
-If it fails, error handling is performed and redirected back to the login page.
+We display Google's Sign-In button and also use the OneTap interface. 
+After signing in with Google, the callback function `backendAuth` is called. 
+`backendAuth` sends the response obtained from Google Sign-In to `http://localhost/api/login`. 
+The response includes the JWT token. 
+If the backend login is successful, it redirects to the previous page. 
+If it fails, the error is handled and "navigated" back to the login page.
 
 Sample code for `LoginPage.svelte` is as follows:
 
@@ -299,22 +309,23 @@ Since the `LogoutButton` component is placed on the page, if the user is not log
 
 ## Implementing the Backend with FastAPI
 
-I implemented the backend API server using FastAPI.
-It verifies the JWT received from the frontend, creates a user account, and issues a session_id, which is registered in the session database.
-The created session_id is set in a cookie and returned in the response.
-If a user corresponding to the JWT does not exist in the database, a new user is created.
+I implemented the backend API server using FastAPI. 
+It verifies the JWT received from the frontend Javascript apps, creates a user account, issues a session_id, and registers it in the session database. 
+The created session_id is set in a cookie and returned in the response. 
+The backend API server creates a new user if a user corresponding to the JWT does not exist in the database.
 
-When a request to an authenticated endpoint is received, FastAPI checks the session_id set in the cookie against the session database and, if valid session information exists, responds to the request.
+When a request to an authenticated endpoint is received, FastAPI checks the session_id set in the cookie against the session database and returns the requested data if valid session information exists.
 
 The implementation code is available in the following repository: 
+
 - [backend-fastapi code](https://github.com/ktaka-ccmp/react-api-oauth2-example/tree/master/google-oauth/backend-fastapi)
 
 I will explain the key points of implementing the login functionality below.
 
 ### /api/login Endpoint
 
-The frontend sends the JWT, which is verified using Google's public certificates.
-If verification is successful, the email address in the JWT is used to register the user in the user database.
+The frontend app sends the JWT, and then the backend FastAPI app verifies it using Google's public certificates.
+If verification is successful, the backend FastAPI app registers the user using the email address in the JWT as the username in the user database.
 The information of the newly created user and the session_id are registered in the session database, and the session_id is set in a cookie in the response.
 
 Sample code for `auth/auth.py` is as follows:
@@ -446,7 +457,7 @@ app.include_router(
 
 ## Conclusion
 
-I have implemented Google Sign-In functionality in a sample website built using Svelte and FastAPI.
-After receiving the JWT from Google, FastAPI issues a new session_id and maintains the session through cookies.
-The session information is managed in FastAPI's session database, allowing administrators to invalidate sessions at any time.
-Additionally, by adding Secure and HttpOnly attributes to the cookies, we can prevent interception and JavaScript access, enabling a more secure website construction.
+I have implemented Google Sign-In functionality in a sample website built using Svelte and FastAPI. 
+After receiving the JWT from Google, FastAPI issues a new session_id and maintains the session through cookies. 
+The session information is managed in FastAPI's Session database, allowing administrators to invalidate sessions anytime. 
+Additionally, adding Secure and HttpOnly attributes to the cookies can prevent interception and JavaScript access, enabling a more secure website development.

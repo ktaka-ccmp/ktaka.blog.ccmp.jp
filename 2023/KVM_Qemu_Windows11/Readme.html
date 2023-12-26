@@ -1,15 +1,9 @@
-<h1 id="table-of-contents">Table of Contents</h1>
+<h1 id="目次">目次</h1>
 <ul>
 <li><a href="#はじめに">はじめに</a></li>
 <li><a href="#window11のインストール">Window11のインストール</a>
 <ul>
-<li><a href="#kvm仮想マシンの起動方法">KVM仮想マシンの起動方法</a>
-<ul>
-<li><a
-href="#ホストのdevtpm0をパススルーで使う場合">ホストの/dev/tpm0をパススルーで使う場合</a></li>
-<li><a
-href="#ソフトウェアのtpmデバイスエミュレータを使う場合">ソフトウェアのTPMデバイスエミュレータを使う場合</a></li>
-</ul></li>
+<li><a href="#kvm仮想マシンの起動方法">KVM仮想マシンの起動方法</a></li>
 <li><a
 href="#仮想マシンが立ち上がるとuefシェルが起動してしまう">仮想マシンが立ち上がると、UEFシェルが起動してしまう。</a></li>
 <li><a
@@ -210,13 +204,19 @@ xfreerdp /u:$user /size:1900x1000 +fonts +clipboard  /audio-mode:1 /v:10.0.0.1</
 </ul>
 <h2 id="参考文献">参考文献</h2>
 <h3 id="qemuでのtpmの使い方">QemuでのTPMの使い方</h3>
-<p>以下のドキュメントに十分な情報があります。 *
-https://qemu-project.gitlab.io/qemu/specs/tpm.html</p>
+<p>以下のドキュメントに十分な情報があります。</p>
+<ul>
+<li><a href="https://qemu-project.gitlab.io/qemu/specs/tpm.html">QEMU
+TPM Device</a></li>
+</ul>
 <h3 id="qemuでのuefi-secure-bootのやり方">QEMUでのUEFI Secure
 Bootのやり方</h3>
 <ul>
-<li>https://wiki.debian.org/SecureBoot/VirtualMachine</li>
-<li>https://www.labbott.name/blog/2016/09/15/secure-ish-boot-with-qemu/</li>
+<li><a
+href="https://wiki.debian.org/SecureBoot/VirtualMachine">SecureBootVirtualMachine</a></li>
+<li><a
+href="https://www.labbott.name/blog/2016/09/15/secure-ish-boot-with-qemu/">Secure(ish)
+boot with QEMU</a></li>
 </ul>
 <h3 id="どのuefi-firmwareを使うべきか">どのUEFI
 firmwareを使うべきか</h3>

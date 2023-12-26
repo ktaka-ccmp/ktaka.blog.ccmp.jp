@@ -1,10 +1,9 @@
 Table of Contents
 =================
-
    * [Introduction](#introduction)
-   * [What I Implement](#what-we-implement)
-   * [Implementing the Frontend with Svelte](#implementing-the-frontend-with-svelte)
-   * [Implementing the Backend with FastAPI](#implementing-the-backend-with-fastapi)
+   * [What I Implement](#what-i-implement)
+   * [Frontend implementation with Svelte](#frontend-implementation-with-svelte)
+   * [Backend implementation with FastAPI](#backend-implementation-with-fastapi)
    * [Conclusion](#conclusion)
 
 ## Introduction
@@ -48,7 +47,7 @@ target="_blank">
 width="80%" alt="FastAPI OpenAPI doc page" title="FastAPI OpenAPI doc page">
 </a>
 
-## Implementing the Frontend with Svelte
+## Frontend implementation with Svelte
 
 I implemented the frontend Javascript page using Svelte. 
 It includes authentication functionality using Google OAuth2 and retrieves customer data from the backend to display in a table.
@@ -307,7 +306,7 @@ Since the `LogoutButton` component is placed on the page, if the user is not log
 {/await}
 ```
 
-## Implementing the Backend with FastAPI
+## Backend implementation with FastAPI
 
 I implemented the backend API server using FastAPI. 
 It verifies the JWT received from the frontend Javascript apps, creates a user account, issues a session_id, and registers it in the session database. 

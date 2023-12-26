@@ -1,7 +1,6 @@
-Table of Contents
+目次
 =================
 
-* [Table of Contents](#table-of-contents)
 * [はじめに](#はじめに)
 * [実装するもの](#実装するもの)
 * [Svelteでのフロントエンドの実装](#svelteでのフロントエンドの実装)

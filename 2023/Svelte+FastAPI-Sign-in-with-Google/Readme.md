@@ -1,20 +1,12 @@
 Table of Contents
 =================
 
+* [Table of Contents](#table-of-contents)
 * [はじめに](#はじめに)
 * [実装するもの](#実装するもの)
 * [Svelteでのフロントエンドの実装](#svelteでのフロントエンドの実装)
-   * [ルーティング](#ルーティング)
-   * [ログインページ](#ログインページ)
-   * [axiosインスタンスのセットアップ](#axiosインスタンスのセットアップ)
-   * [LogoutButtonコンポーネント](#logoutbuttonコンポーネント)
-   * [Customerコンポーネント](#customerコンポーネント)
 * [FastAPIでのバックエンド実装](#fastapiでのバックエンド実装)
-   * [/api/loginエンドポイント](#apiloginエンドポイント)
-   * [アクティブユーザーを判別する関数](#アクティブユーザーを判別する関数)
-   * [各種エンドポイントの保護](#各種エンドポイントの保護)
 * [まとめ](#まとめ)
-
 
 # はじめに
 
@@ -250,7 +242,7 @@ cookieにsession_idが無い場合、すなわち未ログインの場合には�
 
 ## Customerコンポーネント
 
-バックエンドサーバからデータを取得し、テーブル表示するコンポーネントです。**LogoutButton** コンポーネントがページ内に配置されているので、未ログインの場合には、**/login** ページにリダイレクトされます。
+バックエンドサーバからデータを取得し、テーブル表示するコンポーネントです。`LogoutButton` コンポーネントがページ内に配置されているので、未ログインの場合には、`/login` ページにリダイレクトされます。
 
 ```svelte
 <script>
@@ -321,7 +313,7 @@ FastAPIを使用して、バックエンドのAPIサーバを実装します。
 
 ログイン機能の実装ポイントについて以下に説明します。
 
-### /api/loginエンドポイント
+## /api/loginエンドポイント
 
 フロントエンドからJWTを受け取り、Googleの公開証明書を使用してJWTを検証します。
 検証に成功すると、JWT内のemailアドレスを使用してユーザーデータベースにユーザーを登録します。
@@ -375,7 +367,7 @@ async def login(request: Request, response: Response, ds: Session = Depends(get_
     return {"Authenticated_as": user.name}
 ```
 
-### アクティブユーザーを判別する関数
+## アクティブユーザーを判別する関数
 
 FastAPIが受け取ったリクエストのCookieからsession_idを取り出し、セッションデータベース内のエントリと一致すればログイン済みとみなします。
 `get_current_active_user`では、disabledのフラグが立っていないか判別し、`get_admin_user`では、adminのフラグが立っているかどうか判別します。
@@ -415,7 +407,7 @@ async def get_admin_user(current_user: User = Depends(get_current_active_user)):
     return current_user
 ```
 
-### 各種エンドポイントの保護
+## 各種エンドポイントの保護
 
 `Depends(get_current_active_user)`により、`/api/user/`エンドポイントはログインユーザーのみがアクセスできます。
 

@@ -1,11 +1,9 @@
-Table of Contents
+目次
 =================
 
    * [はじめに](#はじめに)
    * [Window11のインストール](#window11のインストール)
       * [KVM仮想マシンの起動方法](#kvm仮想マシンの起動方法)
-         * [ホストの/dev/tpm0をパススルーで使う場合](#ホストのdevtpm0をパススルーで使う場合)
-         * [ソフトウェアのTPMデバイスエミュレータを使う場合](#ソフトウェアのtpmデバイスエミュレータを使う場合)
       * [仮想マシンが立ち上がると、UEFシェルが起動してしまう。](#仮想マシンが立ち上がるとuefシェルが起動してしまう)
       * [インストール先のドライブが見えない](#インストール先のドライブが見えない)
       * [インストール時にMicrosoftアカウントへのサインインを求められる](#インストール時にmicrosoftアカウントへのサインインを求められる)
@@ -244,12 +242,13 @@ xfreerdp /u:$user /size:1900x1000 +fonts +clipboard  /audio-mode:1 /v:10.0.0.1
 ### QemuでのTPMの使い方
 
 以下のドキュメントに十分な情報があります。
-* https://qemu-project.gitlab.io/qemu/specs/tpm.html
+
+* [QEMU TPM Device](https://qemu-project.gitlab.io/qemu/specs/tpm.html)
 
 ### QEMUでのUEFI Secure Bootのやり方
 
-* https://wiki.debian.org/SecureBoot/VirtualMachine
-* https://www.labbott.name/blog/2016/09/15/secure-ish-boot-with-qemu/
+* [SecureBootVirtualMachine](https://wiki.debian.org/SecureBoot/VirtualMachine)
+* [Secure(ish) boot with QEMU](https://www.labbott.name/blog/2016/09/15/secure-ish-boot-with-qemu/)
 
 ### どのUEFI firmwareを使うべきか
 

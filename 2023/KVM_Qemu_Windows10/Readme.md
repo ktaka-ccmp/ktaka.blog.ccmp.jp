@@ -1,4 +1,4 @@
-Table of Contents
+目次
 =================
 
    * [はじめに](#はじめに)
@@ -103,7 +103,8 @@ sudo qemu-system-x86_64 \
 
 ### ホストLinuxのネットワーク設定
   
-  仮想マシンのネットワーク接続についてはいくつもやり方があります。私の場合、ゲストOSがWindowsであるかLinuxにあるかに関わらず、以下の方式を好んで利用しています。
+仮想マシンのネットワーク接続についてはいくつもやり方があります。私の場合、ゲストOSがWindowsであるかLinuxにあるかに関わらず、以下の方式を好んで利用しています。
+  
   * 仮想マシン用のブリッジを予め作成しておき、仮想マシンの起動時にそこにアタッチする。
   * 外部へはSNAT(MASQUERADE)で接続する。
   * ネットワークアドレスは、10.0.0.0/24を利用する。
@@ -123,10 +124,10 @@ iface kbr0 inet static
 	netmask 255.255.255.0
 	up /etc/network/masquerade.sh
 
-  ```
+```
   
-  iptables natの設定
-  ```
+iptables natの設定
+```
 /etc/network/masquerade.sh 
 
 #!/bin/bash
@@ -135,7 +136,7 @@ if ! iptables -t nat -C POSTROUTING -o eth0 -j MASQUERADE > /dev/null 2>&1 ; the
 	iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
 fi
 
-  ```
+```
 
 仮想マシン起動時に仮想マシンのネットワークインターフェースをホストLinuxのブリッジにアタッチするためのスクリプトも用意しておきます。
 ```
@@ -146,8 +147,7 @@ fi
 bridge=kbr0
 /sbin/ip link set dev $1 up promisc off
 /sbin/brctl addif $bridge $1
-
-  ```
+```
 
 ### 仮想マシンの起動コマンドライン
 
@@ -163,8 +163,7 @@ sudo qemu-system-x86_64 \
   -drive file=./win10pro.qcow2,if=virtio,format=qcow2,discard=unmap \
   -device virtio-net-pci,netdev=dev1,mac=52:54:00:11:00:12,id=net1 \
   -netdev tap,id=dev1,vhost=on,script=/etc/network/qemu-ifup
-
-  ```
+```
 
 そして、仮想マシンの起動後、Windows上でIPアドレス、DNSサーバー等の設定を行います。
 

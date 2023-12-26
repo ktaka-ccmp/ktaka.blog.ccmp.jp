@@ -1,18 +1,9 @@
-<h1 id="table-of-contents">Table of Contents</h1>
+<h1 id="目次">目次</h1>
 <ul>
 <li><a href="#はじめに">はじめに</a></li>
 <li><a href="#windows10インストール">Windows10インストール</a>
 <ul>
-<li><a href="#事前準備">事前準備</a>
-<ul>
-<li><a
-href="#インストールメディアvirtioドライバのダウンロード">インストールメディア、virtioドライバのダウンロード</a></li>
-<li><a
-href="#必要パッケジージのインストール">必要パッケジージのインストール</a></li>
-<li><a
-href="#インストール先ドライブのイメージファイル作成">インストール先ドライブのイメージファイル作成</a></li>
-<li><a href="#不具合回避">不具合回避</a></li>
-</ul></li>
+<li><a href="#事前準備">事前準備</a></li>
 <li><a
 href="#仮想マシンの起動とwindowsのインストール">仮想マシンの起動とWindowsのインストール</a></li>
 </ul></li>
@@ -94,13 +85,14 @@ id="仮想マシンの起動とwindowsのインストール">仮想マシンの�
 </ul>
 <h3
 id="ホストlinuxのネットワーク設定">ホストLinuxのネットワーク設定</h3>
-<p>仮想マシンのネットワーク接続についてはいくつもやり方があります。私の場合、ゲストOSがWindowsであるかLinuxにあるかに関わらず、以下の方式を好んで利用しています。
-*
-仮想マシン用のブリッジを予め作成しておき、仮想マシンの起動時にそこにアタッチする。
-* 外部へはSNAT(MASQUERADE)で接続する。 *
-ネットワークアドレスは、10.0.0.0/24を利用する。 *
-仮想マシン上ではその帯域の固定IPを利用する。 *
-DNSサーバは、ホストOSが使っているのと同じもの利用する。</p>
+<p>仮想マシンのネットワーク接続についてはいくつもやり方があります。私の場合、ゲストOSがWindowsであるかLinuxにあるかに関わらず、以下の方式を好んで利用しています。</p>
+<ul>
+<li>仮想マシン用のブリッジを予め作成しておき、仮想マシンの起動時にそこにアタッチする。</li>
+<li>外部へはSNAT(MASQUERADE)で接続する。</li>
+<li>ネットワークアドレスは、10.0.0.0/24を利用する。</li>
+<li>仮想マシン上ではその帯域の固定IPを利用する。</li>
+<li>DNSサーバは、ホストOSが使っているのと同じもの利用する。</li>
+</ul>
 <p>ブリッジインターフェースの作成は、Linuxのネットワーク設定ファイルに書いておき、ノートパソコン起動時に自動的に設定が行われます。</p>
 <pre><code>/etc/network/interfaces.d/kbr0
 auto kbr0
@@ -112,32 +104,35 @@ iface kbr0 inet static
     netmask 255.255.255.0
     up /etc/network/masquerade.sh
 </code></pre>
-<p>iptables natの設定 ``` /etc/network/masquerade.sh</p>
-<p>#!/bin/bash</p>
-<p>if ! iptables -t nat -C POSTROUTING -o eth0 -j MASQUERADE &gt;
-/dev/null 2&gt;&amp;1 ; then iptables -t nat -A POSTROUTING -o eth0 -j
-MASQUERADE fi</p>
-<pre><code>
-仮想マシン起動時に仮想マシンのネットワークインターフェースをホストLinuxのブリッジにアタッチするためのスクリプトも用意しておきます。</code></pre>
-<p>/etc/network/qemu-ifup</p>
-<p>#!/bin/sh</p>
-<p>bridge=kbr0 /sbin/ip link set dev $1 up promisc off /sbin/brctl addif
-$bridge $1</p>
-<pre><code>
-### 仮想マシンの起動コマンドライン
+<p>iptables natの設定</p>
+<pre><code>/etc/network/masquerade.sh 
 
+#!/bin/bash
 
-ネットワーク接続込のコマンドライン。</code></pre>
-<p>sudo qemu-system-x86_64<br />
--machine q35,accel=kvm<br />
--m 8192 -cpu host<br />
--smp 6,sockets=1,dies=1,cores=6,threads=1<br />
--display spice-app<br />
--rtc base=localtime,clock=host<br />
--drive file=./win10pro.qcow2,if=virtio,format=qcow2,discard=unmap<br />
--device virtio-net-pci,netdev=dev1,mac=52:54:00:11:00:12,id=net1<br />
--netdev tap,id=dev1,vhost=on,script=/etc/network/qemu-ifup</p>
-<p>```</p>
+if ! iptables -t nat -C POSTROUTING -o eth0 -j MASQUERADE &gt; /dev/null 2&gt;&amp;1 ; then 
+    iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+fi
+</code></pre>
+<p>仮想マシン起動時に仮想マシンのネットワークインターフェースをホストLinuxのブリッジにアタッチするためのスクリプトも用意しておきます。</p>
+<pre><code>/etc/network/qemu-ifup
+
+#!/bin/sh
+
+bridge=kbr0
+/sbin/ip link set dev $1 up promisc off
+/sbin/brctl addif $bridge $1</code></pre>
+<h3
+id="仮想マシンの起動コマンドライン">仮想マシンの起動コマンドライン</h3>
+<p>ネットワーク接続込のコマンドライン。</p>
+<pre><code>sudo qemu-system-x86_64 \
+  -machine q35,accel=kvm \
+  -m 8192 -cpu host \
+  -smp 6,sockets=1,dies=1,cores=6,threads=1 \
+  -display spice-app \
+  -rtc base=localtime,clock=host \
+  -drive file=./win10pro.qcow2,if=virtio,format=qcow2,discard=unmap \
+  -device virtio-net-pci,netdev=dev1,mac=52:54:00:11:00:12,id=net1 \
+  -netdev tap,id=dev1,vhost=on,script=/etc/network/qemu-ifup</code></pre>
 <p>そして、仮想マシンの起動後、Windows上でIPアドレス、DNSサーバー等の設定を行います。</p>
 <h2 id="まとめ">まとめ</h2>
 <p>QEMUコマンドのみでKVM仮想マシンを起動し、Windows10をインストールする方法についてまとめました。

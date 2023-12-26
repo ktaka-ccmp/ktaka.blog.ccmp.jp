@@ -1,12 +1,8 @@
-<h1 id="table-of-contents">Table of Contents</h1>
+<h1 id="目次">目次</h1>
 <ul>
 <li><a href="#要旨">要旨</a></li>
 <li><a href="#はじめに">はじめに</a></li>
-<li><a href="#やり方">やり方</a>
-<ul>
-<li><a
-href="#パーティション初期化と作成">パーティション初期化と作成</a></li>
-</ul></li>
+<li><a href="#やり方">やり方</a></li>
 <li><a href="#実際にブートできるのか">実際にブートできるのか</a></li>
 <li><a href="#まとめ">まとめ</a></li>
 </ul>
@@ -165,10 +161,14 @@ The partition table has been altered.
 Syncing disks.  </code></pre>
 <p>古いハードウェアには、bootable(active)フラグが立っているパーティションが無いとBIOSブートできないものがあり、どうやらIntel
 NUCはそのようなハードウェアのひとつであるようだ。</p>
-<p>参考 *
-https://wiki.archlinux.org/title/Partitioning#Tricking_old_BIOS_into_booting_from_GPT
-(このやり方はうまく行かなかった) *
-https://unix.stackexchange.com/a/325899</p>
+<p>参考</p>
+<ul>
+<li><a
+href="https://wiki.archlinux.org/title/Partitioning#Tricking_old_BIOS_into_booting_from_GPT">Partitioning
+- wiki.archlinux.org</a> (このやり方はうまく行かなかった)</li>
+<li><a href="https://unix.stackexchange.com/a/325899">BIOS / GPT: do we
+need a ‘boot’ flag?</a></li>
+</ul>
 <h2 id="まとめ">まとめ</h2>
 <p>今回、UEFIモードでもBIOSモードでも、GRUBを起動することができるUSBメモリの作成を試みた。
 作成したUSBメモリでGRUB画面の表示までたどり着けるか試してみた。

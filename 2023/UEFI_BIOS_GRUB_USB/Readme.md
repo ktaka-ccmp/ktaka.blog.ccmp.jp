@@ -1,10 +1,9 @@
-Table of Contents
+目次
 =================
 
    * [要旨](#要旨)
    * [はじめに](#はじめに)
    * [やり方](#やり方)
-      * [パーティション初期化と作成](#パーティション初期化と作成)
    * [実際にブートできるのか](#実際にブートできるのか)
    * [まとめ](#まとめ)
 
@@ -197,8 +196,9 @@ Syncing disks.
 古いハードウェアには、bootable(active)フラグが立っているパーティションが無いとBIOSブートできないものがあり、どうやらIntel NUCはそのようなハードウェアのひとつであるようだ。
 
 参考
-* https://wiki.archlinux.org/title/Partitioning#Tricking_old_BIOS_into_booting_from_GPT (このやり方はうまく行かなかった)
-* https://unix.stackexchange.com/a/325899
+
+   * [Partitioning - wiki.archlinux.org](https://wiki.archlinux.org/title/Partitioning#Tricking_old_BIOS_into_booting_from_GPT) (このやり方はうまく行かなかった)
+   * [BIOS / GPT: do we need a 'boot' flag?](https://unix.stackexchange.com/a/325899)
 
 ## まとめ
   

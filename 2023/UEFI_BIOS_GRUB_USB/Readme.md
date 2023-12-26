@@ -197,8 +197,8 @@ Syncing disks.
 
 参考
 
-   * https://wiki.archlinux.org/title/Partitioning#Tricking_old_BIOS_into_booting_from_GPT (このやり方はうまく行かなかった)
-   * https://unix.stackexchange.com/a/325899
+   * [Partitioning - wiki.archlinux.org](https://wiki.archlinux.org/title/Partitioning#Tricking_old_BIOS_into_booting_from_GPT) (このやり方はうまく行かなかった)
+   * [BIOS / GPT: do we need a 'boot' flag?](https://unix.stackexchange.com/a/325899)
 
 ## まとめ
   

@@ -17,7 +17,7 @@ Reference: [Stop using JWT for sessions](http://cryto.net/~joepie91/blog/2016/06
 Therefore, I implemented a method where, after receiving the JWT from Google, FastAPI issues a new session_id, which is maintained through cookies.
 
 The session information is managed in FastAPI's session database, allowing administrators to invalidate sessions anytime.
-Additionally, by adding Secure and HttpOnly attributes to the cookies, interception during transmission and access from JavaScript are prevented, enabling the construction of a more secure website.
+Additionally, by adding Secure and HttpOnly attributes to the cookies, interception during transmission and access from JavaScript are prevented, enabling the development of a more secure website.
 
 Note: I am self-taught in both Svelte and FastAPI, so I would appreciate any advice on improving anything.
 

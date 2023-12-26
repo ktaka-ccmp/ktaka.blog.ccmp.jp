@@ -196,8 +196,9 @@ Syncing disks.
 古いハードウェアには、bootable(active)フラグが立っているパーティションが無いとBIOSブートできないものがあり、どうやらIntel NUCはそのようなハードウェアのひとつであるようだ。
 
 参考
- * https://wiki.archlinux.org/title/Partitioning#Tricking_old_BIOS_into_booting_from_GPT (このやり方はうまく行かなかった)
- * https://unix.stackexchange.com/a/325899
+
+   * https://wiki.archlinux.org/title/Partitioning#Tricking_old_BIOS_into_booting_from_GPT (このやり方はうまく行かなかった)
+   * https://unix.stackexchange.com/a/325899
 
 ## まとめ
   

@@ -161,10 +161,12 @@ The partition table has been altered.
 Syncing disks.  </code></pre>
 <p>古いハードウェアには、bootable(active)フラグが立っているパーティションが無いとBIOSブートできないものがあり、どうやらIntel
 NUCはそのようなハードウェアのひとつであるようだ。</p>
-<p>参考 *
-https://wiki.archlinux.org/title/Partitioning#Tricking_old_BIOS_into_booting_from_GPT
-(このやり方はうまく行かなかった) *
-https://unix.stackexchange.com/a/325899</p>
+<p>参考</p>
+<ul>
+<li>https://wiki.archlinux.org/title/Partitioning#Tricking_old_BIOS_into_booting_from_GPT
+(このやり方はうまく行かなかった)</li>
+<li>https://unix.stackexchange.com/a/325899</li>
+</ul>
 <h2 id="まとめ">まとめ</h2>
 <p>今回、UEFIモードでもBIOSモードでも、GRUBを起動することができるUSBメモリの作成を試みた。
 作成したUSBメモリでGRUB画面の表示までたどり着けるか試してみた。

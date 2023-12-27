@@ -10,19 +10,20 @@ implementation with FastAPI</a></li>
 </ul>
 <h2 id="introduction">Introduction</h2>
 <p>I have implemented Google Sign-In functionality in a sample website
-built using Svelte and FastAPI. There are various methods to log into
-the backend API server after a successful Google Sign In. One common
-approach is to send the JWT received from Google in the request header
-as <code>Authorization: "Bearer: JWT,"</code> and if the JWT is valid,
-authentication is granted. Another typical method involves issuing a JWT
-on the backend and using it to identify authenticated users in the
-<code>Authorization</code> header. However, using JWT directly for user
-identification poses a challenge in immediate invalidation if the JWT is
-leaked. Reference: <a
+built using Svelte and FastAPI. There are various methods to
+authenticate users in the backend API server after a successful Google
+Sign In. One common approach is to send the JWT received from Google in
+the request header as <code>Authorization: "Bearer: JWT",</code> and if
+the JWT is valid, authorization to access resources is granted. Another
+typical method involves issuing a JWT on the backend and using it for
+user authentication in the <code>Authorization</code> header. However,
+using JWT directly for session management poses a challenge in immediate
+invalidation if the JWT is leaked. Reference: <a
 href="http://cryto.net/~joepie91/blog/2016/06/13/stop-using-jwt-for-sessions/">Stop
-using JWT for sessions</a> . Therefore, I implemented a method where,
-after receiving the JWT from Google, FastAPI issues a new session_id,
-which is maintained through cookies.</p>
+using JWT for sessions</a> . Therefore, I implemented a method in which,
+following the receipt of the JWT from Google, FastAPI assigns a new
+session_id. This session_id is set in a cookie to maintain the
+session.</p>
 <p>The session information is managed in FastAPI’s session database,
 allowing administrators to invalidate sessions anytime. Additionally, by
 adding Secure and HttpOnly attributes to the cookies, interception
@@ -33,46 +34,39 @@ appreciate any advice on improving anything.</p>
 <h2 id="what-i-implement">What I Implement</h2>
 <p>With authentication implemented, unauthenticated access will redirect
 to the login page, where you can log in with a Google account.</p>
-<p><a href="https://raw.githubusercontent.com/ktaka-ccmp/react-api-oauth2-example/master/images/AuthLogin3-2.png"
+<p><a href="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.0/images/AuthLogin3-2.png"
 target="_blank">
-<img src="https://raw.githubusercontent.com/ktaka-ccmp/react-api-oauth2-example/master/images/AuthLogin3-2.png"
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.0/images/AuthLogin3-2.png"
 width="80%" alt="Login page" title="Login page"> </a></p>
 <p>The Customer page can only be displayed after successful
 authentication.</p>
-<p><a href="https://raw.githubusercontent.com/ktaka-ccmp/react-api-oauth2-example/master/images/AuthCustomer.png"
+<p><a href="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.0/images/AuthCustomer.png"
 target="_blank">
-<img src="https://raw.githubusercontent.com/ktaka-ccmp/react-api-oauth2-example/master/images/AuthCustomer.png"
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.0/images/AuthCustomer.png"
 width="80%" alt="Customer page for authenticated users" title="Customer page for authenticated users">
 </a></p>
 <p>In FastAPI, the Swagger UI automatically generates a documentation
 page.</p>
-<p><a href="https://raw.githubusercontent.com/ktaka-ccmp/react-api-oauth2-example/master/images/fastapi01.png"
+<p><a href="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.0/images/fastapi01.png"
 target="_blank">
-<img src="https://raw.githubusercontent.com/ktaka-ccmp/react-api-oauth2-example/master/images/fastapi01.png"
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.0/images/fastapi01.png"
 width="80%" alt="FastAPI OpenAPI doc page" title="FastAPI OpenAPI doc page">
 </a></p>
 <h2 id="frontend-implementation-with-svelte">Frontend implementation
 with Svelte</h2>
-<p>I implemented the frontend Javascript page using Svelte. It includes
-authentication functionality using Google OAuth2 and retrieves customer
-data from the backend to display in a table.</p>
-<p>The obtained JWT is sent to the backend API server after successful
-Google Sign-In. The backend verifies the JWT, creates a user account,
-sets the session_id in a cookie, and returns a response. After that, the
-session_id is always sent in the cookie with each backend request.</p>
-<p>The implementation code is available in the following repository:</p>
-<p>I implemented the frontend using Svelte. It includes authentication
-functionality using Google OAuth2 and retrieves customer data from the
-backend to display in a table.</p>
-<p>Upon successful Google Sign In, the obtained JWT is sent to the
+<p>I implemented the frontend JavaScript application using Svelte. It
+includes authentication functionality using Google OAuth2 and retrieves
+customer data from the backend to display in a table.</p>
+<p>Upon successful Google Sign-In, the obtained JWT is sent to the
 backend API server. The backend verifies the JWT, creates a user
 account, sets the session_id in a cookie, and returns a response.
-Thereafter, the session_id is always sent in the cookie with each
-backend request.</p>
-<p>The implementation code is available in the following repository:</p>
+Thereafter, the session_id is always sent in the cookie to maintain a
+session.</p>
+<p>The code for this implementation is available in the following
+repository:</p>
 <ul>
 <li><a
-href="https://github.com/ktaka-ccmp/react-api-oauth2-example/tree/master/google-oauth/frontend-svelte">frontend-svelte
+href="https://github.com/ktaka-ccmp/google-oauth2-example/tree/v2.1.0/google-oauth/frontend-svelte">frontend-svelte
 code</a></li>
 </ul>
 <p>I will explain the key points of implementing the login functionality
@@ -167,7 +161,7 @@ login page.</p>
 <p>By setting <code>withCredentials: true</code>, axios will send
 cookies. Axios’s interceptors are used for error handling. If
 <code>401 Unauthorized</code> or <code>403 Forbidden</code> are returned
-from the backend, it redirects to <code>/login</code>.</p>
+from the backend, it navigates to <code>/login</code>.</p>
 <p>Sample code for <code>apiAxios.js</code> is as follows:</p>
 <div class="sourceCode" id="cb3"><pre
 class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> axios <span class="im">from</span> <span class="st">&quot;axios&quot;</span><span class="op">;</span></span>
@@ -306,10 +300,11 @@ does not exist in the database.</p>
 <p>When a request to an authenticated endpoint is received, FastAPI
 checks the session_id set in the cookie against the session database and
 returns the requested data if valid session information exists.</p>
-<p>The implementation code is available in the following repository:</p>
+<p>The code for this implementation is available in the following
+repository:</p>
 <ul>
 <li><a
-href="https://github.com/ktaka-ccmp/react-api-oauth2-example/tree/master/google-oauth/backend-fastapi">backend-fastapi
+href="https://github.com/ktaka-ccmp/google-oauth2-example/tree/v2.1.0/google-oauth/backend-fastapi">backend-fastapi
 code</a></li>
 </ul>
 <p>I will explain the key points of implementing the login functionality

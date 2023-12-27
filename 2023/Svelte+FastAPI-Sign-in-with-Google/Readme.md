@@ -195,7 +195,7 @@ apiAxios.interceptors.response.use(
 
 Logoutボタンを表示するコンポーネントです。
 onMount時に、バックエンドサーバにアクセスし、ログインしているユーザーの情報を取得します。
-cookieにsession_idが無い場合、すなわち未ログインの場合にはユーザー情報取得に失敗し、apiAxios.interceptorのエラー処理により、`/login`ページにリダイレクトされます。
+Cookieにsession_idが無い場合、すなわち未ログインの場合にはユーザー情報取得に失敗し、apiAxios.interceptorのエラー処理により、`/login`ページにリダイレクトされます。
 
 ```svelte
 <script>

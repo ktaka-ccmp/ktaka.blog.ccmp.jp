@@ -174,7 +174,7 @@ class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb3-
 <h2 id="logoutbuttonコンポーネント">LogoutButtonコンポーネント</h2>
 <p>Logoutボタンを表示するコンポーネントです。
 onMount時に、バックエンドサーバにアクセスし、ログインしているユーザーの情報を取得します。
-cookieにsession_idが無い場合、すなわち未ログインの場合にはユーザー情報取得に失敗し、apiAxios.interceptorのエラー処理により、<code>/login</code>ページにリダイレクトされます。</p>
+Cookieにsession_idが無い場合、すなわち未ログインの場合にはユーザー情報取得に失敗し、apiAxios.interceptorのエラー処理により、<code>/login</code>ページにリダイレクトされます。</p>
 <pre class="svelte"><code>&lt;script&gt;
   import { onMount } from &quot;svelte&quot;;
   import { apiAxios } from &quot;../lib/apiAxios.js&quot;;

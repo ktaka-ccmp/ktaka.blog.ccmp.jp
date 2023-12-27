@@ -24,20 +24,20 @@ using JWT for sessions</a>。
 <p>なお、SvelteもFastAPIも独学で学習中ですので、おかしな点があれば、アドバイスいただけると嬉しいです。</p>
 <h1 id="実装するもの">実装するもの</h1>
 <p>認証が実装されると、未ログイン時のアクセスはログインページにリダイレクトされ、そこでGoogleアカウントでログインできます。</p>
-<p><a href="https://raw.githubusercontent.com/ktaka-ccmp/react-api-oauth2-example/master/images/AuthLogin3-2.png"
+<p><a href="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.0/images/AuthLogin3-2.png"
 target="_blank">
-<img src="https://raw.githubusercontent.com/ktaka-ccmp/react-api-oauth2-example/master/images/AuthLogin3-2.png"
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.0/images/AuthLogin3-2.png"
 width="80%" alt="Login page" title="Login page"> </a></p>
 <p>Customerページは、認証に成功した場合にのみ表示できます。</p>
-<p><a href="https://raw.githubusercontent.com/ktaka-ccmp/react-api-oauth2-example/master/images/AuthCustomer.png"
+<p><a href="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.0/images/AuthCustomer.png"
 target="_blank">
-<img src="https://raw.githubusercontent.com/ktaka-ccmp/react-api-oauth2-example/master/images/AuthCustomer.png"
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.0/images/AuthCustomer.png"
 width="80%" alt="Customer page for authenticated users" title="Customer page for authenticated users">
 </a></p>
 <p>FastAPIではSwagger UIによるドキュメントページが自動生成されます。</p>
-<p><a href="https://raw.githubusercontent.com/ktaka-ccmp/react-api-oauth2-example/master/images/fastapi01.png"
+<p><a href="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.0/images/fastapi01.png"
 target="_blank">
-<img src="https://raw.githubusercontent.com/ktaka-ccmp/react-api-oauth2-example/master/images/fastapi01.png"
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.0/images/fastapi01.png"
 width="80%" alt="FastAPI OpenAPI doc page" title="FastAPI OpenAPI doc page">
 </a></p>
 <h1
@@ -52,7 +52,7 @@ Inに成功し、取得したJWTをバックエンドのAPIサーバーに送信
 <p>実装したコードは以下のリポジトリにあります。</p>
 <ul>
 <li><a
-href="https://github.com/ktaka-ccmp/react-api-oauth2-example/tree/master/google-oauth/frontend-svelte">frontend-svelteのコード</a></li>
+href="https://github.com/ktaka-ccmp/google-oauth2-example/tree/v2.1.0/google-oauth/frontend-svelte">frontend-svelteのコード</a></li>
 </ul>
 <p>ログイン機能の実装ポイントを以下に説明します。</p>
 <h2 id="ルーティング">ルーティング</h2>
@@ -278,7 +278,7 @@ cookieにsession_idが無い場合、すなわち未ログインの場合には�
 <p>実装したコードは以下のリポジトリにあります。</p>
 <ul>
 <li><a
-href="https://github.com/ktaka-ccmp/react-api-oauth2-example/tree/master/google-oauth/backend-fastapi">backend-fastapiのコード</a></li>
+href="https://github.com/ktaka-ccmp/google-oauth2-example/tree/v2.1.0/google-oauth/backend-fastapi">backend-fastapiのコード</a></li>
 </ul>
 <p>ログイン機能の実装ポイントについて以下に説明します。</p>
 <h2 id="apiloginエンドポイント">/api/loginエンドポイント</h2>

@@ -365,11 +365,12 @@ async def login(request: Request, response: Response, ds: Session = Depends(get_
     return {&quot;Authenticated_as&quot;: user.name}</code></pre>
 <h3 id="function-to-determine-active-users">Function to Determine Active
 Users</h3>
-<p>FastAPI extracts the session_id from the cookie of the received
-request and considers the user logged in if it matches an entry in the
-session database. <code>get_current_active_user</code> checks whether
-the user is not disabled, and <code>get_admin_user</code> checks whether
-the user has admin privileges.</p>
+<p>In the <code>get_current_user</code> function, FastAPI extracts the
+session_id from the cookie of the received request and considers the
+user logged in if it matches an entry in the session database. The
+<code>get_current_active_user</code> checks whether the user is
+disabled, and the <code>get_admin_user</code> checks whether the user
+has admin privileges.</p>
 <p>Sample code for <code>auth/auth.py</code> is as follows:</p>
 <pre><code>async def get_current_user(ds: Session = Depends(get_db), cs: Session = Depends(get_cache), session_id: str = Depends(oauth2_scheme)):
     if not session_id:

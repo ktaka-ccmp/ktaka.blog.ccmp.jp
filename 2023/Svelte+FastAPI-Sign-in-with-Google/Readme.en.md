@@ -370,8 +370,8 @@ async def login(request: Request, response: Response, ds: Session = Depends(get_
 
 ### Function to Determine Active Users
 
-FastAPI extracts the session_id from the cookie of the received request and considers the user logged in if it matches an entry in the session database.
-`get_current_active_user` checks whether the user is not disabled, and `get_admin_user` checks whether the user has admin privileges.
+In the `get_current_user` function, FastAPI extracts the session_id from the cookie of the received request and considers the user logged in if it matches an entry in the session database.
+The `get_current_active_user` checks whether the user is disabled, and the `get_admin_user` checks whether the user has admin privileges.
 
 Sample code for `auth/auth.py` is as follows:
 

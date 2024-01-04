@@ -305,7 +305,7 @@ It verifies the JWT received from the frontend Javascript apps, creates a user a
 The created session_id is set in a cookie and returned in the response. 
 The backend API server creates a new user if a user corresponding to the JWT does not exist in the database.
 
-When a request to an authenticated endpoint is received, FastAPI checks the session_id set in the cookie against the session database and returns the requested data if valid session information exists.
+When a request to an endpoint that requires authentication is received, FastAPI checks the session_id set in the cookie against the session database and returns the requested data if valid session information exists.
 
 The code for this implementation is available in the following repository:
 

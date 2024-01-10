@@ -34,22 +34,22 @@ appreciate any advice on improving anything.</p>
 <h2 id="what-i-implement">What I Implement</h2>
 <p>With authentication implemented, unauthenticated access will redirect
 to the login page, where you can log in with a Google account.</p>
-<p><a href="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.0/images/AuthLogin3-2.png"
+<p><a href="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.1/images/AuthLogin3-2.png"
 target="_blank">
-<img src="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.0/images/AuthLogin3-2.png"
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.1/images/AuthLogin3-2.png"
 width="80%" alt="Login page" title="Login page"> </a></p>
 <p>The Customer page can only be displayed after successful
 authentication.</p>
-<p><a href="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.0/images/AuthCustomer.png"
+<p><a href="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.1/images/AuthCustomer.png"
 target="_blank">
-<img src="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.0/images/AuthCustomer.png"
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.1/images/AuthCustomer.png"
 width="80%" alt="Customer page for authenticated users" title="Customer page for authenticated users">
 </a></p>
 <p>In FastAPI, the Swagger UI automatically generates a documentation
 page.</p>
-<p><a href="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.0/images/fastapi01.png"
+<p><a href="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.1/images/fastapi01.png"
 target="_blank">
-<img src="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.0/images/fastapi01.png"
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.1/images/fastapi01.png"
 width="80%" alt="FastAPI OpenAPI doc page" title="FastAPI OpenAPI doc page">
 </a></p>
 <h2 id="frontend-implementation-with-svelte">Frontend implementation
@@ -66,7 +66,7 @@ session.</p>
 repository:</p>
 <ul>
 <li><a
-href="https://github.com/ktaka-ccmp/google-oauth2-example/tree/v2.1.0/google-oauth/frontend-svelte">frontend-svelte
+href="https://github.com/ktaka-ccmp/google-oauth2-example/tree/v2.1.1/google-oauth/frontend-svelte">frontend-svelte
 code</a></li>
 </ul>
 <p>I will explain the key points of implementing the login functionality
@@ -121,26 +121,35 @@ login page.</p>
   import { onMount } from &quot;svelte&quot;;
   import { apiAxios } from &quot;../lib/apiAxios&quot;;
   import { useLocation, navigate } from &quot;svelte-routing&quot;;
+  import { jwtDecode } from &quot;jwt-decode&quot;;
 
   let location = useLocation();
   let origin = $location.state?.from;
 
   const backendAuth = (response) =&gt; {
     const data = JSON.stringify(response, null, 2);
+    console.log(&quot;JWT fed to backendAuth:\n&quot;, data);
 
     apiAxios
       .post(`/api/login/`, data)
       .then((res) =&gt; {
+        console.log(&quot;Navigate back to: &quot;, origin);
         navigate(origin, { replace: true });
+      })
+      .catch((error) =&gt; {
+        console.log(&quot;backendAuth failed. Redirecting to /login... &quot;);
       });
   };
+  const onLogin = backendAuth;
 
   onMount(() =&gt; {
+
     google.accounts.id.initialize({
       /* global google */
       client_id: import.meta.env.VITE_APP_GOOGLE_OAUTH2_CLIENT_ID,
-      callback: (r) =&gt; backendAuth(r),
+      callback: (r) =&gt; onLogin(r),
       ux_mode: &quot;popup&quot;,
+      //        ux_mode: &quot;redirect&quot;,
     });
 
     google.accounts.id.renderButton(document.getElementById(&quot;signInDiv&quot;), {
@@ -244,30 +253,24 @@ the page, if the user is not logged in, it redirects to the
   import LogoutButton from &quot;./LogoutButton.svelte&quot;;
 
   let customers = [];
-
-  const getCustomers = async () =&gt; {
-    await apiAxios
-      .get(`/api/customer/`)
-      .then((res) =&gt; {
-        customers = res.data.results;
-      })
-      .catch((error) =&gt; {
-        console.log(error);
-      });
-  };
+  let Loading = true;
 
   onMount(async () =&gt; {
-    getCustomers();
+    await new Promise((r) =&gt; setTimeout(r, 1000));
+    apiAxios
+      .get(`/api/customer/`)
+      .then((res) =&gt; (customers = res.data.results))
+      .catch((error) =&gt; console.log(error))
+      .finally(() =&gt; Loading = false);
   });
 &lt;/script&gt;
 
 &lt;LogoutButton /&gt;
-
 &lt;h2&gt;This is Customer.&lt;/h2&gt;
 
-{#await customers}
+{#if Loading}
   &lt;p&gt;Loading ...&lt;/p&gt;
-{:then customers}
+{:else}
   &lt;div class=&quot;table-responsive&quot;&gt;
     &lt;table class=&quot;table table-bordered table-hover table-striped&quot;&gt;
       &lt;thead class=&quot;table-light&quot;&gt;
@@ -288,7 +291,7 @@ the page, if the user is not logged in, it redirects to the
       &lt;/tbody&gt;
     &lt;/table&gt;
   &lt;/div&gt;
-{/await}</code></pre>
+{/if}</code></pre>
 <h2 id="backend-implementation-with-fastapi">Backend implementation with
 FastAPI</h2>
 <p>I implemented the backend API server using FastAPI. It verifies the
@@ -305,7 +308,7 @@ information exists.</p>
 repository:</p>
 <ul>
 <li><a
-href="https://github.com/ktaka-ccmp/google-oauth2-example/tree/v2.1.0/google-oauth/backend-fastapi">backend-fastapi
+href="https://github.com/ktaka-ccmp/google-oauth2-example/tree/v2.1.1/google-oauth/backend-fastapi">backend-fastapi
 code</a></li>
 </ul>
 <p>I will explain the key points of implementing the login functionality

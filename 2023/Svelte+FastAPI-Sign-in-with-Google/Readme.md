@@ -26,25 +26,25 @@ Googleから受け取ったJWTを、Requestヘッダに`Authorization: "Bearer: 
 
 認証が実装されると、未ログイン時のアクセスはログインページにリダイレクトされ、そこでGoogleアカウントでログインできます。
 
-<a href="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.0/images/AuthLogin3-2.png"
+<a href="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.1/images/AuthLogin3-2.png"
 target="_blank">
-<img src="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.0/images/AuthLogin3-2.png"
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.1/images/AuthLogin3-2.png"
 width="80%" alt="Login page" title="Login page">
 </a>
 
 Customerページは、認証に成功した場合にのみ表示できます。
 
-<a href="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.0/images/AuthCustomer.png"
+<a href="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.1/images/AuthCustomer.png"
 target="_blank">
-<img src="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.0/images/AuthCustomer.png"
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.1/images/AuthCustomer.png"
 width="80%" alt="Customer page for authenticated users" title="Customer page for authenticated users">
 </a>
 
 FastAPIではSwagger UIによるドキュメントページが自動生成されます。
 
-<a href="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.0/images/fastapi01.png"
+<a href="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.1/images/fastapi01.png"
 target="_blank">
-<img src="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.0/images/fastapi01.png"
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/google-oauth2-example/v2.1.1/images/fastapi01.png"
 width="80%" alt="FastAPI OpenAPI doc page" title="FastAPI OpenAPI doc page">
 </a>
 
@@ -59,7 +59,7 @@ Google Sign Inに成功し、取得したJWTをバックエンドのAPIサーバ
 
 実装したコードは以下のリポジトリにあります。
 
-* [frontend-svelteのコード](https://github.com/ktaka-ccmp/google-oauth2-example/tree/v2.1.0/google-oauth/frontend-svelte)
+* [frontend-svelteのコード](https://github.com/ktaka-ccmp/google-oauth2-example/tree/v2.1.1/google-oauth/frontend-svelte)
 
 ログイン機能の実装ポイントを以下に説明します。
 
@@ -120,26 +120,35 @@ GoogleでSign In後、コールバックファンクション`backendAuth`を呼
   import { onMount } from "svelte";
   import { apiAxios } from "../lib/apiAxios";
   import { useLocation, navigate } from "svelte-routing";
+  import { jwtDecode } from "jwt-decode";
 
   let location = useLocation();
   let origin = $location.state?.from;
 
   const backendAuth = (response) => {
     const data = JSON.stringify(response, null, 2);
+    console.log("JWT fed to backendAuth:\n", data);
 
     apiAxios
       .post(`/api/login/`, data)
       .then((res) => {
+        console.log("Navigate back to: ", origin);
         navigate(origin, { replace: true });
+      })
+      .catch((error) => {
+        console.log("backendAuth failed. Redirecting to /login... ");
       });
   };
+  const onLogin = backendAuth;
 
   onMount(() => {
+
     google.accounts.id.initialize({
       /* global google */
       client_id: import.meta.env.VITE_APP_GOOGLE_OAUTH2_CLIENT_ID,
-      callback: (r) => backendAuth(r),
+      callback: (r) => onLogin(r),
       ux_mode: "popup",
+      //	    ux_mode: "redirect",
     });
 
     google.accounts.id.renderButton(document.getElementById("signInDiv"), {
@@ -250,30 +259,24 @@ Cookieにsession_idが無い場合、すなわち未ログインの場合には�
   import LogoutButton from "./LogoutButton.svelte";
 
   let customers = [];
-
-  const getCustomers = async () => {
-    await apiAxios
-      .get(`/api/customer/`)
-      .then((res) => {
-        customers = res.data.results;
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-  };
+  let Loading = true;
 
   onMount(async () => {
-    getCustomers();
+    await new Promise((r) => setTimeout(r, 1000));
+    apiAxios
+      .get(`/api/customer/`)
+      .then((res) => (customers = res.data.results))
+      .catch((error) => console.log(error))
+      .finally(() => Loading = false);
   });
 </script>
 
 <LogoutButton />
-
 <h2>This is Customer.</h2>
 
-{#await customers}
+{#if Loading}
   <p>Loading ...</p>
-{:then customers}
+{:else}
   <div class="table-responsive">
     <table class="table table-bordered table-hover table-striped">
       <thead class="table-light">
@@ -294,7 +297,7 @@ Cookieにsession_idが無い場合、すなわち未ログインの場合には�
       </tbody>
     </table>
   </div>
-{/await}
+{/if}
 ```
 
 # FastAPIでのバックエンド実装
@@ -308,7 +311,7 @@ FastAPIを使用して、バックエンドのAPIサーバを実装します。
 
 実装したコードは以下のリポジトリにあります。
 
-* [backend-fastapiのコード](https://github.com/ktaka-ccmp/google-oauth2-example/tree/v2.1.0/google-oauth/backend-fastapi)
+* [backend-fastapiのコード](https://github.com/ktaka-ccmp/google-oauth2-example/tree/v2.1.1/google-oauth/backend-fastapi)
 
 ログイン機能の実装ポイントについて以下に説明します。
 

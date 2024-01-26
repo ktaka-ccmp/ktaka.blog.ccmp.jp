@@ -1,5 +1,7 @@
 <h1 id="目次">目次</h1>
 <ul>
+<li><a href="#目次">目次</a>
+<ul>
 <li><a href="#はじめに">はじめに</a></li>
 <li><a href="#window11のインストール">Window11のインストール</a>
 <ul>
@@ -32,22 +34,28 @@ Bootのやり方</a></li>
 firmwareを使うべきか</a></li>
 </ul></li>
 <li><a href="#まとめ">まとめ</a></li>
+</ul></li>
 </ul>
 <h2 id="はじめに">はじめに</h2>
 <p><a
 href="/2023/03/kvmqemuwindows.html">前回</a>に引き続き、KVM仮想マシン上にWindows11をインストールするやり方をまとめておきます。</p>
-<p>Windows10の時とは以下のような違いがあります。 *
-Windows11の場合、TPMとUEFI Secure Bootが必須である。 *
-KVMでTPMを使うには、ホストの/dev/tpm0をパススルーで使う方法と、ソフトウェアのTPMデバイスエミュレーター(swtpm)を使う方法がある。
-* KVMでUEFI Secure Bootするには、ovmfパッケージにより提供されるUEFI
-firmwareを利用する。</p>
+<p>Windows10の時とは以下のような違いがあります。</p>
+<ul>
+<li>Windows11の場合、TPMとUEFI Secure Bootが必須である。</li>
+<li>KVMでTPMを使うには、ホストの/dev/tpm0をパススルーで使う方法と、ソフトウェアのTPMデバイスエミュレーター(swtpm)を使う方法がある。</li>
+<li>KVMでUEFI Secure Bootするには、ovmfパッケージにより提供されるUEFI
+firmwareを利用する。</li>
+</ul>
 <h2 id="window11のインストール">Window11のインストール</h2>
 <h3 id="kvm仮想マシンの起動方法">KVM仮想マシンの起動方法</h3>
-<p>Windows11のインストールメディア、virtioドライバインストール用のisoイメージをダウンロードしておきます。
-* <a
+<p>Windows11のインストールメディア、virtioドライバインストール用のisoイメージをダウンロードしておきます。</p>
+<ul>
+<li><a
 href="https://www.microsoft.com/en-us/software-download/windows11">Download
-Windows 11</a> * <a
-href="https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/">Windows用virtioドライバのありか</a></p>
+Windows 11</a></li>
+<li><a
+href="https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/">Windows用virtioドライバのありか</a></li>
+</ul>
 <p>必要パッケジージのインストール</p>
 <pre><code>sudo apt-get install qemu-system-x86 virt-viewer ovmf</code></pre>
 <p>qcow2ディスクイメージを作成します。</p>
@@ -121,10 +129,12 @@ id="残りのvirtioドライバーをインストール">残りのvirtioドラ�
 <p>以上で、ネットワーク関連は未設定状態ですが、Windows11がインストールされたqcow2ディスクイメージ、win11pro.qcow2ができあがります。</p>
 <h2 id="普段使いのために">普段使いのために</h2>
 <p>Windows11のインストールは、ネットワーク無しで行った。仮想マシン上のWindows11を利用するには、ネットワークが使えないと困るでしょう。
-ネットワークを使えるようにするためには、次の3つの準備が必要です。 1.
-Linuxホスト上でのネットワーク設定 1.
-KVM起動コマンドをネットワークが使えるように修正 1.
-Windows11ゲストマシン上でネットワーク設定</p>
+ネットワークを使えるようにするためには、次の3つの準備が必要です。</p>
+<ol type="1">
+<li>Linuxホスト上でのネットワーク設定</li>
+<li>KVM起動コマンドをネットワークが使えるように修正</li>
+<li>Windows11ゲストマシン上でネットワーク設定</li>
+</ol>
 <h3
 id="linuxホストのネットワークセットアップ">Linuxホストのネットワークセットアップ</h3>
 <p>Linuxホスト上では、以下の設定を行えば十分です。</p>

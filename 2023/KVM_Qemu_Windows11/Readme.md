@@ -1,51 +1,57 @@
-目次
-=================
+# 目次
 
-   * [はじめに](#はじめに)
-   * [Window11のインストール](#window11のインストール)
-      * [KVM仮想マシンの起動方法](#kvm仮想マシンの起動方法)
-      * [仮想マシンが立ち上がると、UEFシェルが起動してしまう。](#仮想マシンが立ち上がるとuefシェルが起動してしまう)
-      * [インストール先のドライブが見えない](#インストール先のドライブが見えない)
-      * [インストール時にMicrosoftアカウントへのサインインを求められる](#インストール時にmicrosoftアカウントへのサインインを求められる)
-      * [残りのvirtioドライバーをインストール](#残りのvirtioドライバーをインストール)
-   * [普段使いのために](#普段使いのために)
-      * [Linuxホストのネットワークセットアップ](#linuxホストのネットワークセットアップ)
-      * [Windowsゲスト起動コマンド](#windowsゲスト起動コマンド)
-      * [Windowsゲストのネットワーク設定](#windowsゲストのネットワーク設定)
-   * [その他のTips](#その他のtips)
-   * [参考文献](#参考文献)
-      * [QemuでのTPMの使い方](#qemuでのtpmの使い方)
-      * [QEMUでのUEFI Secure Bootのやり方](#qemuでのuefi-secure-bootのやり方)
-      * [どのUEFI firmwareを使うべきか](#どのuefi-firmwareを使うべきか)
-   * [まとめ](#まとめ)
+- [目次](#目次)
+  - [はじめに](#はじめに)
+  - [Window11のインストール](#window11のインストール)
+    - [KVM仮想マシンの起動方法](#kvm仮想マシンの起動方法)
+    - [仮想マシンが立ち上がると、UEFシェルが起動してしまう。](#仮想マシンが立ち上がるとuefシェルが起動してしまう)
+    - [インストール先のドライブが見えない](#インストール先のドライブが見えない)
+    - [インストール時にMicrosoftアカウントへのサインインを求められる](#インストール時にmicrosoftアカウントへのサインインを求められる)
+    - [残りのvirtioドライバーをインストール](#残りのvirtioドライバーをインストール)
+  - [普段使いのために](#普段使いのために)
+    - [Linuxホストのネットワークセットアップ](#linuxホストのネットワークセットアップ)
+    - [Windowsゲスト起動コマンド](#windowsゲスト起動コマンド)
+    - [Windowsゲストのネットワーク設定](#windowsゲストのネットワーク設定)
+  - [その他のTips](#その他のtips)
+  - [参考文献](#参考文献)
+    - [QemuでのTPMの使い方](#qemuでのtpmの使い方)
+    - [QEMUでのUEFI Secure Bootのやり方](#qemuでのuefi-secure-bootのやり方)
+    - [どのUEFI firmwareを使うべきか](#どのuefi-firmwareを使うべきか)
+  - [まとめ](#まとめ)
 
 ## はじめに
 
 [前回](/2023/03/kvmqemuwindows.html)に引き続き、KVM仮想マシン上にWindows11をインストールするやり方をまとめておきます。
 
 Windows10の時とは以下のような違いがあります。
-* Windows11の場合、TPMとUEFI Secure Bootが必須である。
-* KVMでTPMを使うには、ホストの/dev/tpm0をパススルーで使う方法と、ソフトウェアのTPMデバイスエミュレーター(swtpm)を使う方法がある。
-* KVMでUEFI Secure Bootするには、ovmfパッケージにより提供されるUEFI firmwareを利用する。
+
+- Windows11の場合、TPMとUEFI Secure Bootが必須である。
+- KVMでTPMを使うには、ホストの/dev/tpm0をパススルーで使う方法と、ソフトウェアのTPMデバイスエミュレーター(swtpm)を使う方法がある。
+- KVMでUEFI Secure Bootするには、ovmfパッケージにより提供されるUEFI firmwareを利用する。
 
 ## Window11のインストール
+
 ### KVM仮想マシンの起動方法
 
 Windows11のインストールメディア、virtioドライバインストール用のisoイメージをダウンロードしておきます。
-* [Download Windows 11](https://www.microsoft.com/en-us/software-download/windows11)
-* [Windows用virtioドライバのありか](https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/)
+
+- [Download Windows 11](https://www.microsoft.com/en-us/software-download/windows11)
+- [Windows用virtioドライバのありか](https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/)
 
 必要パッケジージのインストール
+
 ```
 sudo apt-get install qemu-system-x86 virt-viewer ovmf
 ```
 
 qcow2ディスクイメージを作成します。
+
 ```
 qemu-img create -f qcow2 win11pro.qcow2 40G
 ```
 
 書き込み用のFirmwareのローカルコピーを作成します。
+
 ```
 cp /usr/share/OVMF/OVMF_VARS_4M.ms.fd ./
 ```
@@ -53,6 +59,7 @@ cp /usr/share/OVMF/OVMF_VARS_4M.ms.fd ./
 #### ホストの/dev/tpm0をパススルーで使う場合
 
 以下のコマンドで仮想マシンを起動できます。
+
 ```
 sudo qemu-system-x86_64 \
 	-machine q35,accel=kvm \
@@ -71,6 +78,7 @@ sudo qemu-system-x86_64 \
 #### ソフトウェアのTPMデバイスエミュレータを使う場合
 
 TPMデバイスエミュレータswtpmを起動しておきます。
+
 ```
 mkdir mytpm
 swtpm socket --tpmstate dir=./mytpm \
@@ -80,6 +88,7 @@ swtpm socket --tpmstate dir=./mytpm \
 ```
 
 以下のコマンドで仮想マシンを起動できます。
+
 ```
 sudo qemu-system-x86_64 \
 	-machine q35,accel=kvm \
@@ -137,6 +146,7 @@ Windowsセットアップ完了後、Windows上でE:ドライブ（virtio-win-0.
 
 Windows11のインストールは、ネットワーク無しで行った。仮想マシン上のWindows11を利用するには、ネットワークが使えないと困るでしょう。
 ネットワークを使えるようにするためには、次の3つの準備が必要です。
+
 1. Linuxホスト上でのネットワーク設定
 1. KVM起動コマンドをネットワークが使えるように修正
 1. Windows11ゲストマシン上でネットワーク設定
@@ -144,6 +154,7 @@ Windows11のインストールは、ネットワーク無しで行った。仮�
 ### Linuxホストのネットワークセットアップ
 
 Linuxホスト上では、以下の設定を行えば十分です。
+
 ```
 brdg=kbr0
 outif=wlan0
@@ -163,6 +174,7 @@ echo 1 >  /proc/sys/net/ipv4/conf/$brdg/forwarding
 ```
 
 念の為、上記で用意したものをもとに戻すのは、以下のやり方で良いでしょう。
+
 ```
 # IPフォワーディング許可を取り消す
 echo 0 >  /proc/sys/net/ipv4/conf/$outif/forwarding
@@ -179,6 +191,7 @@ iptables -t nat -D POSTROUTING -s $addr -o $outif -j MASQUERADE
 ### Windowsゲスト起動コマンド
 
 qemuコマンドはオプションが多いのでスクリプト化しておくと良いでしょう。
+
 ```
 run.win11.sh:
 #!/bin/bash 
@@ -199,6 +212,7 @@ sudo qemu-system-x86_64 \
 ```
 
 仮想マシン起動時にデバイスをホストのブリッジにアタッチします。
+
 ```
 qemu-ifup:
 #!/bin/sh
@@ -211,6 +225,7 @@ bridge=kbr0
 ### Windowsゲストのネットワーク設定
 
 次のアドレスを設定
+
 ```
 IPv4アドレス: 10.0.0.1/24
 ゲートウェイ: 10.0.0.254
@@ -218,24 +233,22 @@ DNSサーバ: 192.168.40.1(Linuxホストと同じ設定にすると良いと思
 ```
 
   <a href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj5VRIXuwnZ1FiZHXeG2lmJDIVphJlT4sqLOKeOK3Sk4eXW-B4r1P_FsjfEq6jvwlFcWtgoMYbGmD2-EFBAPEkBzomgXZH8tuaYG_soLx81SkayPRt-3Vi4fyR0695IlxK3ifT7EmEnI-GWbQC3JWYBAnSjJOek_ZOM2o7ku5m0J-p3nQ3OZOseOxes/s812/network_setup01.png" target="_blank"><img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj5VRIXuwnZ1FiZHXeG2lmJDIVphJlT4sqLOKeOK3Sk4eXW-B4r1P_FsjfEq6jvwlFcWtgoMYbGmD2-EFBAPEkBzomgXZH8tuaYG_soLx81SkayPRt-3Vi4fyR0695IlxK3ifT7EmEnI-GWbQC3JWYBAnSjJOek_ZOM2o7ku5m0J-p3nQ3OZOseOxes/s812/network_setup01.png" width="30%"></a>
-  
 
 この他に、Windows 11 Proの場合はRemote Desktop機能があるので、利用可能にしておくと良いでしょう。
 
 ## その他のTips
 
-* 一旦ビューワーを閉じたあともう一度接続するには
+- 一旦ビューワーを閉じたあともう一度接続するには
 ```
 $ sudo virt-viewer -c spice+unix:///tmp/.JVB811/spice.sock
 ```
-* Remote Desktop接続は、例えば次のようにする
+- Remote Desktop接続は、例えば次のようにする
 ```
 user=ktaka
 xfreerdp /u:$user /size:1900x1000 +fonts +clipboard  /audio-mode:1 /v:10.0.0.1
 ```
-* qemu起動時にはwindowを表示せず、rdpのみで使うには
+- qemu起動時にはwindowを表示せず、rdpのみで使うには
 `--display spice-app`を`--display none`にすれば良い。
-
 
 ## 参考文献 
 
@@ -243,20 +256,20 @@ xfreerdp /u:$user /size:1900x1000 +fonts +clipboard  /audio-mode:1 /v:10.0.0.1
 
 以下のドキュメントに十分な情報があります。
 
-* [QEMU TPM Device](https://qemu-project.gitlab.io/qemu/specs/tpm.html)
+- [QEMU TPM Device](https://qemu-project.gitlab.io/qemu/specs/tpm.html)
 
 ### QEMUでのUEFI Secure Bootのやり方
 
-* [SecureBootVirtualMachine](https://wiki.debian.org/SecureBoot/VirtualMachine)
-* [Secure(ish) boot with QEMU](https://www.labbott.name/blog/2016/09/15/secure-ish-boot-with-qemu/)
+- [SecureBootVirtualMachine](https://wiki.debian.org/SecureBoot/VirtualMachine)
+- [Secure(ish) boot with QEMU](https://www.labbott.name/blog/2016/09/15/secure-ish-boot-with-qemu/)
 
 ### どのUEFI firmwareを使うべきか
 
 Debianのドキュメントに書いてあります。
 
-* Secure Boot pre-enabledな、OVMF_CODE_4M.ms.fdとOVMF_VARS_4M.ms.fdをセットで使う。
-* 前者はRead Onlyで、後者はコピーしたものをRead Write可能な状態で利用する。
-* UEFIのメニューでSaveした設定変更は、OVMF_VARS_4M.ms.fdのコピーに書き込まれる。
+- Secure Boot pre-enabledな、OVMF_CODE_4M.ms.fdとOVMF_VARS_4M.ms.fdをセットで使う。
+- 前者はRead Onlyで、後者はコピーしたものをRead Write可能な状態で利用する。
+- UEFIのメニューでSaveした設定変更は、OVMF_VARS_4M.ms.fdのコピーに書き込まれる。
 
 /usr/share/doc/ovmf/README.Debian
 ```
@@ -334,4 +347,3 @@ QEMUコマンドのみでKVM仮想マシンを起動し、Windows11をインス�
 Window10の場合との違いは、TPM及びUEFI Secure Bootが必須であることです。
 Windows11の場合も、GUIプログラムvirt-managerでのインストール方法はネット上でよく見かけますが、qemuコマンドのみでのやり方はあまり多くないようです。
 余計なものはなるべくインストールしたくない人、ソフトウェアスタックをミニマムに保って中身を理解しながら使いたい人の役に立てば幸いです。
-

@@ -1,5 +1,7 @@
 <h1 id="目次">目次</h1>
 <ul>
+<li><a href="#目次">目次</a>
+<ul>
 <li><a href="#はじめに">はじめに</a></li>
 <li><a href="#windows10インストール">Windows10インストール</a>
 <ul>
@@ -16,6 +18,7 @@ href="#ホストlinuxのネットワーク設定">ホストLinuxのネットワ�
 href="#仮想マシンの起動コマンドライン">仮想マシンの起動コマンドライン</a></li>
 </ul></li>
 <li><a href="#まとめ">まとめ</a></li>
+</ul></li>
 </ul>
 <h2 id="はじめに">はじめに</h2>
 <p>最近Debian
@@ -28,11 +31,13 @@ qemuコマンドラインのみでWindowsをインストールする方法をお
 <h3 id="事前準備">事前準備</h3>
 <h4
 id="インストールメディアvirtioドライバのダウンロード">インストールメディア、virtioドライバのダウンロード</h4>
-<p>まず、あらかじめ必要なものをダウンロードしておきます。 *
-Windows10のインストールメディアWin10_22H2_Japanese_x64.isoを、<a
-href="https://www.microsoft.com/ja-jp/software-download/windows10ISO">Microsoftのページ</a>からダウンロードする。
-* virtioドライバをが必要になるので、<a
-href="https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/">Fedoraのページ</a>からダウンロードします。今回は、この記事の執筆時点で最新のvirtio-win-0.1.229.isoを利用しました。</p>
+<p>まず、あらかじめ必要なものをダウンロードしておきます。</p>
+<ul>
+<li>Windows10のインストールメディアWin10_22H2_Japanese_x64.isoを、<a
+href="https://www.microsoft.com/ja-jp/software-download/windows10ISO">Microsoftのページ</a>からダウンロードする。</li>
+<li>virtioドライバをが必要になるので、<a
+href="https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/">Fedoraのページ</a>からダウンロードします。今回は、この記事の執筆時点で最新のvirtio-win-0.1.229.isoを利用しました。</li>
+</ul>
 <h4
 id="必要パッケジージのインストール">必要パッケジージのインストール</h4>
 <pre><code>sudo apt-get install qemu-system-x86 virt-viewer</code></pre>
@@ -102,8 +107,7 @@ iface kbr0 inet static
     bridge_maxwait 0
     address 10.0.0.254
     netmask 255.255.255.0
-    up /etc/network/masquerade.sh
-</code></pre>
+    up /etc/network/masquerade.sh</code></pre>
 <p>iptables natの設定</p>
 <pre><code>/etc/network/masquerade.sh 
 

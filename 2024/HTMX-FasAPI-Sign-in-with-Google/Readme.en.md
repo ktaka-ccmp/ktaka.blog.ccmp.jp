@@ -3,6 +3,8 @@
 - [Sign in with Google in HTMX+FastAPI](#sign-in-with-google-in-htmxfastapi)
   - [TLDR](#tldr)
   - [Introduction](#introduction)
+  - [The resulting page](#the-resulting-page)
+  - [Overview of the Implementation](#overview-of-the-implementation)
   - [HTMX with FastAPI](#htmx-with-fastapi)
     - [The navigation bar](#the-navigation-bar)
   - [Show Sign-in with Google button](#show-sign-in-with-google-button)
@@ -24,6 +26,14 @@ The app. page shows the navigation bar to indicate the login status, fetched fro
 
 I wanted to know how to use the Sign-in with Google feature on a Web page crafted using HTMX+FastAPI.
 As for the Sign-in with Google feature itself, it turned out that nothing is HTMX specific but also applies to normal HTML pages with FastAPI.
+
+## The resulting page
+
+Put Gif animation here.
+
+## Overview of the Implementation
+
+Create a figure to show OAuth2 flow and session creation.
 
 ## HTMX with FastAPI
 

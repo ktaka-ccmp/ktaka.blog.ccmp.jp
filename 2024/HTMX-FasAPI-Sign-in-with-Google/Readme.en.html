@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Readme.en.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<h1 id="sign-in-with-google-in-htmxfastapi">Sign in with Google in HTMX+FastAPI</h1>
+<h2 id="tldr">TLDR</h2>
+<p>I integrated the &quot;Sign in with Google&quot; button with a sample HTMX+FastAPI web application.
+I only needed to put an HTML or JavaScript version of the code snippet from Google's code generator to show the button.
+I implemented the FastAPI backend so that it creates a session and set a session_id in a cookie in the following communication.
+The app. page shows the navigation bar to indicate the login status, fetched from the backend depending on the login status change, utilizing hx-get, an HTMX method.</p>
+<h2 id="introduction">Introduction</h2>
+<p>I wanted to know how to use the Sign-in with Google feature on a Web page crafted using HTMX+FastAPI.
+As for the Sign-in with Google feature itself, it turned out that nothing is HTMX specific but also applies to normal HTML pages with FastAPI.</p>
+<h2 id="htmx-with-fastapi">HTMX with FastAPI</h2>
+<p>FastAPI can respond with an HTMX page that is generated from a template.</p>
+<pre class="hljs"><code><div>router = APIRouter()
+templates = Jinja2Templates(directory=<span class="hljs-string">'templates'</span>)
+
+<span class="hljs-meta">@router.get("/spa", response_class=HTMLResponse)</span>
+<span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">spa</span><span class="hljs-params">(request: Request)</span>:</span>
+    context = {<span class="hljs-string">"request"</span>: request}
+    <span class="hljs-keyword">return</span> templates.TemplateResponse(<span class="hljs-string">"spa.j2"</span>, context)
+</div></code></pre>
+<p>To make the FastAPI return an HTML page, we need to specify <code>response_class=HTMLResponse</code> and let the function return <code>TemplateResponse.</code></p>
+<p>Here is the template used in the example above.</p>
+<pre class="hljs"><code><div><span class="xml"><span class="hljs-meta">&lt;!DOCTYPE <span class="hljs-meta-keyword">html</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">html</span> <span class="hljs-attr">lang</span>=<span class="hljs-string">"en"</span>&gt;</span>
+
+</span><span class="hljs-template-tag">{% <span class="hljs-name"><span class="hljs-name">include</span></span> 'head.j2' %}</span><span class="xml">
+
+<span class="hljs-tag">&lt;<span class="hljs-name">body</span>&gt;</span>
+  </span><span class="hljs-comment">{# Header #}</span><span class="xml">
+  <span class="hljs-tag">&lt;<span class="hljs-name">header</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">id</span>=<span class="hljs-string">"auth_navbar"</span> <span class="hljs-attr">hx-get</span>=<span class="hljs-string">"/auth/auth_navbar"</span> <span class="hljs-attr">hx-target</span>=<span class="hljs-string">"#auth_navbar"</span> <span class="hljs-attr">hx-swap</span>=<span class="hljs-string">"innerHTML"</span>
+      <span class="hljs-attr">hx-trigger</span>=<span class="hljs-string">"load, LoginStatusChange"</span>&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">header</span>&gt;</span>
+
+  </span><span class="hljs-comment">{# Content #}</span><span class="xml">
+  <span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"container"</span> <span class="hljs-attr">id</span>=<span class="hljs-string">"content_section"</span> <span class="hljs-attr">hx-get</span>=<span class="hljs-string">"/htmx/content.top"</span> <span class="hljs-attr">hx-target</span>=<span class="hljs-string">"#content_section"</span> <span class="hljs-attr">hx-swap</span>=<span class="hljs-string">"innerHTML"</span>
+    <span class="hljs-attr">hx-trigger</span>=<span class="hljs-string">"load"</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+
+<span class="hljs-tag">&lt;/<span class="hljs-name">body</span>&gt;</span>
+
+<span class="hljs-tag">&lt;/<span class="hljs-name">html</span>&gt;</span>
+</span></div></code></pre>
+<p>The <code>{# Header #}</code> section gets the navigation bar component from the <code>/auth/auth_navbar</code> endpoint via AJAX request.
+The obtained HTML fraction is placed between <code>&lt;div id=&quot;auth_navbar&quot;&gt;</code> and <code>&lt;/div&gt;.</code>
+The AJAX request is fired upon the initial load of the page or when the browser gets &quot;Hx-Trigger:
+showComponent&quot; in the response header.</p>
+<p>The <code>{# Content #}</code> section gets the content of the page from the <code>/htmx/content.top</code> endpoint via AJAX request.
+The obtained HTML fraction is placed between <code>&lt;div id=&quot;content_section&quot;&gt;</code> and <code>&lt;/div&gt;.</code>
+The AJAX request is fired upon the initial load of the page.</p>
+<h3 id="the-navigation-bar">The navigation bar</h3>
+<h2 id="show-sign-in-with-google-button">Show Sign-in with Google button</h2>
+<p>Inside the navigation bar, we place a code for showing the &quot;Sign-in with Google&quot; button.
+We can use either the HTML version or the JavaScript version of the code.</p>
+<h3 id="javascript-version-of-the-sign-in-component">JavaScript version of the Sign-in component</h3>
+<pre class="hljs"><code><div>&lt;script&gt;
+    google.accounts.id.initialize({
+        <span class="hljs-attr">client_id</span>: <span class="hljs-string">"{{ client_id }}"</span>,
+        <span class="hljs-attr">callback</span>: onSignIn,
+        <span class="hljs-attr">ux_mode</span>: <span class="hljs-string">"popup"</span>,
+    });
+
+    google.accounts.id.renderButton(<span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">"signInDiv"</span>), {
+        <span class="hljs-attr">theme</span>: <span class="hljs-string">"outline"</span>,
+        <span class="hljs-attr">size</span>: <span class="hljs-string">"large"</span>,
+        <span class="hljs-attr">shape</span>: <span class="hljs-string">"circle"</span>,
+        <span class="hljs-attr">type</span>: <span class="hljs-string">"icon"</span>,
+    });
+
+    {# google.accounts.id.prompt(); #}
+
+&lt;<span class="hljs-regexp">/script&gt;
+
+&lt;div id="signInDiv"&gt;&lt;/</span>div&gt;
+</div></code></pre>
+<p>The google.accounts.id.initialize functiondefines the initialization and behavior of the Sign-in process.</p>
+<ul>
+<li>The `client_id`` defines <a href="https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid">OAuth 2.0 Client ID</a>, which is necessary.</li>
+<li>The <code>callback</code> defines a JavaScript callback function upon a successful sign-in on the Google side.</li>
+<li>The<code>ux_mode</code> defines the mode of Google's sign-in page, which we want to be 'popup' instead of 'redirect'.</li>
+</ul>
+<p>The <code>google.accounts.id.renderButton</code> division defines the presentation style of the Sign-in with Google button.</p>
+<ul>
+<li>The <code>data-auto_prompt=&quot;false</code> determines whether to display One tap or not.</li>
+</ul>
+<p>The <code>google.accounts.id.prompt</code> method displays the One Tap prompt.</p>
+<h3 id="html-version-of-the-sign-in-component">HTML version of the Sign-in component</h3>
+<pre class="hljs"><code><div><span class="hljs-tag">&lt;<span class="hljs-name">script</span> <span class="hljs-attr">src</span>=<span class="hljs-string">"https://accounts.google.com/gsi/client"</span> <span class="hljs-attr">async</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">script</span>&gt;</span>
+
+<span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">id</span>=<span class="hljs-string">"g_id_onload"</span>
+     <span class="hljs-attr">data-client_id</span>=<span class="hljs-string">"{{ client_id }}"</span>,
+     <span class="hljs-attr">data-context</span>=<span class="hljs-string">"signin"</span>
+     <span class="hljs-attr">data-ux_mode</span>=<span class="hljs-string">"popup"</span>
+     <span class="hljs-attr">data-callback</span>=<span class="hljs-string">onSignIn</span>
+     <span class="hljs-attr">data-close_on_tap_outside</span>=<span class="hljs-string">"true"</span>
+     <span class="hljs-attr">data-itp_support</span>=<span class="hljs-string">"true"</span>
+     <span class="hljs-attr">data-auto_prompt</span>=<span class="hljs-string">"false"</span>
+     &gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+
+<span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">class</span>=<span class="hljs-string">"g_id_signin"</span>
+     <span class="hljs-attr">data-type</span>=<span class="hljs-string">"icon"</span>
+     <span class="hljs-attr">data-shape</span>=<span class="hljs-string">"square"</span>
+     <span class="hljs-attr">data-theme</span>=<span class="hljs-string">"outline"</span>
+     <span class="hljs-attr">data-size</span>=<span class="hljs-string">"large"</span>
+     &gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+</div></code></pre>
+<p>The <code>&lt;div id=&quot;g_id_onload&quot;&gt;</code> division defines the initialization and behavior of the Sign-in process.</p>
+<ul>
+<li>
+<p>data-client_id=&quot;{{ client_id }}&quot; defines <a href="https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid">OAuth 2.0 Client ID</a>, which is necessary.</p>
+</li>
+<li>
+<p>The <code>data-ux_mode=&quot;popup&quot;</code> defines the mode of Google's sign-in page, which we want to be 'popup' instead of 'redirect' which is more intrusive.</p>
+</li>
+<li>
+<p>The <code>data-callback=onSignIn</code> defines a JavaScript callback function upon a successful sign-in on the Google side.</p>
+</li>
+<li>
+<p>The <code>data-auto_prompt=&quot;false</code> determines whether to display One tap or not.</p>
+</li>
+</ul>
+<p>The <code>&lt;div id=&quot;g_id_sigin&quot;&gt;</code> division defines the presentation style of the Sign-in with Google button.</p>
+<h3 id="the-callback-function">The Callback function</h3>
+<p>Here is an implementation of the callback function, which should be called upon a successful sign-in on the Google side.</p>
+<pre class="hljs"><code><div>&lt;script&gt;
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">onSignIn</span>(<span class="hljs-params">response</span>) </span>{
+        <span class="hljs-keyword">var</span> xhr = <span class="hljs-keyword">new</span> XMLHttpRequest();
+        xhr.open(<span class="hljs-string">'POST'</span>, <span class="hljs-string">"{{ login_url }}"</span>);
+        xhr.setRequestHeader(<span class="hljs-string">'Content-Type'</span>, <span class="hljs-string">'application/x-www-form-urlencoded'</span>);
+        xhr.onload = <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+            <span class="hljs-built_in">console</span>.log(<span class="hljs-string">"Response from {{ login_url }}: "</span>, xhr.responseText);
+            htmx.trigger(<span class="hljs-string">"#auth_navbar"</span>, <span class="hljs-string">"LoginStatusChange"</span>);
+        };
+        xhr.send(<span class="hljs-string">'credential='</span> + response.credential);
+    }
+&lt;<span class="hljs-regexp">/script&gt;
+</span></div></code></pre>
+<p>The <code>onSignIn</code> function sends JWT received from Google's sign-in page to the <code>{{ login_url }}</code>, which is a backend endpoint to handle the received JWT.
+The <code>onSignIn</code> function also triggers</p>
+<h2 id="backend-endpoint-for-login">Backend endpoint for login</h2>
+<p>The backend endpoint receives the JWT, verifies it using Google's public certificate and then creates a session to maintain a logged-in status in the following communications.</p>
+<p>Here is the code snippet of the backend endpoint, which does:</p>
+<ul>
+<li>verify JWT,</li>
+<li>create the user in the database,</li>
+<li>create a session(, and store it in a session database),</li>
+<li>set the session_id in the cookie,</li>
+<li>then return the response to the front end.</li>
+</ul>
+<pre class="hljs"><code><div>@router.post(<span class="hljs-string">"/login"</span>)
+<span class="hljs-keyword">async</span> def login(request: Request, <span class="hljs-attr">ds</span>: Session = Depends(get_db), <span class="hljs-attr">cs</span>: Session = Depends(get_cache)):
+
+    body = <span class="hljs-keyword">await</span> request.body()
+    jwt = dict(urllib.parse.parse_qsl(body.decode(<span class="hljs-string">'utf-8'</span>))).get(<span class="hljs-string">'credential'</span>)
+
+    idinfo = <span class="hljs-keyword">await</span> VerifyToken(jwt)
+    <span class="hljs-keyword">if</span> not idinfo:
+        print(<span class="hljs-string">"Error: Failed to validate JWT token"</span>)
+        <span class="hljs-keyword">return</span>  Response(<span class="hljs-string">"Error: Failed to validate JWT token"</span>)
+
+    user = <span class="hljs-keyword">await</span> GetOrCreateUser(idinfo, ds)
+
+    <span class="hljs-keyword">if</span> user:
+        user_dict = get_user_by_email(user.email, ds)
+        <span class="hljs-keyword">if</span> not user_dict:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=<span class="hljs-string">"Error: User not exist in User table in DB."</span>
+                )
+        user = UserBase(**user_dict)
+        session_id = create_session(user, cs)
+
+        response = JSONResponse({<span class="hljs-string">"Authenticated_as"</span>: user.name})
+        response.set_cookie(
+            key=<span class="hljs-string">"session_id"</span>,
+            value=session_id,
+            httponly=True,
+            max_age=<span class="hljs-number">600</span>,
+            expires=<span class="hljs-number">600</span>,
+        )
+
+        <span class="hljs-keyword">return</span> response
+    <span class="hljs-attr">else</span>:
+        <span class="hljs-keyword">return</span> Response(<span class="hljs-string">"Error: Auth failed"</span>)
+</div></code></pre>
+<p>The VerifyToken function below verifies the JWT from the frontend utilizing the <a href="https://google-auth.readthedocs.io/en/stable/reference/google.oauth2.html">google oauth2 python library</a>.</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">from</span> google.oauth2 <span class="hljs-keyword">import</span> id_token
+<span class="hljs-keyword">from</span> google.auth.transport <span class="hljs-keyword">import</span> requests
+
+<span class="hljs-keyword">async</span> <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">VerifyToken</span><span class="hljs-params">(jwt: str)</span>:</span>
+    <span class="hljs-keyword">try</span>:
+        idinfo = id_token.verify_oauth2_token(
+            jwt,
+            requests.Request(),
+            settings.google_oauth2_client_id)
+    <span class="hljs-keyword">except</span> ValueError:
+        print(<span class="hljs-string">"Error: Failed to validate JWT token with GOOGLE_OAUTH2_CLIENT_ID="</span> + settings.google_oauth2_client_id +<span class="hljs-string">"."</span>)
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">None</span>
+
+    print(<span class="hljs-string">"idinfo: "</span>, idinfo)
+    <span class="hljs-keyword">return</span> idinfo
+</div></code></pre>
+<h1 id="conclusion">Conclusion</h1>
+<p>To be written later.</p>
+
+</body>
+</html>

@@ -1,5 +1,17 @@
-
 # Sign in with Google in HTMX+FastAPI
+
+- [Sign in with Google in HTMX+FastAPI](#sign-in-with-google-in-htmxfastapi)
+  - [TLDR](#tldr)
+  - [Introduction](#introduction)
+  - [HTMX with FastAPI](#htmx-with-fastapi)
+    - [The navigation bar](#the-navigation-bar)
+  - [Show Sign-in with Google button](#show-sign-in-with-google-button)
+    - [JavaScript version of the Sign-in component](#javascript-version-of-the-sign-in-component)
+    - [HTML version of the Sign-in component](#html-version-of-the-sign-in-component)
+    - [The Callback function](#the-callback-function)
+  - [Backend endpoint for login](#backend-endpoint-for-login)
+    - [BBBB](#bbbb)
+  - [Conclusion](#conclusion)
 
 ## TLDR
 
@@ -234,6 +246,10 @@ async def VerifyToken(jwt: str):
     return idinfo
 ```
 
-# Conclusion
+### BBBB
+
+BBB
+
+## Conclusion
 
 To be written later.

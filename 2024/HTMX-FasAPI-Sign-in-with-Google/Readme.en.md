@@ -223,12 +223,15 @@ async def login(request: Request, ds: Session = Depends(get_db), cs: Session = D
         session_id = create_session(user, cs)
 
         response = JSONResponse({"Authenticated_as": user.name})
+        max_age = 600
+        expires = datetime.datetime.utcnow() + datetime.timedelta(seconds=max_age)
         response.set_cookie(
             key="session_id",
             value=session_id,
             httponly=True,
-            max_age=600,
-            expires=600,
+            samesite="lax",
+            max_age=max_age,
+            expires=expires,
         )
 
         return response

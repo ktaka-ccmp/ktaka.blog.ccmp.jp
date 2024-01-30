@@ -37,18 +37,11 @@ With htmx.js, I can simply create a page, and when I need to change parts of it,
 I understand that as a web application becomes more complex, there might be situations where more feature-rich technologies are necessary.
 But now, I'm no longer intimidated by the overwhelming ecosystems of each technology.
 
-Now, I want to know how I can implement the login feature in a web application.
-Especially, I wanted to know how to use the Sign-in with Google feature on a Web page crafted using HTMX+FastAPI.
-So, I did some research and figured out how to do it.
-Since there seems to be a lack of use cases on the web, targeted using it with HTMX, I decided to share what I did.
-
-Although integrating the Sign-in with Google button in an HTMX page is nothing special than incorporating it into a normal HTML page, how to show the status after successful login or logout using the HTMX, and how to maintain a session via cookie generated upon successful verification of the JWT instead of solely relying on JWT for keeping session seemed worthwhile noting, especially for a beginner like me.
-
 Now, I wanted to explore how I could implement a login feature in a web application, specifically using the 'Sign-in with Google' feature on a web page developed with HTMX and FastAPI.
-After conducting some research, I figured out how to do it.
+So, I did a bit of research and figured out how to do it.
 Noticing a lack of use cases on the web for this particular combination of technologies, I decided to share my findings.
 
-While integrating the 'Sign-in with Google' button into an HTMX page isn’t much different from incorporating it into a standard HTML page, understanding how to display the status after a successful login or logout using HTMX, and how to maintain a session via a cookie generated upon successful JWT verification—rather than solely relying on the JWT for session management—seemed noteworthy. 
+While integrating the 'Sign-in with Google' button into an HTMX page isn’t much different from incorporating it into a standard HTML page, understanding how to display the status after a successful login or logout using HTMX, and how to maintain a session via a cookie generated upon successful JWT verification—rather than solely relying on the JWT for session management—seemed noteworthy.
 This is particularly true for beginners like myself.
 
 ## The resulting page

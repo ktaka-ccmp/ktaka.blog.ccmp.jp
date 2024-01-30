@@ -41,8 +41,13 @@ Now, I wanted to explore how I could implement a login feature in a web applicat
 So, I did a bit of research and figured out how to do it.
 Noticing a lack of use cases on the web for this particular combination of technologies, I decided to share my findings.
 
-While integrating the 'Sign-in with Google' button into an HTMX page isn’t much different from incorporating it into a standard HTML page, understanding how to display the status after a successful login or logout using HTMX, and how to maintain a session via a cookie generated upon successful JWT verification—rather than solely relying on the JWT for session management—seemed noteworthy.
-This is particularly true for beginners like myself.
+While integrating the 'Sign-in with Google' button into an HTMX page isn’t much different from incorporating it into a standard HTML page, the following aspects seemed particularly noteworthy:
+
+- How to display the status after a successful login or logout using HTMX.
+- The handling of the JWT after a successful login on Google's side.
+- How to maintain a session via a cookie generated upon successful JWT verification, rather than solely relying on the JWT for session management.
+
+These points are especially relevant for beginners like myself.
 
 ## The resulting page
 

@@ -37,7 +37,7 @@ Create a figure to show OAuth2 flow and session creation.
 
 ## HTMX with FastAPI
 
-FastAPI can respond with an HTMX page that is generated from a template.
+FastAPI can respond with an HTML page that is generated from a Jinja template.
 
 ```python
 router = APIRouter()
@@ -49,9 +49,7 @@ async def spa(request: Request):
     return templates.TemplateResponse("spa.j2", context)
 ```
 
-To make the FastAPI return an HTML page, we need to specify `response_class=HTMLResponse` and let the function return `TemplateResponse.`
-
-Here is the template used in the example above.
+By specifing `response_class=HTMLResponse` and letting the function return `TemplateResponse`, we can make the FastAPI respond with the HTML page below.
 
 ```jinja
 <!DOCTYPE html>
@@ -77,14 +75,35 @@ Here is the template used in the example above.
 </html>
 ```
 
-The `{# Header #}` section gets the navigation bar component from the `/auth/auth_navbar` endpoint via AJAX request.
-The obtained HTML fraction is placed between `<div id="auth_navbar">` and `</div>.`
-The AJAX request is fired upon the initial load of the page or when the browser gets "Hx-Trigger:
-showComponent" in the response header.
 
-The `{# Content #}` section gets the content of the page from the `/htmx/content.top` endpoint via AJAX request.
-The obtained HTML fraction is placed between `<div id="content_section">` and `</div>.`
+The section below the `{# Header #}` gets the navigation bar component from the `/auth/auth_navbar` endpoint via AJAX request.
+The obtained HTML fraction replaces the content within the `<div id="auth_navbar"></div>` element.
+The AJAX request is fired upon the initial load of the page and when the browser gets "Hx-Trigger:
+LoginStatusChange" in the response header.
+
+The section below the `{# Content #}` gets the content of the page from the `/htmx/content.top` endpoint via AJAX request.
+The obtained HTML fraction replaces the content within the `<div id="content_section"></div>` element.
 The AJAX request is fired upon the initial load of the page.
+
+
+Here the interesting part is that we included htmx attributes, hx-get, hx-target, hx-swap and hx-triggers to fire an AJAX request and swap content of elements with the obtained response.
+
+Those attributes are interpreted and executed by htmx, which is JavaScript library, 
+
+Download htmx.min.js from unpkg.com and add it to the appropriate directory in your project and include it where necessary with a `<script>` tag:
+
+```
+<script src="/path/to/htmx.min.js"></script>
+```
+
+The meaning of the attributes are summarized as follows:
+
+| Attribut	| Description |
+|:---|:---|
+| hx-get  | issues a GET request to the given URL  |
+| hx-target  | specifies an element for swapping  |
+| hx-swap | specifies how content is swapped |
+| hx-trigger | specifies the event that triggers the request |
 
 ### The navigation bar
 

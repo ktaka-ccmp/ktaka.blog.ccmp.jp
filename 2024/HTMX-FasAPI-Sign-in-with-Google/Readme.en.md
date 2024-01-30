@@ -24,21 +24,6 @@ The app. page shows the navigation bar to indicate the login status, fetched fro
 
 ## Introduction
 
-As an aspiring full-stack software developer, I have been teaching myself about various front-end web technologies these days.
-Those include React.js, Svelte, and other shiny new JavaScript frameworks, which sometimes overwhelm me.
-I was about to settle in Svelte, thanks to its simplicity of state management, when I came across a concept called Hypermedia as The Engine of Application State(HATEOAS) and a piece of library called htmx.js.
-
-At first I didn't quite understand how it's better than other technologies.
-But After I crafted several web pages for learning, I find myself not having to force myself into dedicated frontend programming mode.
-
-I felt like I was finally freed from the torment of forcing myself into the react mindset, which I always thought absurd, like "How come I have to change the Mindset every time I craft a tiny piece of web page?."
-
-With htmx.js, I could simply create a page and when I needed to change small fractions of the page, I just fire an AJAX request using hx-get and swap the DOMs with HTML fragments in the response.
-
-Although I understand that as the web application becomes more complicated, there might be a situation where I need to use more feature rich technologies.
-But now, I don't have to be intimidated by the overwhelming echo system each technology has.
-
-
 As an aspiring full-stack software developer, I've been teaching myself various front-end web technologies recently.
 These include React.js, Svelte, and other shiny new JavaScript frameworks, which can sometimes be overwhelming.
 I was considering settling on Svelte, thanks to its simplicity in state management, when I discovered a concept called Hypermedia as the Engine of Application State (HATEOAS) and a library named htmx.js.
@@ -52,10 +37,19 @@ With htmx.js, I can simply create a page, and when I need to change parts of it,
 I understand that as a web application becomes more complex, there might be situations where more feature-rich technologies are necessary.
 But now, I'm no longer intimidated by the overwhelming ecosystems of each technology.
 
+Now, I want to know how I can implement the login feature in a web application.
+Especially, I wanted to know how to use the Sign-in with Google feature on a Web page crafted using HTMX+FastAPI.
+So, I did some research and figured out how to do it.
+Since there seems to be a lack of use cases on the web, targeted using it with HTMX, I decided to share what I did.
 
+Although integrating the Sign-in with Google button in an HTMX page is nothing special than incorporating it into a normal HTML page, how to show the status after successful login or logout using the HTMX, and how to maintain a session via cookie generated upon successful verification of the JWT instead of solely relying on JWT for keeping session seemed worthwhile noting, especially for a beginner like me.
 
-I wanted to know how to use the Sign-in with Google feature on a Web page crafted using HTMX+FastAPI.
-As for the Sign-in with Google feature itself, it turned out that nothing is HTMX specific but also applies to normal HTML pages with FastAPI.
+Now, I wanted to explore how I could implement a login feature in a web application, specifically using the 'Sign-in with Google' feature on a web page developed with HTMX and FastAPI.
+After conducting some research, I figured out how to do it.
+Noticing a lack of use cases on the web for this particular combination of technologies, I decided to share my findings.
+
+While integrating the 'Sign-in with Google' button into an HTMX page isn’t much different from incorporating it into a standard HTML page, understanding how to display the status after a successful login or logout using HTMX, and how to maintain a session via a cookie generated upon successful JWT verification—rather than solely relying on the JWT for session management—seemed noteworthy. 
+This is particularly true for beginners like myself.
 
 ## The resulting page
 

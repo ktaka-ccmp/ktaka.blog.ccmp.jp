@@ -20,7 +20,7 @@
 I integrated the "Sign in with Google" button with a sample HTMX+FastAPI web application.
 I only needed to put an HTML or JavaScript version of the code snippet from Google's code generator to show the button.
 I implemented the FastAPI backend so that it creates a session and set a session_id in a cookie in the following communication.
-The app. page shows the navigation bar to indicate the login status, fetched from the backend depending on the login status change, utilizing hx-get, an HTMX method.
+The app. page shows the navigation bar to indicate the login status, fetched from the backend upon change of the login status utilizing hx-get, an HTMX method.
 
 ## Introduction
 
@@ -30,8 +30,8 @@ I was considering settling on Svelte, thanks to its simplicity in state manageme
 
 Initially, I didn't quite grasp how it differed from other technologies.
 However, after creating several web pages for practice, I realized I didn't need to switch into a dedicated front-end programming mode.
-I felt liberated from the struggle of forcing myself into the React mindset, which always seemed nonsensical to me.
-I often questioned, 'Why must I change my mindset every time I create a small piece of a web page?'
+I felt liberated from the struggle of forcing myself into the React mental model, which always seemed nonsensical to me.
+I often questioned, 'Why must I change my mental model every time I create a small piece of a web page?'
 
 With htmx.js, I can simply create a page, and when I need to change parts of it, I just fire an AJAX request using hx-get and swap the DOM elements with HTML fragments in the response.
 I understand that as a web application becomes more complex, there might be situations where more feature-rich technologies are necessary.

@@ -24,6 +24,36 @@ The app. page shows the navigation bar to indicate the login status, fetched fro
 
 ## Introduction
 
+As an aspiring full-stack software developer, I have been teaching myself about various front-end web technologies these days.
+Those include React.js, Svelte, and other shiny new JavaScript frameworks, which sometimes overwhelm me.
+I was about to settle in Svelte, thanks to its simplicity of state management, when I came across a concept called Hypermedia as The Engine of Application State(HATEOAS) and a piece of library called htmx.js.
+
+At first I didn't quite understand how it's better than other technologies.
+But After I crafted several web pages for learning, I find myself not having to force myself into dedicated frontend programming mode.
+
+I felt like I was finally freed from the torment of forcing myself into the react mindset, which I always thought absurd, like "How come I have to change the Mindset every time I craft a tiny piece of web page?."
+
+With htmx.js, I could simply create a page and when I needed to change small fractions of the page, I just fire an AJAX request using hx-get and swap the DOMs with HTML fragments in the response.
+
+Although I understand that as the web application becomes more complicated, there might be a situation where I need to use more feature rich technologies.
+But now, I don't have to be intimidated by the overwhelming echo system each technology has.
+
+
+As an aspiring full-stack software developer, I've been teaching myself various front-end web technologies recently.
+These include React.js, Svelte, and other shiny new JavaScript frameworks, which can sometimes be overwhelming.
+I was considering settling on Svelte, thanks to its simplicity in state management, when I discovered a concept called Hypermedia as the Engine of Application State (HATEOAS) and a library named htmx.js.
+
+Initially, I didn't quite grasp how it differed from other technologies.
+However, after creating several web pages for practice, I realized I didn't need to switch into a dedicated front-end programming mode.
+I felt liberated from the struggle of forcing myself into the React mindset, which always seemed nonsensical to me.
+I often questioned, 'Why must I change my mindset every time I create a small piece of a web page?'
+
+With htmx.js, I can simply create a page, and when I need to change parts of it, I just fire an AJAX request using hx-get and swap the DOM elements with HTML fragments in the response.
+I understand that as a web application becomes more complex, there might be situations where more feature-rich technologies are necessary.
+But now, I'm no longer intimidated by the overwhelming ecosystems of each technology.
+
+
+
 I wanted to know how to use the Sign-in with Google feature on a Web page crafted using HTMX+FastAPI.
 As for the Sign-in with Google feature itself, it turned out that nothing is HTMX specific but also applies to normal HTML pages with FastAPI.
 

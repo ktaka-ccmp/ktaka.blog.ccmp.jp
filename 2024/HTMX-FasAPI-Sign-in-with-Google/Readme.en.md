@@ -57,6 +57,9 @@ Put Gif animation here.
 
 Create a figure to show OAuth2 flow and session creation.
 
+[![Sign-in flow](https://photos.app.goo.gl/p6yaPBvqANFNVdR9A 'Sign-in flow')](https://photos.app.goo.gl/p6yaPBvqANFNVdR9A)
+
+
 ## HTMX with FastAPI
 
 FastAPI can respond with an HTML page that is generated from a Jinja template.

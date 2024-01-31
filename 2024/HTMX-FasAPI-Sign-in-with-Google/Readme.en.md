@@ -52,14 +52,30 @@ These points are especially relevant for beginners like myself.
 ## The resulting page
 
 Put Gif animation here.
-[![Sign-in Animation](https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/htmx-fastapi02.gif 'Sign-in Animation')](https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/htmx-fastapi02.gif)
+
+<!--
+<a href=""
+target="_blank">
+<img src=""
+width="80%" alt="" title="">
+</a>
+-->
+
+<a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/htmx-fastapi02.gif"
+target="_blank">
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/htmx-fastapi02.gif"
+width="80%" alt="Sign-in Animation" title="Sign-in Animation">
+</a>
 
 ## Overview of the Implementation
 
 Create a figure to show OAuth2 flow and session creation.
 
-[![Sign-in flow](https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/htmx-fastapi01.drawio.png 'Sign-in flow')](https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/htmx-fastapi01.drawio.png)
-
+<a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/htmx-fastapi01.drawio.png"
+target="_blank">
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/htmx-fastapi01.drawio.png"
+width="80%" alt="Sign-in flow" title="Sign-in flow">
+</a>
 
 ## HTMX with FastAPI
 
@@ -101,7 +117,6 @@ By specifing `response_class=HTMLResponse` and letting the function return `Temp
 </html>
 ```
 
-
 The section below the `{# Header #}` gets the navigation bar component from the `/auth/auth_navbar` endpoint via AJAX request.
 The obtained HTML fraction replaces the content within the `<div id="auth_navbar"></div>` element.
 The AJAX request is fired upon the initial load of the page and when the browser gets "Hx-Trigger:
@@ -111,10 +126,9 @@ The section below the `{# Content #}` gets the content of the page from the `/ht
 The obtained HTML fraction replaces the content within the `<div id="content_section"></div>` element.
 The AJAX request is fired upon the initial load of the page.
 
-
 Here the interesting part is that we included htmx attributes, hx-get, hx-target, hx-swap and hx-triggers to fire an AJAX request and swap content of elements with the obtained response.
 
-Those attributes are interpreted and executed by htmx, which is JavaScript library, 
+Those attributes are interpreted and executed by htmx, which is JavaScript library,
 
 Download htmx.min.js from unpkg.com and add it to the appropriate directory in your project and include it where necessary with a `<script>` tag:
 
@@ -124,7 +138,7 @@ Download htmx.min.js from unpkg.com and add it to the appropriate directory in y
 
 The meaning of the attributes are summarized as follows:
 
-| Attribut	| Description |
+| Attribut | Description |
 |:---|:---|
 | hx-get  | issues a GET request to the given URL  |
 | hx-target  | specifies an element for swapping  |
@@ -170,9 +184,9 @@ The google.accounts.id.initialize functiondefines the initialization and behavio
 
 The `google.accounts.id.renderButton` division defines the presentation style of the Sign-in with Google button.
 
-- The `data-auto_prompt="false` determines whether to display One tap or not. 
+- The `data-auto_prompt="false` determines whether to display One tap or not.
 
-The `google.accounts.id.prompt` method displays the One Tap prompt. 
+The `google.accounts.id.prompt` method displays the One Tap prompt.
 
 ### HTML version of the Sign-in component
 

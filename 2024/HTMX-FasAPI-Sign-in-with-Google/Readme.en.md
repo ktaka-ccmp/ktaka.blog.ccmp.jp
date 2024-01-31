@@ -3,7 +3,7 @@
 - [Sign in with Google in HTMX+FastAPI](#sign-in-with-google-in-htmxfastapi)
   - [TLDR](#tldr)
   - [Introduction](#introduction)
-  - [The resulting page](#the-resulting-page)
+  - [What I implemented](#what-i-implemented)
   - [Overview of the Implementation](#overview-of-the-implementation)
   - [HTMX with FastAPI](#htmx-with-fastapi)
     - [The navigation bar](#the-navigation-bar)
@@ -49,9 +49,10 @@ While integrating the 'Sign-in with Google' button into an HTMX page isn’t muc
 
 These points are especially relevant for beginners like myself.
 
-## The resulting page
+## What I implemented
 
-Put Gif animation here.
+I implemented the web page below using FastAPI and HTMX.
+This page has a functionality to login using the "Sign-in with Google".
 
 <!--
 <a href=""
@@ -66,6 +67,15 @@ target="_blank">
 <img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/htmx-fastapi02.gif"
 width="80%" alt="Sign-in Animation" title="Sign-in Animation">
 </a>
+
+When user clicks the Google logo, the Sign in with Google window will popup.
+The user selects the account name and then all the authentication process will be executed behind the seen.
+
+Uppon successful login, Navigation bar at the top will be replaced by the one with user's icon image of Google account.
+Also, the "Secret#1", which was unclickable before sign in becomes clickable and the secret page can be shown by clicking.
+
+When user clicks the "Exit icon", he will get logged out of the restricted area, and the Navigation bar will be replaced by the one for the anonymous users.
+
 
 ## Overview of the Implementation
 

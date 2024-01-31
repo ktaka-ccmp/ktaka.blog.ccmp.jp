@@ -3,7 +3,7 @@
 - [Sign in with Google in HTMX+FastAPI](#sign-in-with-google-in-htmxfastapi)
   - [TLDR](#tldr)
   - [Introduction](#introduction)
-  - [What I implemented](#what-i-implemented)
+  - [What I Implemented](#what-i-implemented)
   - [Overview of the Implementation](#overview-of-the-implementation)
   - [HTMX with FastAPI](#htmx-with-fastapi)
     - [The navigation bar](#the-navigation-bar)
@@ -49,10 +49,10 @@ While integrating the 'Sign-in with Google' button into an HTMX page isn’t muc
 
 These points are especially relevant for beginners like myself.
 
-## What I implemented
+## What I Implemented
 
-I implemented the web page below using FastAPI and HTMX.
-This page has a functionality to login using the "Sign-in with Google".
+The webpage I recently developed using FastAPI and HTMX is shown in the Figure below.
+This page integrates a 'Sign-in with Google' option, which enhances user experience and offers a secure login method.
 
 <!--
 <a href=""
@@ -68,13 +68,15 @@ target="_blank">
 width="80%" alt="Sign-in Animation" title="Sign-in Animation">
 </a>
 
-When user clicks the Google logo, the Sign in with Google window will popup.
-The user selects the account name and then all the authentication process will be executed behind the seen.
+The process begins when a user clicks on the Google logo.
+A pop-up window then appears, guiding them through the Google account selection and authentication process, which then executed seamlessly in the background.
 
-Uppon successful login, Navigation bar at the top will be replaced by the one with user's icon image of Google account.
-Also, the "Secret#1", which was unclickable before sign in becomes clickable and the secret page can be shown by clicking.
+After logging in, the webpage dynamically updates the navigation bar to include the user's Google account icon.
+This personalized touch enhances user engagement.
+Additionally, the menu elements, like 'Secret#1', become accessible, revealing exclusive content with a single click.
 
-When user clicks the "Exit icon", he will get logged out of the restricted area, and the Navigation bar will be replaced by the one for the anonymous users.
+Logging out is just as intuitive.
+Clicking the 'Exit' icon signs the user out, reverting the navigation bar to its default state for anonymous visitors.
 
 
 ## Overview of the Implementation

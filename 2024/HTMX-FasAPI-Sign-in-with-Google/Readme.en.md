@@ -4,7 +4,7 @@
   - [TLDR](#tldr)
   - [Introduction](#introduction)
   - [What I Implemented](#what-i-implemented)
-  - [Overview of the Implementation](#overview-of-the-implementation)
+  - [Overview of the Authenbtication](#overview-of-the-authenbtication)
   - [HTMX with FastAPI](#htmx-with-fastapi)
     - [The navigation bar](#the-navigation-bar)
   - [Show Sign-in with Google button](#show-sign-in-with-google-button)
@@ -78,15 +78,25 @@ Additionally, menu elements like 'Secret#1' become accessible, revealing exclusi
 Logging out is just as intuitive.
 Clicking the 'Exit' icon signs the user out, reverting the navigation bar to its default state for anonymous visitors.
 
-## Overview of the Implementation
+## Overview of the Authenbtication
 
-Create a figure to show OAuth2 flow and session creation.
+The figure below shows schematic diagram depicting the flow of the authentication process.
 
 <a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/htmx-fastapi01.drawio.png"
 target="_blank">
 <img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/htmx-fastapi01.drawio.png"
 width="80%" alt="Sign-in flow" title="Sign-in flow">
 </a>
+
+1. When a user clicks Sign-in with Google, an authentication request is sent to Google.
+2. Upon successful authentication, the credential of the user is returned as a JSon Web Token(JWT) to the page.
+3. JavaScript codes on the page will forward the JWT to the /auth/login, an authentication end point prepared using FastAPI.
+4. The JWT is then verified using the certificate fetched from Google.
+5. A user corresponding the JWT is created in the SQLite database, unless there was not already one.
+6. Also a new session information is created and stored into the database.
+7. The FastAPI sends a response with the header having "Set-Cookie: session_id=xxxxxx" entry.
+
+Hereafter, "Cookie: session_id=xxxxxx" is always set in the following communication, until the cookie expires or until the user explicitly hits logout button on the web page.
 
 ## HTMX with FastAPI
 

@@ -52,12 +52,13 @@ These points are especially relevant for beginners like myself.
 ## The resulting page
 
 Put Gif animation here.
+[![Sign-in Animation](https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/htmx-fastapi02.gif 'Sign-in Animation')](https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/htmx-fastapi02.gif)
 
 ## Overview of the Implementation
 
 Create a figure to show OAuth2 flow and session creation.
 
-[![Sign-in flow](https://photos.app.goo.gl/p6yaPBvqANFNVdR9A 'Sign-in flow')](https://photos.app.goo.gl/p6yaPBvqANFNVdR9A)
+[![Sign-in flow](https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/htmx-fastapi01.drawio.png 'Sign-in flow')](https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/htmx-fastapi01.drawio.png)
 
 
 ## HTMX with FastAPI

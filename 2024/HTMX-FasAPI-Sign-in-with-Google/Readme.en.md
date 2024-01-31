@@ -51,8 +51,8 @@ These points are especially relevant for beginners like myself.
 
 ## What I Implemented
 
-The webpage I recently developed using FastAPI and HTMX is shown in the Figure below.
-This page integrates a 'Sign-in with Google' option, which enhances user experience and offers a secure login method.
+The webpage I recently developed using FastAPI and HTMX is shown in the figure below.
+This page integrates a 'Sign-in with Google' option, enhancing user experience and offering a secure login method.
 
 <!--
 <a href=""
@@ -69,15 +69,14 @@ width="80%" alt="Sign-in Animation" title="Sign-in Animation">
 </a>
 
 The process begins when a user clicks on the Google logo.
-A pop-up window then appears, guiding them through the Google account selection and authentication process, which then executed seamlessly in the background.
+A pop-up window appears, guiding them through the Google account selection and authentication process, which is then executed seamlessly in the background.
 
 After logging in, the webpage dynamically updates the navigation bar to include the user's Google account icon.
-This personalized touch enhances user engagement.
-Additionally, the menu elements, like 'Secret#1', become accessible, revealing exclusive content with a single click.
+This personalized touch enhances user engagement. 
+Additionally, menu elements like 'Secret#1' become accessible, revealing exclusive content with a single click.
 
 Logging out is just as intuitive.
 Clicking the 'Exit' icon signs the user out, reverting the navigation bar to its default state for anonymous visitors.
-
 
 ## Overview of the Implementation
 

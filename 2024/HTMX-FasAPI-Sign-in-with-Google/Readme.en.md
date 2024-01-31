@@ -4,7 +4,7 @@
   - [TLDR](#tldr)
   - [Introduction](#introduction)
   - [What I Implemented](#what-i-implemented)
-  - [Overview of the Authenbtication](#overview-of-the-authenbtication)
+  - [Overview of the Authentication](#overview-of-the-authentication)
   - [HTMX with FastAPI](#htmx-with-fastapi)
     - [The navigation bar](#the-navigation-bar)
   - [Show Sign-in with Google button](#show-sign-in-with-google-button)
@@ -78,7 +78,9 @@ Additionally, menu elements like 'Secret#1' become accessible, revealing exclusi
 Logging out is just as intuitive.
 Clicking the 'Exit' icon signs the user out, reverting the navigation bar to its default state for anonymous visitors.
 
-## Overview of the Authenbtication
+The code is pushed to [my Github repo.](https://github.com/ktaka-ccmp/fastapi-htmx-google-oauth/tree/master)
+
+## Overview of the Authentication
 
 The figure below shows a schematic diagram depicting the flow of the authentication process.
 

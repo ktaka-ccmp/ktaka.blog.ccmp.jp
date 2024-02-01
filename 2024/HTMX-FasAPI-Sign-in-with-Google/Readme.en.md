@@ -6,10 +6,12 @@
   - [What I Implemented](#what-i-implemented)
   - [Overview of the Authentication](#overview-of-the-authentication)
   - [HTMX with FastAPI](#htmx-with-fastapi)
+  - [Load HTMX JavaScript library](#load-htmx-javascript-library)
     - [The navigation bar](#the-navigation-bar)
-  - [Show Sign-in with Google button](#show-sign-in-with-google-button)
+- [Show Sign-in with Google button](#show-sign-in-with-google-button)
     - [JavaScript version of the Sign-in component](#javascript-version-of-the-sign-in-component)
     - [HTML version of the Sign-in component](#html-version-of-the-sign-in-component)
+- [JWT and Session Cookie](#jwt-and-session-cookie)
     - [The Callback function](#the-callback-function)
   - [Backend endpoint for login](#backend-endpoint-for-login)
     - [BBBB](#bbbb)
@@ -78,7 +80,7 @@ Additionally, menu elements like 'Secret#1' become accessible, revealing exclusi
 Logging out is just as intuitive.
 Clicking the 'Exit' icon signs the user out, reverting the navigation bar to its default state for anonymous visitors.
 
-The code is pushed to [my Github repo.](https://github.com/ktaka-ccmp/fastapi-htmx-google-oauth/tree/master)
+The source code is on [my Github repo.](https://github.com/ktaka-ccmp/fastapi-htmx-google-oauth/tree/master)
 
 ## Overview of the Authentication
 
@@ -92,7 +94,7 @@ width="80%" alt="Sign-in flow" title="Sign-in flow">
 
 1. When a user clicks 'Sign-in with Google', an authentication request is sent to Google.
 2. Upon successful authentication, the user's credentials are returned as a JSON Web Token (JWT) to the page.
-3. JavaScript code on the page forwards the JWT to /auth/login, an authentication endpoint prepared using FastAPI.
+3. JavaScript code on the page forwards the JWT to `/auth/login`, an authentication endpoint prepared using FastAPI.
 4. The JWT is then verified using a certificate fetched from Google.
 5. A user corresponding to the JWT is created in the SQLite database, if one does not already exist.
 6. A new session is also created and stored in the database.
@@ -102,7 +104,7 @@ Thereafter, "Cookie: session_id=xxxxxx" is always set in subsequent communicatio
 
 ## HTMX with FastAPI
 
-FastAPI can respond with an HTML page that is generated from a Jinja template.
+FastAPI can respond with an HTML page that is generated from a Jinja template. The following code specifies that when the FastAPI server receives a get request to `/spa`, it will respond with a HTML page generated from the template `spa.j2`.
 
 ```python
 router = APIRouter()
@@ -114,7 +116,7 @@ async def spa(request: Request):
     return templates.TemplateResponse("spa.j2", context)
 ```
 
-By specifing `response_class=HTMLResponse` and letting the function return `TemplateResponse`, we can make the FastAPI respond with the HTML page below.
+The below is what the `spa.j2` looks like.
 
 ```jinja
 <!DOCTYPE html>
@@ -139,6 +141,28 @@ By specifing `response_class=HTMLResponse` and letting the function return `Temp
 
 </html>
 ```
+
+It includes `head.j2` file in the same directory.
+
+In the body section, there are two sections, one is wrapped by `<header></header>` and the other is wrapped by `<div></div>`.
+
+When we focus on the section wrapped by `<header></header>`, we find unfamiliar attributes, hx-get, hx-target, hx-swap and hx-trigger.
+These are the attributes that are interpreted by HTMX JavaScript library loaded in `head.j2`.
+
+The meaning of the attributes are summarized as follows:
+
+| Attribut | Description |
+|:---|:---|
+| hx-get  | issues a GET request to the given URL  |
+| hx-target  | specifies an element for swapping  |
+| hx-swap | specifies how content is swapped |
+| hx-trigger | specifies the event that triggers the request |
+
+So in this case, the HTMX library will issue a get request to `/auth/auth_navbar` endpoint upon this section's first load and when the page receives response with "HX-Trigger: LoginStatusChange" in header.
+The HTMX library will then replace the content inside the `<div>` section with `id="auth_navbar"`.
+
+The `<div>` section just below the `{# Content #}` also has the same HTMX attributes.
+In this case the HTMX library will issue
 
 The section below the `{# Header #}` gets the navigation bar component from the `/auth/auth_navbar` endpoint via AJAX request.
 The obtained HTML fraction replaces the content within the `<div id="auth_navbar"></div>` element.
@@ -168,9 +192,38 @@ The meaning of the attributes are summarized as follows:
 | hx-swap | specifies how content is swapped |
 | hx-trigger | specifies the event that triggers the request |
 
+## Load HTMX JavaScript library
+
+```
+<head>
+  <meta name="htmx-config" content='{"useTemplateFragments":"true"}'>
+
+  {# For bootstrap #}
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+  <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz"
+    crossorigin="anonymous"></script>
+
+  {# For bootstrap Icons#}
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+  <title>{{title}}</title>
+
+  <script defer src="https://unpkg.com/htmx.org@1.9.10"
+    integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC"
+    crossorigin="anonymous"></script>
+
+  {# Sign in Google library#}
+  <script src="https://accounts.google.com/gsi/client" async></script>
+
+</head>
+```
+
 ### The navigation bar
 
-## Show Sign-in with Google button
+# Show Sign-in with Google button
 
 Inside the navigation bar, we place a code for showing the "Sign-in with Google" button.
 We can use either the HTML version or the JavaScript version of the code.
@@ -246,9 +299,16 @@ The `<div id="g_id_onload">` division defines the initialization and behavior of
 
 The `<div id="g_id_sigin">` division defines the presentation style of the Sign-in with Google button.
 
+# JWT and Session Cookie
+
+The JWT receivd from Google is forwareded to the `/auth/login` endpoint of the backe end FastAPI.
+The back end then create the user if one doesn't already exist and create a session.
+The back end return a respose with "Set-Cookie: session_id=xxxxxx" in the Header.
+
 ### The Callback function
 
-Here is an implementation of the callback function, which should be called upon a successful sign-in on the Google side.
+Here is an implementation of the callback function, which is called upon a successful sign-in on the Google side 
+to forward the JWT to the back end.
 
 ```javascript
 <script>
@@ -276,7 +336,7 @@ Here is the code snippet of the backend endpoint, which does:
 
 - verify JWT,
 - create the user in the database,
-- create a session(, and store it in a session database),
+- create a session and store it in a session database,
 - set the session_id in the cookie,
 - then return the response to the front end.
 

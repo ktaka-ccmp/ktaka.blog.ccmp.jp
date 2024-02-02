@@ -17,10 +17,7 @@
 
 # TL;DR
 
-I integrated the "Sign in with Google" button with a sample HTMX+FastAPI web application.
-I only needed to put an HTML or JavaScript version of the code snippet from Google's code generator to show the button.
-I implemented the FastAPI backend so that it creates a session and set a session_id in a cookie in the following communication.
-The app. page shows the navigation bar to indicate the login status, fetched from the backend upon change of the login status utilizing hx-get, an HTMX method.
+The "Sign in with Google" button has been integrated into a sample HTMX+FastAPI web application. Either an HTML or JavaScript version of a code snippet from Google's code generator is included in the HTML to display the button. The FastAPI backend has been configured to create a session from the JWT and set "Set-Cookie: session_id" in the header, enabling subsequent communications to maintain the login status through a session cookie. Thanks to HTMX functionality, the application page can dynamically fetch the navigation bar upon a change in login status, indicating whether the user is logged in.
 
 # Introduction
 
@@ -51,7 +48,7 @@ These points are especially relevant for beginners like myself.
 
 # What I Implemented
 
-The webpage I recently developed using FastAPI and HTMX is shown in the figure below.
+The webpage I developed using FastAPI and HTMX is shown in the figure below.
 This page integrates a 'Sign-in with Google' option, enhancing user experience and offering a secure login method.
 
 <!--
@@ -80,7 +77,6 @@ The process begins when a user clicks on the Google logo.
 A pop-up window appears, guiding them through the Google account selection and authentication process, which is then executed seamlessly in the background.
 
 After logging in, the webpage dynamically updates the navigation bar to include the user's Google account icon.
-This personalized touch enhances user engagement. 
 Additionally, menu elements like 'Secret#1' become accessible, revealing exclusive content with a single click.
 
 Logging out is just as intuitive.
@@ -91,11 +87,12 @@ The source code is on [my Github repo.](https://github.com/ktaka-ccmp/fastapi-ht
 
 ## Anonymous User Page
 
-The figure below shows a screenshot of anonymou user page, which consists of a navigation bar and content section.
-On the navigation bar, anonymous user icon menus including the ones to secret pages and Google Sign-in button are shown.
-In this example Secret#1 menu is disabled. The Secret#2 menu is not disabled while clicking it will return access forbiden error.
+The figure below shows a screenshot of anonymou user page to be explained more in detail.
+The page consists of a navigation bar and content section.
+On the navigation bar, anonymous user icon, menus including the ones to secret pages and Google Sign-in button are shown.
+In this example Secret#1 menu is disabled. The Secret#2 menu is not disabled, however clicking it will return access forbiden error.
 
-The section below the navigation bar is the content section showing "Incremental hx-get demo" page, which is acessible by both anonymous user and authenticated user.
+The section below the navigation bar is the content section showing "Incremental hx-get demo" page, which is acessible by both anonymous and authenticated user.
 
 <a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/page1.drawio.png"
 target="_blank">
@@ -106,11 +103,11 @@ width="90%" alt="Anonymous User Page" title="Anonymous User Page">
 
 ## Authenticated User Page
 
-The figure below shows a screenshot of authenticated user page, which consists of a navigation bar and content section.
-On the navigation var, user icon of the Google acount, menus including the ones to secret pages and Sign-out button are shown.
-When the user is authenticated the menus to the secret pages are both acessible and return the contents it points to.
+The figure below shows a screenshot of authenticated user page, which also consists of a navigation bar and content section.
+ Shown on the navigation bar are the user's Google acount icon, menus including the ones to secret pages and Sign-out button.
+When the user is authenticated, the menus to the secret pages are both acessible and both return the contents.
 
-The section below the navigation bar is the content section showing the content of the secret#1 page which is acessible only to authenticated users.
+The section below the navigation bar is the content section showing the content of the secret#1 page which is acessible only by authenticated users.
 
 <a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/page2.drawio.png"
 target="_blank">
@@ -132,7 +129,7 @@ async def spa(request: Request):
     return templates.TemplateResponse("spa.j2", context)
 ```
 
-The below is what the `spa.j2` looks like.
+Shown below is what the `spa.j2` looks like.
 
 ```jinja
 <!DOCTYPE html>
@@ -158,7 +155,7 @@ The below is what the `spa.j2` looks like.
 </html>
 ```
 
-In the body section, there are two sections, one is wrapped by `<header></header>` and the other is wrapped by `<div></div>`.
+In the body section, there are two sub-sections, one is wrapped by `<header></header>` and the other is wrapped by `<div></div>`.
 
 The section wrapped by `<header></header>` is to load the navigation bar in a responsive manner.
 When we focus on this section, we find unfamiliar attributes, hx-get, hx-target, hx-swap and hx-trigger.
@@ -174,12 +171,12 @@ The meaning of the attributes are summarized as follows:
 | hx-trigger | specifies the event that triggers the request |
 
 <a name="LoginStatusChange"></a>
-So in this case, the HTMX library will issue a get request to `/auth/auth_navbar` endpoint upon this section's first load and when the page receives response with "HX-Trigger: LoginStatusChange" in header.
+So in this case, the HTMX library will issue a get request to `/auth/auth_navbar` endpoint upon this section's first load and when the page receives response with "HX-Trigger: LoginStatusChange" in header for a HTMX AJAX request.
 The HTMX library will then replace the content inside the `<div>` section with `id="auth_navbar"`.
 
 The `<div>` section just below the `{# Content #}` is to load the main contents of the page dynamically.
-It also has the same HTMX attributes.
-In this case the HTMX library will issue a get request to `/htmx/content.top` endpoint upon this section's first load.
+It also has the same set of HTMX attributes summarized in the table above.
+In this case the HTMX library will issue a get request to `/htmx/content.top` endpoint only upon this section's first load.
 The HTMX library will then replace the content inside the `<div>` section with `id="content_section"`.
 
 To have the HTMX attribute properly interpreted, we need to add a `<script>` tag in the document head, like:
@@ -263,7 +260,7 @@ We can use either the HTML version or the JavaScript version of the code.
 
 The google.accounts.id.initialize functiondefines the initialization and behavior of the Sign-in process.
 
-- The `client_id`` defines [OAuth 2.0 Client ID](https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid), which is necessary.
+- The `client_id` defines [OAuth 2.0 Client ID](https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid), which is necessary.
 - The `callback` defines a JavaScript callback function upon a successful sign-in on the Google side.
 - The`ux_mode` defines the mode of Google's sign-in page, which we want to be 'popup' instead of 'redirect'.
 

@@ -85,8 +85,7 @@ Additionally, menu elements like 'Secret#1' become accessible, revealing exclusi
 Logging out is just as intuitive.
 Clicking the 'Exit' icon signs the user out, reverting the navigation bar to its default state for anonymous visitors.
 
-The source code is available on [my GitHub repo.](https://github.com/ktaka-ccmp/fastapi-htmx-google-oauth/tree/master)
-
+The source code is available on [my GitHub repo.](https://github.com/ktaka-ccmp/fastapi-htmx-google-oauth/tree/v1.0.0)
 
 ## Anonymous User Page
 

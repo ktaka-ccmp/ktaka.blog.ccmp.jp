@@ -210,8 +210,8 @@ request</td>
 </tbody>
 </table>
 <p><a name="LoginStatusChange"></a> In this case, the HTMX library will
-issue a GET request to the /auth/auth_navbar endpoint upon this
-section’s first load and when the page receives a response with
+issue a GET request to the <code>/auth/auth_navbar</code> endpoint upon
+this section’s first load and when the page receives a response with
 “HX-Trigger: LoginStatusChange” in the header for an HTMX AJAX request.
 The HTMX library will then replace the content inside the
 <code>&lt;div&gt;</code> section with <code>id="auth_navbar"</code>.</p>
@@ -306,12 +306,8 @@ to be ‘popup’ instead of ‘redirect’.</li>
 </ul>
 <p>The <code>google.accounts.id.renderButton</code> function defines the
 presentation style of the Sign in with Google button:</p>
-<ul>
-<li>Setting <code>data-auto_prompt="false"</code> determines whether to
-display One Tap or not.</li>
-</ul>
 <p>The <code>google.accounts.id.prompt</code> method displays the One
-Tap prompt.</p>
+Tap prompt (and is disabled in this particular case).</p>
 <h3 id="html-version">HTML Version</h3>
 <div class="sourceCode" id="cb7"><pre
 class="sourceCode html"><code class="sourceCode html"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">&lt;script</span> <span class="er">src</span><span class="ot">=</span><span class="st">&quot;https://accounts.google.com/gsi/client&quot;</span> <span class="er">async</span><span class="kw">&gt;&lt;/script&gt;</span></span>

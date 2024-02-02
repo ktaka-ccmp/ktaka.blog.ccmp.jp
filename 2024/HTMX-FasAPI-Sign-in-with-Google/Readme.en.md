@@ -70,9 +70,9 @@ width="80%" alt="" title="">
 </a>
 -->
 
-<a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/htmx-fastapi02.gif"
+<a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/FastAPI-HTMX-Google-OAuth042.gif"
 target="_blank">
-<img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/htmx-fastapi02.gif"
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/FastAPI-HTMX-Google-OAuth042.gif"
 width="80%" alt="Sign-in Animation" title="Sign-in Animation">
 </a>
 
@@ -92,7 +92,7 @@ The source code is on [my Github repo.](https://github.com/ktaka-ccmp/fastapi-ht
 ## Anonymous User Page
 
 The figure below shows a screenshot of anonymou user page, which consists of a navigation bar and content section.
-On the navigation var, anonymous user icon menus including the ones to secret pages and Google Sign-in button are shown.
+On the navigation bar, anonymous user icon menus including the ones to secret pages and Google Sign-in button are shown.
 In this example Secret#1 menu is disabled. The Secret#2 menu is not disabled while clicking it will return access forbiden error.
 
 The section below the navigation bar is the content section showing "Incremental hx-get demo" page, which is acessible by both anonymous user and authenticated user.

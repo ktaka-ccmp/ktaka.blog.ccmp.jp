@@ -171,7 +171,7 @@ To have the HTMX attribute properly interpreted, we need to add a `<script>` tag
 </head>
 ``` 
 
-These are the basic usage of HTMX with FastAPI.
+These are the examples of basic usage of HTMX with FastAPI.
 
 # Sign-in with Google button
 

@@ -8,7 +8,7 @@
 - [HTMX with FastAPI](#htmx-with-fastapi)
 - [Authentication Overview](#authentication-overview)
 - [Frontend Auth](#frontend-auth)
-  - [Sign-in with Google button](#sign-in-with-google-button)
+  - [Sign in with Google button](#sign-in-with-google-button)
     - [JavaScript Version](#javascript-version)
     - [HTML Version](#html-version)
   - [The Callback Function](#the-callback-function)
@@ -17,7 +17,8 @@
 
 # TL;DR
 
-The "Sign in with Google" button has been integrated into a sample HTMX+FastAPI web application. Either an HTML or JavaScript version of a code snippet from Google's code generator is included in the HTML to display the button. The FastAPI backend has been configured to create a session from the JWT and set "Set-Cookie: session_id" in the header, enabling subsequent communications to maintain the login status through a session cookie. Thanks to HTMX functionality, the application page can dynamically fetch the navigation bar upon a change in login status, indicating whether the user is logged in.
+The "Sign in with Google" button has been integrated into a sample HTMX+FastAPI web application. Either an HTML or JavaScript version of a code snippet from Google's code generator is included in the HTML to display the button. The FastAPI backend has been configured to create a session from the JWT and set "Set-Cookie: session_id" in the header, enabling subsequent communications to maintain the login status through a session cookie.
+Thanks to HTMX functionality, the application page can dynamically fetch the navigation bar upon a change in login status, indicating whether the user is logged in.
 
 # Introduction
 
@@ -82,17 +83,18 @@ Additionally, menu elements like 'Secret#1' become accessible, revealing exclusi
 Logging out is just as intuitive.
 Clicking the 'Exit' icon signs the user out, reverting the navigation bar to its default state for anonymous visitors.
 
-The source code is on [my Github repo.](https://github.com/ktaka-ccmp/fastapi-htmx-google-oauth/tree/master)
+The source code is available on [my GitHub repo.](https://github.com/ktaka-ccmp/fastapi-htmx-google-oauth/tree/master)
 
 
 ## Anonymous User Page
 
-The figure below shows a screenshot of anonymou user page to be explained more in detail.
-The page consists of a navigation bar and content section.
-On the navigation bar, anonymous user icon, menus including the ones to secret pages and Google Sign-in button are shown.
-In this example Secret#1 menu is disabled. The Secret#2 menu is not disabled, however clicking it will return access forbiden error.
+The figure below shows a screenshot of the anonymous user page, which will be explained in more detail.
+The page consists of a navigation bar and a content section.
+On the navigation bar, an anonymous user icon, menus including the ones to secret pages, and a Google Sign-in button are shown.
+In this example, the 'Secret#1' menu is disabled.
+The 'Secret#2' menu is not disabled; however, clicking it will return an access forbidden error.
 
-The section below the navigation bar is the content section showing "Incremental hx-get demo" page, which is acessible by both anonymous and authenticated user.
+The section below the navigation bar is the content section showing the "Incremental hx-get demo" page, which is accessible by both anonymous and authenticated users.
 
 <a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/page1.drawio.png"
 target="_blank">
@@ -103,11 +105,11 @@ width="90%" alt="Anonymous User Page" title="Anonymous User Page">
 
 ## Authenticated User Page
 
-The figure below shows a screenshot of authenticated user page, which also consists of a navigation bar and content section.
- Shown on the navigation bar are the user's Google acount icon, menus including the ones to secret pages and Sign-out button.
-When the user is authenticated, the menus to the secret pages are both acessible and both return the contents.
+The figure below shows a screenshot of the authenticated user page, which also consists of a navigation bar and content section.
+Shown on the navigation bar are the user's Google account icon, menus including the ones to secret pages, and a Sign-out button.
+When the user is authenticated, the menus to the secret pages are both accessible and return the contents.
 
-The section below the navigation bar is the content section showing the content of the secret#1 page which is acessible only by authenticated users.
+The section below the navigation bar is the content section showing the content of the 'Secret#1' page, which is accessible only by authenticated users.
 
 <a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/page2.drawio.png"
 target="_blank">
@@ -117,7 +119,8 @@ width="90%" alt="Authenticated User Page" title="Authenticated User Page">
 
 # HTMX with FastAPI
 
-FastAPI can respond with an HTML page that is generated from a Jinja template. The following code specifies that when the FastAPI server receives a get request to `/spa`, it will respond with a HTML page generated from a Jinja template `spa.j2`.
+FastAPI can respond with an HTML page generated from a Jinja template.
+The following code specifies that when the FastAPI server receives a GET request to `/spa`, it will respond with an HTML page generated from the Jinja template `spa.j2`.
 
 ```python
 router = APIRouter()
@@ -129,7 +132,7 @@ async def spa(request: Request):
     return templates.TemplateResponse("spa.j2", context)
 ```
 
-Shown below is what the `spa.j2` looks like.
+Shown below is what the template `spa.j2` looks like.
 
 ```jinja
 <!DOCTYPE html>
@@ -154,14 +157,13 @@ Shown below is what the `spa.j2` looks like.
 
 </html>
 ```
+In the body section, there are two sub-sections: one is wrapped by `<header></header>`, and the other is wrapped by `<div></div>`.
 
-In the body section, there are two sub-sections, one is wrapped by `<header></header>` and the other is wrapped by `<div></div>`.
+The section wrapped by `<header></header>` loads the navigation bar in a responsive manner.
+Within this section, we encounter unfamiliar attributes: hx-get, hx-target, hx-swap, and hx-trigger.
+These attributes are interpreted by the HTMX JavaScript library loaded in `head.j2`.
 
-The section wrapped by `<header></header>` is to load the navigation bar in a responsive manner.
-When we focus on this section, we find unfamiliar attributes, hx-get, hx-target, hx-swap and hx-trigger.
-These are the attributes that are interpreted by HTMX JavaScript library loaded in `head.j2`.
-
-The meaning of the attributes are summarized as follows:
+The meanings of the attributes are summarized as follows:
 
 | Attribut | Description |
 |:---|:---|
@@ -171,15 +173,15 @@ The meaning of the attributes are summarized as follows:
 | hx-trigger | specifies the event that triggers the request |
 
 <a name="LoginStatusChange"></a>
-So in this case, the HTMX library will issue a get request to `/auth/auth_navbar` endpoint upon this section's first load and when the page receives response with "HX-Trigger: LoginStatusChange" in header for a HTMX AJAX request.
+In this case, the HTMX library will issue a GET request to the /auth/auth_navbar endpoint upon this section's first load and when the page receives a response with "HX-Trigger: LoginStatusChange" in the header for an HTMX AJAX request.
 The HTMX library will then replace the content inside the `<div>` section with `id="auth_navbar"`.
 
-The `<div>` section just below the `{# Content #}` is to load the main contents of the page dynamically.
+The `<div>` section just below the `{# Content #}` is there to load the main contents of the page dynamically.
 It also has the same set of HTMX attributes summarized in the table above.
-In this case the HTMX library will issue a get request to `/htmx/content.top` endpoint only upon this section's first load.
+In this case, the HTMX library will issue a GET request to the `/htmx/content.top` endpoint only upon this section's first load.
 The HTMX library will then replace the content inside the `<div>` section with `id="content_section"`.
 
-To have the HTMX attribute properly interpreted, we need to add a `<script>` tag in the document head, like:
+To have the HTMX attribute properly interpreted, we need to add a `<script>` tag in the document head, like this:
 
 ```
 <head>
@@ -187,12 +189,12 @@ To have the HTMX attribute properly interpreted, we need to add a `<script>` tag
 </head>
 ``` 
 
-The document head is included from the file, `head.j2` in the same directory as:
+The document head is included from the file `head.j2` in the same directory as:
+
 ```
 {% include 'head.j2' %}
 ```
-
-These are the examples of basic usage of HTMX and FastAPI with Jinja templating.
+These examples illustrate the basic usage of HTMX and FastAPI with Jinja templating.
 
 # Authentication Overview
 
@@ -204,7 +206,7 @@ target="_blank">
 width="80%" alt="Sign-in flow" title="Sign-in flow">
 </a>
 
-1. When a user clicks 'Sign-in with Google', an authentication request is sent to Google.
+1. When a user clicks 'Sign in with Google', an authentication request is sent to Google.
 2. Upon successful authentication, the user's credentials are returned as a JSON Web Token (JWT) to the page.
 3. JavaScript code on the page forwards the JWT to `/auth/login`, an authentication endpoint prepared using FastAPI.
 4. The JWT is then verified using a certificate fetched from Google.
@@ -216,11 +218,11 @@ Thereafter, "Cookie: session_id=xxxxxx" is always set in subsequent communicatio
 
 # Frontend Auth
 
-## Sign-in with Google button
+## Sign in with Google button
 
-To show a `Sign-in with Google button` we need to use a JavaScript library by Google, and place a code snipet somewhere in the HTML.
+To display a `Sign in with Google` button, we need to use a JavaScript library provided by Google and place a code snippet somewhere in the HTML.
 
-In order to load the JavaScript library, the likes of the following `<script>` tag need to be added in the document head.
+To load the JavaScript library, add the following `<script>` tag in the document head:
 
 ```
 <head>
@@ -228,11 +230,8 @@ In order to load the JavaScript library, the likes of the following `<script>` t
 </head>
 ```
 
-The code snippet that should be placed in the page has two versions, one is a JavaScript version and the other is an HTML version.
-We can use either of these.
-
-Inside the navigation bar, we place a code for showing the "Sign-in with Google" button.
-We can use either the HTML version or the JavaScript version of the code.
+Inside the navigation bar, we place a code snippet to show the "Sign in with Google" button.
+This code snippet is available in two versions: JavaScript and HTML. Either version can be used.
 
 ### JavaScript Version
 
@@ -258,15 +257,15 @@ We can use either the HTML version or the JavaScript version of the code.
 <div id="signInDiv"></div>
 ```
 
-The google.accounts.id.initialize functiondefines the initialization and behavior of the Sign-in process.
+The `google.accounts.id.initialize` function defines the initialization and behavior of the sign-in process:
 
-- The `client_id` defines [OAuth 2.0 Client ID](https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid), which is necessary.
-- The `callback` defines a JavaScript callback function upon a successful sign-in on the Google side.
-- The`ux_mode` defines the mode of Google's sign-in page, which we want to be 'popup' instead of 'redirect'.
+- The `client_id` specifies the [OAuth 2.0 Client ID](https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid), which is necessary.
+- The `callback` defines a JavaScript callback function for a successful sign-in on Google's side.
+- The `ux_mode` sets Google's sign-in page mode, preferred to be 'popup' instead of 'redirect'.
 
-The `google.accounts.id.renderButton` division defines the presentation style of the Sign-in with Google button.
+The `google.accounts.id.renderButton` function defines the presentation style of the Sign in with Google button:
 
-- The `data-auto_prompt="false` determines whether to display One tap or not.
+- Setting `data-auto_prompt="false"` determines whether to display One Tap or not.
 
 The `google.accounts.id.prompt` method displays the One Tap prompt.
 
@@ -295,19 +294,18 @@ The `google.accounts.id.prompt` method displays the One Tap prompt.
 </div>
 ```
 
-The `<div id="g_id_onload">` division defines the initialization and behavior of the Sign-in process.
+The `<div id="g_id_onload">` element initializes and configures the sign-in process:
 
-- data-client_id="{{ client_id }}" defines [OAuth 2.0 Client ID](https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid), which is necessary.
+- `data-client_id="{{ client_id }}"` specifies the necessary [OAuth 2.0 Client ID](https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid).
+- `data-ux_mode="popup"` sets the mode of Google's sign-in page to 'popup' instead of the more intrusive 'redirect'.
+- `data-callback=onSignIn` specifies a JavaScript callback function for a successful sign-in on Google's side.
+- Setting `data-auto_prompt="false"` determines whether to display One Tap or not.
 
-- The `data-ux_mode="popup"` defines the mode of Google's sign-in page, which we want to be 'popup' instead of 'redirect' which is more intrusive.
-- The `data-callback=onSignIn` defines a JavaScript callback function upon a successful sign-in on the Google side.
-- The `data-auto_prompt="false` determines whether to display One tap or not.
-
-The `<div id="g_id_sigin">` division defines the presentation style of the Sign-in with Google button.
+The `<div id="g_id_sigin">` division defines the presentation style of the Sign in with Google button.
 
 ## The Callback Function
 
-Here is an implementation of the callback function to forward the JWT to the backend. 
+Below is an implementation of the callback function to forward the JWT to the backend:
 
 ```javascript
 <script>
@@ -317,20 +315,19 @@ Here is an implementation of the callback function to forward the JWT to the bac
     }
 </script>
 ```
-
-The `onSignIn` function sends JWT received from Google's sign-in page to the `{{ login_url }}`, which is a backend endpoint to handle the received JWT.
+The `onSignIn` function sends the JWT received from Google's sign-in page to `{{ login_url }}`, a backend endpoint designed to handle the received JWT.
 
 # Backend Auth
 
-The backend endpoint receives the JWT, verifies it using Google's public certificate and then creates a session to maintain a logged-in status in the following communications.
+The backend endpoint receives the JWT, verifies it using Google's public certificate, and then creates a session to maintain a logged-in status in subsequent communications.
 
-Here is the code snippet of the backend endpoint, which does:
+Here is the code snippet of the backend endpoint, which performs the following operations:
 
-- VerifyToken: verify JWT,
-- GetOrCreateUser: create the user in the database,
-- create_session: create a session and store it in a session database,
-- response.set_cookie: set the session_id in the cookie,
-- then return the response to the front end.
+- `VerifyToken`: Verifies the JWT.
+- `GetOrCreateUser`: Creates the user in the database if they don't already exist.
+- `create_session`: Creates a session and stores it in a session database.
+- `response.set_cookie`: Sets the session_id in the cookie.
+- Returns the response to the frontend.
 
 ```python
 @router.post("/login")
@@ -371,9 +368,10 @@ async def login(request: Request, ds: Session = Depends(get_db), cs: Session = D
     return response
 ```
 
-Please note that there is a line setting "HX-Trigger: LoginStatusChange" in the response header to trigger hx-get to `/auth/auth_navbar` causing a reload of navigation bar[(see above)](#LoginStatusChange).
+Please note that there is a line setting "HX-Trigger: LoginStatusChange" in the response header.
+This triggers an hx-get to `/auth/auth_navbar`, causing the navigation bar to reload [(see above)](#LoginStatusChange).
 
-The VerifyToken function below verifies the JWT from the frontend utilizing the [google oauth2 python library](https://google-auth.readthedocs.io/en/stable/reference/google.oauth2.id_token.html).
+The VerifyToken function below verifies the JWT from the frontend using the [Google OAuth2 Python library](https://google-auth.readthedocs.io/en/stable/reference/google.oauth2.id_token.html).
 
 ```python
 from google.oauth2 import id_token
@@ -395,12 +393,13 @@ async def VerifyToken(jwt: str):
 
 # Conclusion
 
-In this post, I shared what I learnt to integrate `Sign-in with Google` feature with HTMX+FastAPI web application.
-I only needed to put an HTML or JavaScript version of the code snippet from Google's code generator to show the button.
-I implemented the FastAPI backend so that it creates a session and set a session_id in a cookie in the following communication.
-The app. page shows the navigation bar to indicate the login status, fetched from the backend upon change of the login status utilizing hx-get, an HTMX method.
-
+In this post, I've shared what I learned about integrating the Sign in with Google feature with an HTMX+FastAPI web application.
+The "Sign in with Google" button has been successfully integrated into a sample HTMX+FastAPI web application.
+We included either an HTML or JavaScript version of a code snippet from Google's code generator in the HTML to display the button.
+The FastAPI backend has been configured to create a session from the JWT and set "Set-Cookie: session_id" in the header, allowing subsequent communications to maintain the login status through a session cookie.
+Thanks to HTMX functionality, the application page can dynamically update the navigation bar upon a change in login status, clearly indicating whether the user is logged in.
 
 P.S.
-I'm a resident of Japan looking for remote Job overseas.
-I'm also willing to take on-site position in North America, AU, EU, etc., if there's VISA support.
+I'm based in Japan and am seeking remote work opportunities overseas.
+I'm also open to on-site positions in North America, Australia, the EU, etc., if visa support is available.
+[LinkedIn](https://www.linkedin.com/in/ktaka-phd/)

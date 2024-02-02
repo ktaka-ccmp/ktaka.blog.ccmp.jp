@@ -143,7 +143,7 @@ The meaning of the attributes are summarized as follows:
 | hx-swap | specifies how content is swapped |
 | hx-trigger | specifies the event that triggers the request |
 
-So in this case, the HTMX library will issue a get request to `/auth/auth_navbar` endpoint upon this section's first load and when the page receives response with "HX-Trigger: LoginStatusChange" in header.
+So in this case, the HTMX library will issue a get request to `/auth/auth_navbar` endpoint upon this section's first load and <a name="#LoginStatusChange"></a> when the page receives response with "HX-Trigger: LoginStatusChange" in header.
 The HTMX library will then replace the content inside the `<div>` section with `id="auth_navbar"`.
 
 The `<div>` section just below the `{# Content #}` is to load the main contents of the page dynamically.
@@ -284,20 +284,13 @@ Here is an implementation of the callback function to forward the JWT to the bac
 ```javascript
 <script>
     function onSignIn(response) {
-        var xhr = new XMLHttpRequest();
-        xhr.open('POST', "{{ login_url }}");
-        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-        xhr.onload = function () {
-            console.log("Response from {{ login_url }}: ", xhr.responseText);
-            htmx.trigger("#auth_navbar", "LoginStatusChange");
-        };
-        xhr.send('credential=' + response.credential);
+        htmx.ajax('POST', '{{ login_url }}',
+            { values: { 'credential': response.credential }, swap: 'none' })
     }
 </script>
 ```
 
 The `onSignIn` function sends JWT received from Google's sign-in page to the `{{ login_url }}`, which is a backend endpoint to handle the received JWT.
-The `onSignIn` function also triggers
 
 # Backend Auth Implementation
 
@@ -313,13 +306,13 @@ The backend endpoint receives the JWT, verifies it using Google's public certifi
 
 Here is the code snippet of the backend endpoint, which does:
 
-- verify JWT,
-- create the user in the database,
-- create a session and store it in a session database,
-- set the session_id in the cookie,
+- VerifyToken: verify JWT,
+- GetOrCreateUser: create the user in the database,
+- create_session: create a session and store it in a session database,
+- response.set_cookie: set the session_id in the cookie,
 - then return the response to the front end.
 
-```javascript
+```python
 @router.post("/login")
 async def login(request: Request, ds: Session = Depends(get_db), cs: Session = Depends(get_cache)):
 
@@ -332,33 +325,33 @@ async def login(request: Request, ds: Session = Depends(get_db), cs: Session = D
         return  Response("Error: Failed to validate JWT token")
 
     user = await GetOrCreateUser(idinfo, ds)
+    if not user:
+        print("Error: Failed to GetOrCreateUser")
+        return  Response("Error: Failed to GetOrCreateUser for the JWT")
 
-    if user:
-        user_dict = get_user_by_email(user.email, ds)
-        if not user_dict:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Error: User not exist in User table in DB."
-                )
-        user = UserBase(**user_dict)
-        session_id = create_session(user, cs)
+    session_id = create_session(user, cs)
+    if not session_id:
+        print("Error: Failed to create session for", user.name)
+        return  Response("Error: Failed to create session for"+user.name)
 
-        response = JSONResponse({"Authenticated_as": user.name})
-        max_age = 600
-        expires = datetime.datetime.utcnow() + datetime.timedelta(seconds=max_age)
-        response.set_cookie(
-            key="session_id",
-            value=session_id,
-            httponly=True,
-            samesite="lax",
-            max_age=max_age,
-            expires=expires,
-        )
+    max_age = 600
+    expires = datetime.now(timezone.utc) + timedelta(seconds=max_age)
 
-        return response
-    else:
-        return Response("Error: Auth failed")
+    response = JSONResponse({"Authenticated_as": user.name})
+    response.set_cookie(
+        key="session_id",
+        value=session_id,
+        httponly=True,
+        samesite="lax",
+        max_age=max_age,
+        expires=expires,
+    )
+    response.headers["HX-Trigger"] = "LoginStatusChange"
+
+    return response
 ```
+
+Please note that there is a line setting "HX-Trigger: LoginStatusChange" in the response header to [trigger hx-get to `/auth/auth_navbar` causing a reload of navigation bar](#LoginStatusChange).
 
 The VerifyToken function below verifies the JWT from the frontend utilizing the [google oauth2 python library](https://google-auth.readthedocs.io/en/stable/reference/google.oauth2.html).
 

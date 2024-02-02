@@ -37,11 +37,11 @@ With htmx.js, I can simply create a page, and when I need to change parts of it,
 I understand that as a web application becomes more complex, there might be situations where more feature-rich technologies are necessary.
 But now, I'm no longer intimidated by the overwhelming ecosystems of each technology.
 
-Now, I wanted to explore how I could implement a login feature in a web application, specifically using the 'Sign-in with Google' feature on a web page developed with HTMX and FastAPI.
+Now, I wanted to explore how I could implement a login feature in a web application, specifically using the 'Sign in with Google' feature on a web page developed with HTMX and FastAPI.
 So, I did a bit of research and figured out how to do it.
 Noticing a lack of use cases on the web for this particular combination of technologies, I decided to share my findings.
 
-While integrating the 'Sign-in with Google' button into an HTMX page isn’t much different from incorporating it into a standard HTML page, the following aspects seemed particularly noteworthy:
+While integrating the 'Sign in with Google' button into an HTMX page isn’t much different from incorporating it into a standard HTML page, the following aspects seemed particularly noteworthy:
 
 - How to display the status after a successful login or logout using HTMX.
 - The handling of the JWT after a successful login on Google's side.
@@ -52,7 +52,7 @@ These points are especially relevant for beginners like myself.
 # What I Implemented
 
 The webpage I developed using FastAPI and HTMX is shown in the figure below.
-This page integrates a 'Sign-in with Google' option, enhancing user experience and offering a secure login method.
+This page integrates a 'Sign in with Google' option, enhancing user experience and offering a secure login method.
 
 <!--
 <a href=""

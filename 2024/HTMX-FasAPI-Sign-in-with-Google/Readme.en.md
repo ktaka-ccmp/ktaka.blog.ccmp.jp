@@ -143,7 +143,7 @@ The meaning of the attributes are summarized as follows:
 | hx-swap | specifies how content is swapped |
 | hx-trigger | specifies the event that triggers the request |
 
-So in this case, the HTMX library will issue a get request to `/auth/auth_navbar` endpoint upon this section's first load and <a name="#LoginStatusChange"> when the page receives response with "HX-Trigger: LoginStatusChange" in header.</a>
+So in this case, the HTMX library will issue a get request to `/auth/auth_navbar` endpoint upon this section's first load and <a name="LoginStatusChange"> when the page receives response with "HX-Trigger: LoginStatusChange" in header.</a>
 The HTMX library will then replace the content inside the `<div>` section with `id="auth_navbar"`.
 
 The `<div>` section just below the `{# Content #}` is to load the main contents of the page dynamically.

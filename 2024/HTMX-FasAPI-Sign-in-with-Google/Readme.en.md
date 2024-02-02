@@ -3,8 +3,8 @@
 - [TL;DR](#tldr)
 - [Introduction](#introduction)
 - [What I Implemented](#what-i-implemented)
-  - [Navigation Bar](#navigation-bar)
-  - [Page Content](#page-content)
+  - [Anonymous User Page](#anonymous-user-page)
+  - [Authenticated User Page](#authenticated-user-page)
 - [HTMX with FastAPI](#htmx-with-fastapi)
 - [Authentication Overview](#authentication-overview)
 - [Frontend Auth](#frontend-auth)
@@ -62,9 +62,17 @@ width="80%" alt="" title="">
 </a>
 -->
 
-<a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/htmx-fastapi02.gif"
+<!--
+<a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/"
 target="_blank">
-<img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/htmx-fastapi02.gif"
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/"
+width="80%" alt="" title="">
+</a>
+-->
+
+<a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/FastAPI-HTMX-Google-OAuth042.gif"
+target="_blank">
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/FastAPI-HTMX-Google-OAuth042.gif"
 width="80%" alt="Sign-in Animation" title="Sign-in Animation">
 </a>
 
@@ -81,27 +89,34 @@ Clicking the 'Exit' icon signs the user out, reverting the navigation bar to its
 The source code is on [my Github repo.](https://github.com/ktaka-ccmp/fastapi-htmx-google-oauth/tree/master)
 
 
-## Navigation Bar 
-<!--
-<a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/"
-target="_blank">
-<img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/"
-width="80%" alt="Sign-in Animation" title="Sign-in Animation">
-</a>
--->
+## Anonymous User Page
+
+The figure below shows a screenshot of anonymou user page, which consists of a navigation bar and content section.
+On the navigation bar, anonymous user icon menus including the ones to secret pages and Google Sign-in button are shown.
+In this example Secret#1 menu is disabled. The Secret#2 menu is not disabled while clicking it will return access forbiden error.
+
+The section below the navigation bar is the content section showing "Incremental hx-get demo" page, which is acessible by both anonymous user and authenticated user.
 
 <a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/page1.drawio.png"
 target="_blank">
 <img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/page1.drawio.png"
-width="80%" alt="Anonymous User Page" title="Anonymous User Page">
+width="90%" alt="Anonymous User Page" title="Anonymous User Page">
+</a>
+
+
+## Authenticated User Page
+
+The figure below shows a screenshot of authenticated user page, which consists of a navigation bar and content section.
+On the navigation var, user icon of the Google acount, menus including the ones to secret pages and Sign-out button are shown.
+When the user is authenticated the menus to the secret pages are both acessible and return the contents it points to.
+
+The section below the navigation bar is the content section showing the content of the secret#1 page which is acessible only to authenticated users.
 
 <a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/page2.drawio.png"
 target="_blank">
 <img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/page2.drawio.png"
-width="80%" alt="Authenticated User Page" title="Authenticated User Page">
-
-
-## Page Content
+width="90%" alt="Authenticated User Page" title="Authenticated User Page">
+</a>
 
 # HTMX with FastAPI
 

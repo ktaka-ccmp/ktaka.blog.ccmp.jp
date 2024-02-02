@@ -165,7 +165,7 @@ These attributes are interpreted by the HTMX JavaScript library loaded in `head.
 
 The meanings of the attributes are summarized as follows:
 
-| Attribut | Description |
+| Attribute | Description |
 |:---|:---|
 | hx-get  | issues a GET request to the given URL  |
 | hx-target  | specifies an element for swapping  |

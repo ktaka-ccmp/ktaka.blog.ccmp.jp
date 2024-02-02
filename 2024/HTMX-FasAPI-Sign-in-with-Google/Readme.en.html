@@ -1,56 +1,148 @@
-<h1 id="sign-in-with-google-in-htmxfastapi">Sign in with Google in
-HTMX+FastAPI</h1>
+<!-- # Sign in with Google in HTMX+FastAPI -->
 <ul>
-<li><a href="#sign-in-with-google-in-htmxfastapi">Sign in with Google in
-HTMX+FastAPI</a>
-<ul>
-<li><a href="#tldr">TLDR</a></li>
+<li><a href="#tldr">TL;DR</a></li>
 <li><a href="#introduction">Introduction</a></li>
-<li><a href="#the-resulting-page">The resulting page</a></li>
-<li><a href="#overview-of-the-implementation">Overview of the
-Implementation</a></li>
-<li><a href="#htmx-with-fastapi">HTMX with FastAPI</a>
+<li><a href="#what-i-implemented">What I Implemented</a>
 <ul>
-<li><a href="#the-navigation-bar">The navigation bar</a></li>
+<li><a href="#anonymous-user-page">Anonymous User Page</a></li>
+<li><a href="#authenticated-user-page">Authenticated User Page</a></li>
 </ul></li>
-<li><a href="#show-sign-in-with-google-button">Show Sign-in with Google
-button</a>
+<li><a href="#htmx-with-fastapi">HTMX with FastAPI</a></li>
+<li><a href="#authentication-overview">Authentication Overview</a></li>
+<li><a href="#frontend-auth">Frontend Auth</a>
 <ul>
-<li><a href="#javascript-version-of-the-sign-in-component">JavaScript
-version of the Sign-in component</a></li>
-<li><a href="#html-version-of-the-sign-in-component">HTML version of the
-Sign-in component</a></li>
-<li><a href="#the-callback-function">The Callback function</a></li>
-</ul></li>
-<li><a href="#backend-endpoint-for-login">Backend endpoint for login</a>
+<li><a href="#sign-in-with-google-button">Sign in with Google button</a>
 <ul>
-<li><a href="#bbbb">BBBB</a></li>
+<li><a href="#javascript-version">JavaScript Version</a></li>
+<li><a href="#html-version">HTML Version</a></li>
 </ul></li>
+<li><a href="#the-callback-function">The Callback Function</a></li>
+</ul></li>
+<li><a href="#backend-auth">Backend Auth</a></li>
 <li><a href="#conclusion">Conclusion</a></li>
-</ul></li>
 </ul>
-<h2 id="tldr">TLDR</h2>
-<p>I integrated the “Sign in with Google” button with a sample
-HTMX+FastAPI web application. I only needed to put an HTML or JavaScript
-version of the code snippet from Google’s code generator to show the
-button. I implemented the FastAPI backend so that it creates a session
-and set a session_id in a cookie in the following communication. The
-app. page shows the navigation bar to indicate the login status, fetched
-from the backend depending on the login status change, utilizing hx-get,
-an HTMX method.</p>
-<h2 id="introduction">Introduction</h2>
-<p>I wanted to know how to use the Sign-in with Google feature on a Web
-page crafted using HTMX+FastAPI. As for the Sign-in with Google feature
-itself, it turned out that nothing is HTMX specific but also applies to
-normal HTML pages with FastAPI.</p>
-<h2 id="the-resulting-page">The resulting page</h2>
-<p>Put Gif animation here.</p>
-<h2 id="overview-of-the-implementation">Overview of the
-Implementation</h2>
-<p>Create a figure to show OAuth2 flow and session creation.</p>
-<h2 id="htmx-with-fastapi">HTMX with FastAPI</h2>
-<p>FastAPI can respond with an HTMX page that is generated from a
-template.</p>
+<h1 id="tldr">TL;DR</h1>
+<p>The “Sign in with Google” feature has been integrated into a sample
+HTMX+FastAPI web application. Either an HTML or JavaScript version of a
+code snippet from Google’s code generator is included in the HTML to
+display the button. The FastAPI backend has been configured to create a
+session from the JWT and set “Set-Cookie: session_id” in the header,
+enabling subsequent communications to maintain the login status through
+a session cookie. Thanks to HTMX functionality, the application page can
+dynamically fetch the navigation bar upon a change in login status,
+indicating whether the user is logged in.</p>
+<h1 id="introduction">Introduction</h1>
+<p>As an aspiring full-stack software developer, I’ve been teaching
+myself various front-end web technologies recently. These include
+React.js, Svelte, and other shiny new JavaScript frameworks, which can
+sometimes be overwhelming. I was considering settling on Svelte, thanks
+to its simplicity in state management, when I discovered a concept
+called Hypermedia as the Engine of Application State (HATEOAS) and a
+library named htmx.js.</p>
+<p>Initially, I didn’t quite grasp how it differed from other
+technologies. However, after creating several web pages for practice, I
+realized I didn’t need to switch into a dedicated front-end programming
+mode. I felt liberated from the struggle of forcing myself into the
+React mental model, which always seemed nonsensical to me. I often
+questioned, ‘Why must I change my mental model every time I create a
+small piece of a web page?’</p>
+<p>With htmx.js, I can simply create a page, and when I need to change
+parts of it, I just fire an AJAX request using hx-get and swap the DOM
+elements with HTML fragments in the response. I understand that as a web
+application becomes more complex, there might be situations where more
+feature-rich technologies are necessary. But now, I’m no longer
+intimidated by the overwhelming ecosystems of each technology.</p>
+<p>Now, I wanted to explore how I could implement a login feature in a
+web application, specifically using the ‘Sign in with Google’ feature on
+a web page developed with HTMX and FastAPI. So, I did a bit of research
+and figured out how to do it. Noticing a lack of use cases on the web
+for this particular combination of technologies, I decided to share my
+findings.</p>
+<p>While integrating the ‘Sign in with Google’ button into an HTMX page
+isn’t much different from incorporating it into a standard HTML page,
+the following aspects seemed particularly noteworthy:</p>
+<ul>
+<li>How to display the status after a successful login or logout using
+HTMX.</li>
+<li>The handling of the JWT after a successful login on Google’s
+side.</li>
+<li>How to maintain a session via a cookie generated upon successful JWT
+verification, rather than solely relying on the JWT for session
+management.</li>
+</ul>
+<p>These points are especially relevant for beginners like myself.</p>
+<h1 id="what-i-implemented">What I Implemented</h1>
+<p>The webpage I developed using FastAPI and HTMX is shown in the figure
+below. This page integrates a ‘Sign in with Google’ option, enhancing
+user experience and offering a secure login method.</p>
+<!--
+<a href=""
+target="_blank">
+<img src=""
+width="80%" alt="" title="">
+</a>
+-->
+<!--
+<a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/"
+target="_blank">
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/"
+width="80%" alt="" title="">
+</a>
+-->
+<p><a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/FastAPI-HTMX-Google-OAuth043.gif"
+target="_blank">
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/FastAPI-HTMX-Google-OAuth043.gif"
+width="80%" alt="Sign-in Animation" title="Sign-in Animation"> </a></p>
+<p>The process begins when a user clicks on the Google logo. A pop-up
+window appears, guiding them through the Google account selection and
+authentication process, which is then executed seamlessly in the
+background.</p>
+<p>After logging in, the webpage dynamically updates the navigation bar
+to include the user’s Google account icon. Additionally, menu elements
+like ‘Secret#1’ become accessible, revealing exclusive content with a
+single click.</p>
+<p>Logging out is just as intuitive. Clicking the ‘Exit’ icon signs the
+user out, reverting the navigation bar to its default state for
+anonymous visitors.</p>
+<p>The source code is available on <a
+href="https://github.com/ktaka-ccmp/fastapi-htmx-google-oauth/tree/master">my
+GitHub repo.</a></p>
+<h2 id="anonymous-user-page">Anonymous User Page</h2>
+<p>The figure below shows a screenshot of the anonymous user page, which
+will be explained in more detail. The page consists of a navigation bar
+and a content section. On the navigation bar, an anonymous user icon,
+menus including the ones to secret pages, and a Google Sign-in button
+are shown. In this example, the ‘Secret#1’ menu is disabled. The
+‘Secret#2’ menu is not disabled; however, clicking it will return an
+access forbidden error.</p>
+<p>The section below the navigation bar is the content section showing
+the “Incremental hx-get demo” page, which is accessible by both
+anonymous and authenticated users.</p>
+<p><a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/page1.drawio.png"
+target="_blank">
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/page1.drawio.png"
+width="90%" alt="Anonymous User Page" title="Anonymous User Page">
+</a></p>
+<h2 id="authenticated-user-page">Authenticated User Page</h2>
+<p>The figure below shows a screenshot of the authenticated user page,
+which also consists of a navigation bar and content section. Shown on
+the navigation bar are the user’s Google account icon, menus including
+the ones to secret pages, and a Sign-out button. When the user is
+authenticated, the menus to the secret pages are both accessible and
+return the contents.</p>
+<p>The section below the navigation bar is the content section showing
+the content of the ‘Secret#1’ page, which is accessible only by
+authenticated users.</p>
+<p><a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/page2.drawio.png"
+target="_blank">
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/page2.drawio.png"
+width="90%" alt="Authenticated User Page" title="Authenticated User Page">
+</a></p>
+<h1 id="htmx-with-fastapi">HTMX with FastAPI</h1>
+<p>FastAPI can respond with an HTML page generated from a Jinja
+template. The following code specifies that when the FastAPI server
+receives a GET request to <code>/spa</code>, it will respond with an
+HTML page generated from the Jinja template <code>spa.j2</code>.</p>
 <div class="sourceCode" id="cb1"><pre
 class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>router <span class="op">=</span> APIRouter()</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>templates <span class="op">=</span> Jinja2Templates(directory<span class="op">=</span><span class="st">&#39;templates&#39;</span>)</span>
@@ -59,10 +151,7 @@ class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a hr
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> spa(request: Request):</span>
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    context <span class="op">=</span> {<span class="st">&quot;request&quot;</span>: request}</span>
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> templates.TemplateResponse(<span class="st">&quot;spa.j2&quot;</span>, context)</span></code></pre></div>
-<p>To make the FastAPI return an HTML page, we need to specify
-<code>response_class=HTMLResponse</code> and let the function return
-<code>TemplateResponse.</code></p>
-<p>Here is the template used in the example above.</p>
+<p>Shown below is what the template <code>spa.j2</code> looks like.</p>
 <pre class="jinja"><code>&lt;!DOCTYPE html&gt;
 &lt;html lang=&quot;en&quot;&gt;
 
@@ -84,193 +173,286 @@ class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a hr
 &lt;/body&gt;
 
 &lt;/html&gt;</code></pre>
-<p>The <code>{# Header #}</code> section gets the navigation bar
-component from the <code>/auth/auth_navbar</code> endpoint via AJAX
-request. The obtained HTML fraction is placed between
-<code>&lt;div id="auth_navbar"&gt;</code> and <code>&lt;/div&gt;.</code>
-The AJAX request is fired upon the initial load of the page or when the
-browser gets “Hx-Trigger: showComponent” in the response header.</p>
-<p>The <code>{# Content #}</code> section gets the content of the page
-from the <code>/htmx/content.top</code> endpoint via AJAX request. The
-obtained HTML fraction is placed between
-<code>&lt;div id="content_section"&gt;</code> and
-<code>&lt;/div&gt;.</code> The AJAX request is fired upon the initial
-load of the page.</p>
-<h3 id="the-navigation-bar">The navigation bar</h3>
-<h2 id="show-sign-in-with-google-button">Show Sign-in with Google
-button</h2>
-<p>Inside the navigation bar, we place a code for showing the “Sign-in
-with Google” button. We can use either the HTML version or the
-JavaScript version of the code.</p>
-<h3 id="javascript-version-of-the-sign-in-component">JavaScript version
-of the Sign-in component</h3>
-<div class="sourceCode" id="cb3"><pre
-class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="op">&lt;</span>script<span class="op">&gt;</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    google<span class="op">.</span><span class="at">accounts</span><span class="op">.</span><span class="at">id</span><span class="op">.</span><span class="fu">initialize</span>({</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>        <span class="dt">client_id</span><span class="op">:</span> <span class="st">&quot;{{ client_id }}&quot;</span><span class="op">,</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>        <span class="dt">callback</span><span class="op">:</span> onSignIn<span class="op">,</span></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>        <span class="dt">ux_mode</span><span class="op">:</span> <span class="st">&quot;popup&quot;</span><span class="op">,</span></span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    })<span class="op">;</span></span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    google<span class="op">.</span><span class="at">accounts</span><span class="op">.</span><span class="at">id</span><span class="op">.</span><span class="fu">renderButton</span>(<span class="bu">document</span><span class="op">.</span><span class="fu">getElementById</span>(<span class="st">&quot;signInDiv&quot;</span>)<span class="op">,</span> {</span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>        <span class="dt">theme</span><span class="op">:</span> <span class="st">&quot;outline&quot;</span><span class="op">,</span></span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>        <span class="dt">size</span><span class="op">:</span> <span class="st">&quot;large&quot;</span><span class="op">,</span></span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>        <span class="dt">shape</span><span class="op">:</span> <span class="st">&quot;circle&quot;</span><span class="op">,</span></span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>        <span class="dt">type</span><span class="op">:</span> <span class="st">&quot;icon&quot;</span><span class="op">,</span></span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    })<span class="op">;</span></span>
-<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>    {# google<span class="op">.</span><span class="at">accounts</span><span class="op">.</span><span class="at">id</span><span class="op">.</span><span class="fu">prompt</span>()<span class="op">;</span> #}</span>
-<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a><span class="op">&lt;/</span>script<span class="op">&gt;</span></span>
-<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a><span class="op">&lt;</span>div id<span class="op">=</span><span class="st">&quot;signInDiv&quot;</span><span class="op">&gt;&lt;/</span>div<span class="op">&gt;</span></span></code></pre></div>
-<p>The google.accounts.id.initialize functiondefines the initialization
-and behavior of the Sign-in process.</p>
+<p>In the body section, there are two sub-sections: one is wrapped by
+<code>&lt;header&gt;&lt;/header&gt;</code>, and the other is wrapped by
+<code>&lt;div&gt;&lt;/div&gt;</code>.</p>
+<p>The section wrapped by <code>&lt;header&gt;&lt;/header&gt;</code>
+loads the navigation bar in a responsive manner. Within this section, we
+encounter unfamiliar attributes: hx-get, hx-target, hx-swap, and
+hx-trigger. These attributes are interpreted by the HTMX JavaScript
+library loaded in <code>head.j2</code>.</p>
+<p>The meanings of the attributes are summarized as follows:</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Attribute</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">hx-get</td>
+<td style="text-align: left;">issues a GET request to the given URL</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">hx-target</td>
+<td style="text-align: left;">specifies an element for swapping</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">hx-swap</td>
+<td style="text-align: left;">specifies how content is swapped</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">hx-trigger</td>
+<td style="text-align: left;">specifies the event that triggers the
+request</td>
+</tr>
+</tbody>
+</table>
+<p><a name="LoginStatusChange"></a> In this case, the HTMX library will
+issue a GET request to the /auth/auth_navbar endpoint upon this
+section’s first load and when the page receives a response with
+“HX-Trigger: LoginStatusChange” in the header for an HTMX AJAX request.
+The HTMX library will then replace the content inside the
+<code>&lt;div&gt;</code> section with <code>id="auth_navbar"</code>.</p>
+<p>The <code>&lt;div&gt;</code> section just below the
+<code>{# Content #}</code> is there to load the main contents of the
+page dynamically. It also has the same set of HTMX attributes summarized
+in the table above. In this case, the HTMX library will issue a GET
+request to the <code>/htmx/content.top</code> endpoint only upon this
+section’s first load. The HTMX library will then replace the content
+inside the <code>&lt;div&gt;</code> section with
+<code>id="content_section"</code>.</p>
+<p>To have the HTMX attribute properly interpreted, we need to add a
+<code>&lt;script&gt;</code> tag in the document head, like this:</p>
+<pre><code>&lt;head&gt;
+  &lt;script defer src=&quot;https://unpkg.com/htmx.org@1.9.10&quot;&gt;&lt;/script&gt;
+&lt;/head&gt;</code></pre>
+<p>The document head is included from the file <code>head.j2</code> in
+the same directory as:</p>
+<pre><code>{% include &#39;head.j2&#39; %}</code></pre>
+<p>These examples illustrate the basic usage of HTMX and FastAPI with
+Jinja templating.</p>
+<h1 id="authentication-overview">Authentication Overview</h1>
+<p>The figure below shows a schematic diagram depicting the flow of the
+authentication process.</p>
+<p><a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/htmx-fastapi01.drawio.png"
+target="_blank">
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/htmx-fastapi01.drawio.png"
+width="80%" alt="Sign-in flow" title="Sign-in flow"> </a></p>
+<ol type="1">
+<li>When a user clicks ‘Sign in with Google’, an authentication request
+is sent to Google.</li>
+<li>Upon successful authentication, the user’s credentials are returned
+as a JSON Web Token (JWT) to the page.</li>
+<li>JavaScript code on the page forwards the JWT to
+<code>/auth/login</code>, an authentication endpoint prepared using
+FastAPI.</li>
+<li>The JWT is then verified using a certificate fetched from
+Google.</li>
+<li>A user corresponding to the JWT is created in the SQLite database,
+if one does not already exist.</li>
+<li>A new session is also created and stored in the database.</li>
+<li>FastAPI sends a response with a header containing the entry
+“Set-Cookie: session_id=xxxxxx.”</li>
+</ol>
+<p>Thereafter, “Cookie: session_id=xxxxxx” is always set in subsequent
+communications, until the cookie expires or until the user explicitly
+hits the logout button on the web page.</p>
+<h1 id="frontend-auth">Frontend Auth</h1>
+<h2 id="sign-in-with-google-button">Sign in with Google button</h2>
+<p>To display a <code>Sign in with Google</code> button, we need to use
+a JavaScript library provided by Google and place a code snippet
+somewhere in the HTML.</p>
+<p>To load the JavaScript library, add the following
+<code>&lt;script&gt;</code> tag in the document head:</p>
+<pre><code>&lt;head&gt;
+  &lt;script src=&quot;https://accounts.google.com/gsi/client&quot; async&gt;&lt;/script&gt;
+&lt;/head&gt;</code></pre>
+<p>Inside the navigation bar, we place a code snippet to show the “Sign
+in with Google” button. This code snippet is available in two versions:
+JavaScript and HTML. Either version can be used.</p>
+<h3 id="javascript-version">JavaScript Version</h3>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="op">&lt;</span>script<span class="op">&gt;</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    google<span class="op">.</span><span class="at">accounts</span><span class="op">.</span><span class="at">id</span><span class="op">.</span><span class="fu">initialize</span>({</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>        <span class="dt">client_id</span><span class="op">:</span> <span class="st">&quot;{{ client_id }}&quot;</span><span class="op">,</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>        <span class="dt">callback</span><span class="op">:</span> onSignIn<span class="op">,</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>        <span class="dt">ux_mode</span><span class="op">:</span> <span class="st">&quot;popup&quot;</span><span class="op">,</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    })<span class="op">;</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    google<span class="op">.</span><span class="at">accounts</span><span class="op">.</span><span class="at">id</span><span class="op">.</span><span class="fu">renderButton</span>(<span class="bu">document</span><span class="op">.</span><span class="fu">getElementById</span>(<span class="st">&quot;signInDiv&quot;</span>)<span class="op">,</span> {</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>        <span class="dt">theme</span><span class="op">:</span> <span class="st">&quot;outline&quot;</span><span class="op">,</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>        <span class="dt">size</span><span class="op">:</span> <span class="st">&quot;large&quot;</span><span class="op">,</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>        <span class="dt">shape</span><span class="op">:</span> <span class="st">&quot;circle&quot;</span><span class="op">,</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>        <span class="dt">type</span><span class="op">:</span> <span class="st">&quot;icon&quot;</span><span class="op">,</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>    })<span class="op">;</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    {# google<span class="op">.</span><span class="at">accounts</span><span class="op">.</span><span class="at">id</span><span class="op">.</span><span class="fu">prompt</span>()<span class="op">;</span> #}</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a><span class="op">&lt;/</span>script<span class="op">&gt;</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a><span class="op">&lt;</span>div id<span class="op">=</span><span class="st">&quot;signInDiv&quot;</span><span class="op">&gt;&lt;/</span>div<span class="op">&gt;</span></span></code></pre></div>
+<p>The <code>google.accounts.id.initialize</code> function defines the
+initialization and behavior of the sign-in process:</p>
 <ul>
-<li>The `client_id`` defines <a
+<li>The <code>client_id</code> specifies the <a
 href="https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid">OAuth
 2.0 Client ID</a>, which is necessary.</li>
-<li>The <code>callback</code> defines a JavaScript callback function
-upon a successful sign-in on the Google side.</li>
-<li>The<code>ux_mode</code> defines the mode of Google’s sign-in page,
-which we want to be ‘popup’ instead of ‘redirect’.</li>
+<li>The <code>callback</code> defines a JavaScript callback function for
+a successful sign-in on Google’s side.</li>
+<li>The <code>ux_mode</code> sets Google’s sign-in page mode, preferred
+to be ‘popup’ instead of ‘redirect’.</li>
 </ul>
-<p>The <code>google.accounts.id.renderButton</code> division defines the
-presentation style of the Sign-in with Google button.</p>
+<p>The <code>google.accounts.id.renderButton</code> function defines the
+presentation style of the Sign in with Google button:</p>
 <ul>
-<li>The <code>data-auto_prompt="false</code> determines whether to
-display One tap or not.</li>
+<li>Setting <code>data-auto_prompt="false"</code> determines whether to
+display One Tap or not.</li>
 </ul>
 <p>The <code>google.accounts.id.prompt</code> method displays the One
 Tap prompt.</p>
-<h3 id="html-version-of-the-sign-in-component">HTML version of the
-Sign-in component</h3>
-<div class="sourceCode" id="cb4"><pre
-class="sourceCode html"><code class="sourceCode html"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">&lt;script</span> <span class="er">src</span><span class="ot">=</span><span class="st">&quot;https://accounts.google.com/gsi/client&quot;</span> <span class="er">async</span><span class="kw">&gt;&lt;/script&gt;</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">&lt;div</span> <span class="er">id</span><span class="ot">=</span><span class="st">&quot;g_id_onload&quot;</span></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="ot">     data-client_id=</span><span class="st">&quot;{{ client_id }}&quot;</span><span class="er">,</span></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="ot">     data-context=</span><span class="st">&quot;signin&quot;</span></span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="ot">     data-ux_mode=</span><span class="st">&quot;popup&quot;</span></span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="ot">     data-callback=</span><span class="st">onSignIn</span></span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="ot">     data-close_on_tap_outside=</span><span class="st">&quot;true&quot;</span></span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="ot">     data-itp_support=</span><span class="st">&quot;true&quot;</span></span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="ot">     data-auto_prompt=</span><span class="st">&quot;false&quot;</span></span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>     <span class="kw">&gt;</span></span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="kw">&lt;/div&gt;</span></span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="kw">&lt;div</span> <span class="er">class</span><span class="ot">=</span><span class="st">&quot;g_id_signin&quot;</span></span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a><span class="ot">     data-type=</span><span class="st">&quot;icon&quot;</span></span>
-<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="ot">     data-shape=</span><span class="st">&quot;square&quot;</span></span>
-<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a><span class="ot">     data-theme=</span><span class="st">&quot;outline&quot;</span></span>
-<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a><span class="ot">     data-size=</span><span class="st">&quot;large&quot;</span></span>
-<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>     <span class="kw">&gt;</span></span>
-<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a><span class="kw">&lt;/div&gt;</span></span></code></pre></div>
-<p>The <code>&lt;div id="g_id_onload"&gt;</code> division defines the
-initialization and behavior of the Sign-in process.</p>
+<h3 id="html-version">HTML Version</h3>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode html"><code class="sourceCode html"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">&lt;script</span> <span class="er">src</span><span class="ot">=</span><span class="st">&quot;https://accounts.google.com/gsi/client&quot;</span> <span class="er">async</span><span class="kw">&gt;&lt;/script&gt;</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="kw">&lt;div</span> <span class="er">id</span><span class="ot">=</span><span class="st">&quot;g_id_onload&quot;</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="ot">     data-client_id=</span><span class="st">&quot;{{ client_id }}&quot;</span><span class="er">,</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="ot">     data-context=</span><span class="st">&quot;signin&quot;</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="ot">     data-ux_mode=</span><span class="st">&quot;popup&quot;</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="ot">     data-callback=</span><span class="st">onSignIn</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="ot">     data-close_on_tap_outside=</span><span class="st">&quot;true&quot;</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="ot">     data-itp_support=</span><span class="st">&quot;true&quot;</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="ot">     data-auto_prompt=</span><span class="st">&quot;false&quot;</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>     <span class="kw">&gt;</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a><span class="kw">&lt;/div&gt;</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a><span class="kw">&lt;div</span> <span class="er">class</span><span class="ot">=</span><span class="st">&quot;g_id_signin&quot;</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a><span class="ot">     data-type=</span><span class="st">&quot;icon&quot;</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a><span class="ot">     data-shape=</span><span class="st">&quot;square&quot;</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="ot">     data-theme=</span><span class="st">&quot;outline&quot;</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a><span class="ot">     data-size=</span><span class="st">&quot;large&quot;</span></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>     <span class="kw">&gt;</span></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a><span class="kw">&lt;/div&gt;</span></span></code></pre></div>
+<p>The <code>&lt;div id="g_id_onload"&gt;</code> element initializes and
+configures the sign-in process:</p>
 <ul>
-<li><p>data-client_id=“{{ client_id }}” defines <a
+<li><code>data-client_id="{{ client_id }}"</code> specifies the
+necessary <a
 href="https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid">OAuth
-2.0 Client ID</a>, which is necessary.</p></li>
-<li><p>The <code>data-ux_mode="popup"</code> defines the mode of
-Google’s sign-in page, which we want to be ‘popup’ instead of ‘redirect’
-which is more intrusive.</p></li>
-<li><p>The <code>data-callback=onSignIn</code> defines a JavaScript
-callback function upon a successful sign-in on the Google side.</p></li>
-<li><p>The <code>data-auto_prompt="false</code> determines whether to
-display One tap or not.</p></li>
+2.0 Client ID</a>.</li>
+<li><code>data-ux_mode="popup"</code> sets the mode of Google’s sign-in
+page to ‘popup’ instead of the more intrusive ‘redirect’.</li>
+<li><code>data-callback=onSignIn</code> specifies a JavaScript callback
+function for a successful sign-in on Google’s side.</li>
+<li>Setting <code>data-auto_prompt="false"</code> determines whether to
+display One Tap or not.</li>
 </ul>
 <p>The <code>&lt;div id="g_id_sigin"&gt;</code> division defines the
-presentation style of the Sign-in with Google button.</p>
-<h3 id="the-callback-function">The Callback function</h3>
-<p>Here is an implementation of the callback function, which should be
-called upon a successful sign-in on the Google side.</p>
-<div class="sourceCode" id="cb5"><pre
-class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="op">&lt;</span>script<span class="op">&gt;</span></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">function</span> <span class="fu">onSignIn</span>(response) {</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>        <span class="kw">var</span> xhr <span class="op">=</span> <span class="kw">new</span> <span class="bu">XMLHttpRequest</span>()<span class="op">;</span></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>        xhr<span class="op">.</span><span class="fu">open</span>(<span class="st">&#39;POST&#39;</span><span class="op">,</span> <span class="st">&quot;{{ login_url }}&quot;</span>)<span class="op">;</span></span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>        xhr<span class="op">.</span><span class="fu">setRequestHeader</span>(<span class="st">&#39;Content-Type&#39;</span><span class="op">,</span> <span class="st">&#39;application/x-www-form-urlencoded&#39;</span>)<span class="op">;</span></span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>        xhr<span class="op">.</span><span class="at">onload</span> <span class="op">=</span> <span class="kw">function</span> () {</span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>            <span class="bu">console</span><span class="op">.</span><span class="fu">log</span>(<span class="st">&quot;Response from {{ login_url }}: &quot;</span><span class="op">,</span> xhr<span class="op">.</span><span class="at">responseText</span>)<span class="op">;</span></span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>            htmx<span class="op">.</span><span class="fu">trigger</span>(<span class="st">&quot;#auth_navbar&quot;</span><span class="op">,</span> <span class="st">&quot;LoginStatusChange&quot;</span>)<span class="op">;</span></span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>        }<span class="op">;</span></span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>        xhr<span class="op">.</span><span class="fu">send</span>(<span class="st">&#39;credential=&#39;</span> <span class="op">+</span> response<span class="op">.</span><span class="at">credential</span>)<span class="op">;</span></span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    }</span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="op">&lt;/</span>script<span class="op">&gt;</span></span></code></pre></div>
-<p>The <code>onSignIn</code> function sends JWT received from Google’s
-sign-in page to the <code>{{ login_url }}</code>, which is a backend
-endpoint to handle the received JWT. The <code>onSignIn</code> function
-also triggers</p>
-<h2 id="backend-endpoint-for-login">Backend endpoint for login</h2>
+presentation style of the Sign in with Google button.</p>
+<h2 id="the-callback-function">The Callback Function</h2>
+<p>Below is an implementation of the callback function to forward the
+JWT to the backend:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="op">&lt;</span>script<span class="op">&gt;</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">function</span> <span class="fu">onSignIn</span>(response) {</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>        htmx<span class="op">.</span><span class="fu">ajax</span>(<span class="st">&#39;POST&#39;</span><span class="op">,</span> <span class="st">&#39;{{ login_url }}&#39;</span><span class="op">,</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>            { <span class="dt">values</span><span class="op">:</span> { <span class="st">&#39;credential&#39;</span><span class="op">:</span> response<span class="op">.</span><span class="at">credential</span> }<span class="op">,</span> <span class="dt">swap</span><span class="op">:</span> <span class="st">&#39;none&#39;</span> })</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="op">&lt;/</span>script<span class="op">&gt;</span></span></code></pre></div>
+<p>The <code>onSignIn</code> function sends the JWT received from
+Google’s sign-in page to <code>{{ login_url }}</code>, a backend
+endpoint designed to handle the received JWT.</p>
+<h1 id="backend-auth">Backend Auth</h1>
 <p>The backend endpoint receives the JWT, verifies it using Google’s
-public certificate and then creates a session to maintain a logged-in
-status in the following communications.</p>
-<p>Here is the code snippet of the backend endpoint, which does:</p>
+public certificate, and then creates a session to maintain a logged-in
+status in subsequent communications.</p>
+<p>Here is the code snippet of the backend endpoint, which performs the
+following operations:</p>
 <ul>
-<li>verify JWT,</li>
-<li>create the user in the database,</li>
-<li>create a session(, and store it in a session database),</li>
-<li>set the session_id in the cookie,</li>
-<li>then return the response to the front end.</li>
+<li><code>VerifyToken</code>: Verifies the JWT.</li>
+<li><code>GetOrCreateUser</code>: Creates the user in the database if
+they don’t already exist.</li>
+<li><code>create_session</code>: Creates a session and stores it in a
+session database.</li>
+<li><code>response.set_cookie</code>: Sets the session_id in the
+cookie.</li>
+<li>Returns the response to the frontend.</li>
 </ul>
-<div class="sourceCode" id="cb6"><pre
-class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>@router<span class="op">.</span><span class="fu">post</span>(<span class="st">&quot;/login&quot;</span>)</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="kw">async</span> def <span class="fu">login</span>(request<span class="op">:</span> Request<span class="op">,</span> ds<span class="op">:</span> Session <span class="op">=</span> <span class="fu">Depends</span>(get_db)<span class="op">,</span> cs<span class="op">:</span> Session <span class="op">=</span> <span class="fu">Depends</span>(get_cache))<span class="op">:</span></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    body <span class="op">=</span> <span class="cf">await</span> request<span class="op">.</span><span class="fu">body</span>()</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    jwt <span class="op">=</span> <span class="fu">dict</span>(urllib<span class="op">.</span><span class="at">parse</span><span class="op">.</span><span class="fu">parse_qsl</span>(body<span class="op">.</span><span class="fu">decode</span>(<span class="st">&#39;utf-8&#39;</span>)))<span class="op">.</span><span class="fu">get</span>(<span class="st">&#39;credential&#39;</span>)</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    idinfo <span class="op">=</span> <span class="cf">await</span> <span class="fu">VerifyToken</span>(jwt)</span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> not idinfo<span class="op">:</span></span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>        <span class="fu">print</span>(<span class="st">&quot;Error: Failed to validate JWT token&quot;</span>)</span>
-<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span>  <span class="fu">Response</span>(<span class="st">&quot;Error: Failed to validate JWT token&quot;</span>)</span>
-<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    user <span class="op">=</span> <span class="cf">await</span> <span class="fu">GetOrCreateUser</span>(idinfo<span class="op">,</span> ds)</span>
-<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> user<span class="op">:</span></span>
-<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>        user_dict <span class="op">=</span> <span class="fu">get_user_by_email</span>(user<span class="op">.</span><span class="at">email</span><span class="op">,</span> ds)</span>
-<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> not user_dict<span class="op">:</span></span>
-<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>            raise <span class="fu">HTTPException</span>(</span>
-<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>                status_code<span class="op">=</span>status<span class="op">.</span><span class="at">HTTP_500_INTERNAL_SERVER_ERROR</span><span class="op">,</span></span>
-<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>                detail<span class="op">=</span><span class="st">&quot;Error: User not exist in User table in DB.&quot;</span></span>
-<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>                )</span>
-<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>        user <span class="op">=</span> <span class="fu">UserBase</span>(<span class="op">**</span>user_dict)</span>
-<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>        session_id <span class="op">=</span> <span class="fu">create_session</span>(user<span class="op">,</span> cs)</span>
-<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>        response <span class="op">=</span> <span class="fu">JSONResponse</span>({<span class="st">&quot;Authenticated_as&quot;</span><span class="op">:</span> user<span class="op">.</span><span class="at">name</span>})</span>
-<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>        response<span class="op">.</span><span class="fu">set_cookie</span>(</span>
-<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>            key<span class="op">=</span><span class="st">&quot;session_id&quot;</span><span class="op">,</span></span>
-<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>            value<span class="op">=</span>session_id<span class="op">,</span></span>
-<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>            httponly<span class="op">=</span>True<span class="op">,</span></span>
-<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>            max_age<span class="op">=</span><span class="dv">600</span><span class="op">,</span></span>
-<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>            expires<span class="op">=</span><span class="dv">600</span><span class="op">,</span></span>
-<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>        )</span>
-<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> response</span>
-<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span><span class="op">:</span></span>
-<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="fu">Response</span>(<span class="st">&quot;Error: Auth failed&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="at">@router.post</span>(<span class="st">&quot;/login&quot;</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> login(request: Request, ds: Session <span class="op">=</span> Depends(get_db), cs: Session <span class="op">=</span> Depends(get_cache)):</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    body <span class="op">=</span> <span class="cf">await</span> request.body()</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    jwt <span class="op">=</span> <span class="bu">dict</span>(urllib.parse.parse_qsl(body.decode(<span class="st">&#39;utf-8&#39;</span>))).get(<span class="st">&#39;credential&#39;</span>)</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    idinfo <span class="op">=</span> <span class="cf">await</span> VerifyToken(jwt)</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> idinfo:</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="st">&quot;Error: Failed to validate JWT token&quot;</span>)</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span>  Response(<span class="st">&quot;Error: Failed to validate JWT token&quot;</span>)</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>    user <span class="op">=</span> <span class="cf">await</span> GetOrCreateUser(idinfo, ds)</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> user:</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="st">&quot;Error: Failed to GetOrCreateUser&quot;</span>)</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span>  Response(<span class="st">&quot;Error: Failed to GetOrCreateUser for the JWT&quot;</span>)</span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>    session_id <span class="op">=</span> create_session(user, cs)</span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> session_id:</span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="st">&quot;Error: Failed to create session for&quot;</span>, user.name)</span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span>  Response(<span class="st">&quot;Error: Failed to create session for&quot;</span><span class="op">+</span>user.name)</span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>    max_age <span class="op">=</span> <span class="dv">600</span></span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>    expires <span class="op">=</span> datetime.now(timezone.utc) <span class="op">+</span> timedelta(seconds<span class="op">=</span>max_age)</span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>    response <span class="op">=</span> JSONResponse({<span class="st">&quot;Authenticated_as&quot;</span>: user.name})</span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>    response.set_cookie(</span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>        key<span class="op">=</span><span class="st">&quot;session_id&quot;</span>,</span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>        value<span class="op">=</span>session_id,</span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a>        httponly<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>        samesite<span class="op">=</span><span class="st">&quot;lax&quot;</span>,</span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>        max_age<span class="op">=</span>max_age,</span>
+<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a>        expires<span class="op">=</span>expires,</span>
+<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a>    response.headers[<span class="st">&quot;HX-Trigger&quot;</span>] <span class="op">=</span> <span class="st">&quot;LoginStatusChange&quot;</span></span>
+<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> response</span></code></pre></div>
+<p>Please note that there is a line setting “HX-Trigger:
+LoginStatusChange” in the response header. This triggers an hx-get to
+<code>/auth/auth_navbar</code>, causing the navigation bar to reload <a
+href="#LoginStatusChange">(see above)</a>.</p>
 <p>The VerifyToken function below verifies the JWT from the frontend
-utilizing the <a
-href="https://google-auth.readthedocs.io/en/stable/reference/google.oauth2.html">google
-oauth2 python library</a>.</p>
-<div class="sourceCode" id="cb7"><pre
-class="sourceCode python"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> google.oauth2 <span class="im">import</span> id_token</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> google.auth.transport <span class="im">import</span> requests</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> VerifyToken(jwt: <span class="bu">str</span>):</span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span>:</span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>        idinfo <span class="op">=</span> id_token.verify_oauth2_token(</span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>            jwt,</span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>            requests.Request(),</span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>            settings.google_oauth2_client_id)</span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span> <span class="pp">ValueError</span>:</span>
-<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="st">&quot;Error: Failed to validate JWT token with GOOGLE_OAUTH2_CLIENT_ID=&quot;</span> <span class="op">+</span> settings.google_oauth2_client_id <span class="op">+</span><span class="st">&quot;.&quot;</span>)</span>
-<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">None</span></span>
-<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">&quot;idinfo: &quot;</span>, idinfo)</span>
-<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> idinfo</span></code></pre></div>
-<h3 id="bbbb">BBBB</h3>
-<p>BBB</p>
-<h2 id="conclusion">Conclusion</h2>
-<p>To be written later.</p>
+using the <a
+href="https://google-auth.readthedocs.io/en/stable/reference/google.oauth2.id_token.html">Google
+OAuth2 Python library</a>.</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> google.oauth2 <span class="im">import</span> id_token</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> google.auth.transport <span class="im">import</span> requests</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> VerifyToken(jwt: <span class="bu">str</span>):</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span>:</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>        idinfo <span class="op">=</span> id_token.verify_oauth2_token(</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>            jwt,</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>            requests.Request(),</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>            settings.google_oauth2_client_id)</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span> <span class="pp">ValueError</span>:</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="st">&quot;Error: Failed to validate JWT token with GOOGLE_OAUTH2_CLIENT_ID=&quot;</span> <span class="op">+</span> settings.google_oauth2_client_id <span class="op">+</span><span class="st">&quot;.&quot;</span>)</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">None</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">&quot;idinfo: &quot;</span>, idinfo)</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> idinfo</span></code></pre></div>
+<h1 id="conclusion">Conclusion</h1>
+<p>In this post, I’ve shared what I learned about integrating the Sign
+in with Google feature with an HTMX+FastAPI web application. The “Sign
+in with Google” button has been successfully integrated into a sample
+HTMX+FastAPI web application. We included either an HTML or JavaScript
+version of a code snippet from Google’s code generator in the HTML to
+display the button. The FastAPI backend has been configured to create a
+session from the JWT and set “Set-Cookie: session_id” in the header,
+allowing subsequent communications to maintain the login status through
+a session cookie. Thanks to HTMX functionality, the application page can
+dynamically update the navigation bar upon a change in login status,
+clearly indicating whether the user is logged in.</p>
+<p>P.S. I’m based in Japan and am seeking remote work opportunities
+overseas. I’m also open to on-site positions in North America,
+Australia, the EU, etc., if visa support is available. <a
+href="https://www.linkedin.com/in/ktaka-phd/">LinkedIn</a></p>

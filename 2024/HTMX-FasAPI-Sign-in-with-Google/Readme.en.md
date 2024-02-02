@@ -17,7 +17,9 @@
 
 # TL;DR
 
-The "Sign in with Google" button has been integrated into a sample HTMX+FastAPI web application. Either an HTML or JavaScript version of a code snippet from Google's code generator is included in the HTML to display the button. The FastAPI backend has been configured to create a session from the JWT and set "Set-Cookie: session_id" in the header, enabling subsequent communications to maintain the login status through a session cookie.
+The "Sign in with Google" feature has been integrated into a sample HTMX+FastAPI web application.
+Either an HTML or JavaScript version of a code snippet from Google's code generator is included in the HTML to display the button.
+The FastAPI backend has been configured to create a session from the JWT and set "Set-Cookie: session_id" in the header, enabling subsequent communications to maintain the login status through a session cookie.
 Thanks to HTMX functionality, the application page can dynamically fetch the navigation bar upon a change in login status, indicating whether the user is logged in.
 
 # Introduction

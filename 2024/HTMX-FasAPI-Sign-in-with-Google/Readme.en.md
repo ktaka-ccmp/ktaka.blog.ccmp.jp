@@ -174,7 +174,7 @@ The meanings of the attributes are summarized as follows:
 | hx-trigger | specifies the event that triggers the request |
 
 <a name="LoginStatusChange"></a>
-In this case, the HTMX library will issue a GET request to the /auth/auth_navbar endpoint upon this section's first load and when the page receives a response with "HX-Trigger: LoginStatusChange" in the header for an HTMX AJAX request.
+In this case, the HTMX library will issue a GET request to the `/auth/auth_navbar` endpoint upon this section's first load and when the page receives a response with "HX-Trigger: LoginStatusChange" in the header for an HTMX AJAX request.
 The HTMX library will then replace the content inside the `<div>` section with `id="auth_navbar"`.
 
 The `<div>` section just below the `{# Content #}` is there to load the main contents of the page dynamically.
@@ -266,9 +266,7 @@ The `google.accounts.id.initialize` function defines the initialization and beha
 
 The `google.accounts.id.renderButton` function defines the presentation style of the Sign in with Google button:
 
-- Setting `data-auto_prompt="false"` determines whether to display One Tap or not.
-
-The `google.accounts.id.prompt` method displays the One Tap prompt.
+The `google.accounts.id.prompt` method displays the One Tap prompt (and is disabled in this particular case).
 
 ### HTML Version
 

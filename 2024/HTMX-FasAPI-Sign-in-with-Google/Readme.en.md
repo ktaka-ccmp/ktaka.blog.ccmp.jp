@@ -1,24 +1,21 @@
 <!-- # Sign in with Google in HTMX+FastAPI -->
 
-- [TLDR](#tldr)
+- [TL;DR](#tldr)
 - [Introduction](#introduction)
 - [What I Implemented](#what-i-implemented)
   - [Navigation Bar](#navigation-bar)
   - [Page Content](#page-content)
 - [HTMX with FastAPI](#htmx-with-fastapi)
 - [Authentication Overview](#authentication-overview)
-- [Frontend Auth Implementation](#frontend-auth-implementation)
+- [Frontend Auth](#frontend-auth)
   - [Sign-in with Google button](#sign-in-with-google-button)
-    - [JavaScript version](#javascript-version)
-    - [HTML version](#html-version)
-  - [The Callback function](#the-callback-function)
-- [Backend Auth Implementation](#backend-auth-implementation)
-  - [JWT and Session Cookie](#jwt-and-session-cookie)
-  - [Backend endpoint for login](#backend-endpoint-for-login)
-    - [BBBB](#bbbb)
+    - [JavaScript Version](#javascript-version)
+    - [HTML Version](#html-version)
+  - [The Callback Function](#the-callback-function)
+- [Backend Auth](#backend-auth)
 - [Conclusion](#conclusion)
 
-# TLDR
+# TL;DR
 
 I integrated the "Sign in with Google" button with a sample HTMX+FastAPI web application.
 I only needed to put an HTML or JavaScript version of the code snippet from Google's code generator to show the button.
@@ -85,6 +82,24 @@ The source code is on [my Github repo.](https://github.com/ktaka-ccmp/fastapi-ht
 
 
 ## Navigation Bar 
+<!--
+<a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/"
+target="_blank">
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/"
+width="80%" alt="Sign-in Animation" title="Sign-in Animation">
+</a>
+-->
+
+<a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/page1.drawio.png"
+target="_blank">
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/page1.drawio.png"
+width="80%" alt="Anonymous User Page" title="Anonymous User Page">
+
+<a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/page2.drawio.png"
+target="_blank">
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/page2.drawio.png"
+width="80%" alt="Authenticated User Page" title="Authenticated User Page">
+
 
 ## Page Content
 
@@ -143,6 +158,7 @@ The meaning of the attributes are summarized as follows:
 | hx-swap | specifies how content is swapped |
 | hx-trigger | specifies the event that triggers the request |
 
+<a name="LoginStatusChange"></a>
 So in this case, the HTMX library will issue a get request to `/auth/auth_navbar` endpoint upon this section's first load and when the page receives response with "HX-Trigger: LoginStatusChange" in header.
 The HTMX library will then replace the content inside the `<div>` section with `id="auth_navbar"`.
 
@@ -186,7 +202,7 @@ width="80%" alt="Sign-in flow" title="Sign-in flow">
 
 Thereafter, "Cookie: session_id=xxxxxx" is always set in subsequent communications, until the cookie expires or until the user explicitly hits the logout button on the web page.
 
-# Frontend Auth Implementation
+# Frontend Auth
 
 ## Sign-in with Google button
 
@@ -206,7 +222,7 @@ We can use either of these.
 Inside the navigation bar, we place a code for showing the "Sign-in with Google" button.
 We can use either the HTML version or the JavaScript version of the code.
 
-### JavaScript version
+### JavaScript Version
 
 ```javascript
 <script>
@@ -242,7 +258,7 @@ The `google.accounts.id.renderButton` division defines the presentation style of
 
 The `google.accounts.id.prompt` method displays the One Tap prompt.
 
-### HTML version
+### HTML Version
 
 ```html
 <script src="https://accounts.google.com/gsi/client" async></script>
@@ -277,49 +293,34 @@ The `<div id="g_id_onload">` division defines the initialization and behavior of
 
 The `<div id="g_id_sigin">` division defines the presentation style of the Sign-in with Google button.
 
-## The Callback function
+## The Callback Function
 
 Here is an implementation of the callback function to forward the JWT to the backend. 
 
 ```javascript
 <script>
     function onSignIn(response) {
-        var xhr = new XMLHttpRequest();
-        xhr.open('POST', "{{ login_url }}");
-        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-        xhr.onload = function () {
-            console.log("Response from {{ login_url }}: ", xhr.responseText);
-            htmx.trigger("#auth_navbar", "LoginStatusChange");
-        };
-        xhr.send('credential=' + response.credential);
+        htmx.ajax('POST', '{{ login_url }}',
+            { values: { 'credential': response.credential }, swap: 'none' })
     }
 </script>
 ```
 
 The `onSignIn` function sends JWT received from Google's sign-in page to the `{{ login_url }}`, which is a backend endpoint to handle the received JWT.
-The `onSignIn` function also triggers
 
-# Backend Auth Implementation
-
-## JWT and Session Cookie
-
-The callback function forwards the JWT receivd from Google to the `/auth/login` endpoint of the backe end FastAPI.
-The back end then create the user if one doesn't already exist and create a session.
-The back end return a respose with "Set-Cookie: session_id=xxxxxx" in the Header.
-
-## Backend endpoint for login
+# Backend Auth
 
 The backend endpoint receives the JWT, verifies it using Google's public certificate and then creates a session to maintain a logged-in status in the following communications.
 
 Here is the code snippet of the backend endpoint, which does:
 
-- verify JWT,
-- create the user in the database,
-- create a session and store it in a session database,
-- set the session_id in the cookie,
+- VerifyToken: verify JWT,
+- GetOrCreateUser: create the user in the database,
+- create_session: create a session and store it in a session database,
+- response.set_cookie: set the session_id in the cookie,
 - then return the response to the front end.
 
-```javascript
+```python
 @router.post("/login")
 async def login(request: Request, ds: Session = Depends(get_db), cs: Session = Depends(get_cache)):
 
@@ -332,35 +333,35 @@ async def login(request: Request, ds: Session = Depends(get_db), cs: Session = D
         return  Response("Error: Failed to validate JWT token")
 
     user = await GetOrCreateUser(idinfo, ds)
+    if not user:
+        print("Error: Failed to GetOrCreateUser")
+        return  Response("Error: Failed to GetOrCreateUser for the JWT")
 
-    if user:
-        user_dict = get_user_by_email(user.email, ds)
-        if not user_dict:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Error: User not exist in User table in DB."
-                )
-        user = UserBase(**user_dict)
-        session_id = create_session(user, cs)
+    session_id = create_session(user, cs)
+    if not session_id:
+        print("Error: Failed to create session for", user.name)
+        return  Response("Error: Failed to create session for"+user.name)
 
-        response = JSONResponse({"Authenticated_as": user.name})
-        max_age = 600
-        expires = datetime.datetime.utcnow() + datetime.timedelta(seconds=max_age)
-        response.set_cookie(
-            key="session_id",
-            value=session_id,
-            httponly=True,
-            samesite="lax",
-            max_age=max_age,
-            expires=expires,
-        )
+    max_age = 600
+    expires = datetime.now(timezone.utc) + timedelta(seconds=max_age)
 
-        return response
-    else:
-        return Response("Error: Auth failed")
+    response = JSONResponse({"Authenticated_as": user.name})
+    response.set_cookie(
+        key="session_id",
+        value=session_id,
+        httponly=True,
+        samesite="lax",
+        max_age=max_age,
+        expires=expires,
+    )
+    response.headers["HX-Trigger"] = "LoginStatusChange"
+
+    return response
 ```
 
-The VerifyToken function below verifies the JWT from the frontend utilizing the [google oauth2 python library](https://google-auth.readthedocs.io/en/stable/reference/google.oauth2.html).
+Please note that there is a line setting "HX-Trigger: LoginStatusChange" in the response header to trigger hx-get to `/auth/auth_navbar` causing a reload of navigation bar[(see above)](#LoginStatusChange).
+
+The VerifyToken function below verifies the JWT from the frontend utilizing the [google oauth2 python library](https://google-auth.readthedocs.io/en/stable/reference/google.oauth2.id_token.html).
 
 ```python
 from google.oauth2 import id_token
@@ -379,10 +380,6 @@ async def VerifyToken(jwt: str):
     print("idinfo: ", idinfo)
     return idinfo
 ```
-
-### BBBB
-
-BBB
 
 # Conclusion
 

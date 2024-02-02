@@ -70,9 +70,9 @@ width="80%" alt="" title="">
 </a>
 -->
 
-<a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/FastAPI-HTMX-Google-OAuth042.gif"
+<a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/FastAPI-HTMX-Google-OAuth043.gif"
 target="_blank">
-<img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/FastAPI-HTMX-Google-OAuth042.gif"
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/FastAPI-HTMX-Google-OAuth043.gif"
 width="80%" alt="Sign-in Animation" title="Sign-in Animation">
 </a>
 

@@ -1,5 +1,6 @@
 *.tmp
 *~
+*.pdf
 \#*#
 /tmp/
 .markdown-preview.html

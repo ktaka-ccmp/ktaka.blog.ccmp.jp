@@ -143,7 +143,7 @@ The meaning of the attributes are summarized as follows:
 | hx-swap | specifies how content is swapped |
 | hx-trigger | specifies the event that triggers the request |
 
-So in this case, the HTMX library will issue a get request to `/auth/auth_navbar` endpoint upon this section's first load and <a name="#LoginStatusChange"></a> when the page receives response with "HX-Trigger: LoginStatusChange" in header.
+So in this case, the HTMX library will issue a get request to `/auth/auth_navbar` endpoint upon this section's first load and <a name="#LoginStatusChange"> when the page receives response with "HX-Trigger: LoginStatusChange" in header.</a>
 The HTMX library will then replace the content inside the `<div>` section with `id="auth_navbar"`.
 
 The `<div>` section just below the `{# Content #}` is to load the main contents of the page dynamically.
@@ -353,7 +353,7 @@ async def login(request: Request, ds: Session = Depends(get_db), cs: Session = D
 
 Please note that there is a line setting "HX-Trigger: LoginStatusChange" in the response header to [trigger hx-get to `/auth/auth_navbar` causing a reload of navigation bar](#LoginStatusChange).
 
-The VerifyToken function below verifies the JWT from the frontend utilizing the [google oauth2 python library](https://google-auth.readthedocs.io/en/stable/reference/google.oauth2.html).
+The VerifyToken function below verifies the JWT from the frontend utilizing the [google oauth2 python library](https://google-auth.readthedocs.io/en/stable/reference/google.oauth2.id_token.html).
 
 ```python
 from google.oauth2 import id_token

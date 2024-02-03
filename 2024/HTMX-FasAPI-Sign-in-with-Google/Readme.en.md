@@ -6,13 +6,20 @@
   - [Anonymous User Page](#anonymous-user-page)
   - [Authenticated User Page](#authenticated-user-page)
 - [HTMX with FastAPI](#htmx-with-fastapi)
-- [Authentication Overview](#authentication-overview)
-- [Frontend Auth](#frontend-auth)
-  - [Sign in with Google button](#sign-in-with-google-button)
-    - [JavaScript Version](#javascript-version)
-    - [HTML Version](#html-version)
-  - [The Callback Function](#the-callback-function)
-- [Backend Auth](#backend-auth)
+- [Sign In](#sign-in)
+  - [Overview](#overview)
+  - [Frontend Auth](#frontend-auth)
+    - [Sign in with Google button](#sign-in-with-google-button)
+      - [JavaScript Version](#javascript-version)
+      - [HTML Version](#html-version)
+    - [The Callback Function](#the-callback-function)
+  - [Backend Auth](#backend-auth)
+- [Sign Out](#sign-out)
+  - [Overview](#overview-1)
+  - [Frontend](#frontend)
+  - [Backend](#backend)
+- [Switch Navbar](#switch-navbar)
+- [Protect Route](#protect-route)
 - [Conclusion](#conclusion)
 - [Seeking Oppotunities](#seeking-oppotunities)
 
@@ -198,7 +205,8 @@ The document head is included from the file `head.j2` in the same directory as:
 ```
 These examples illustrate the basic usage of HTMX and FastAPI with Jinja templating.
 
-# Authentication Overview
+# Sign In
+## Overview
 
 The figure below shows a schematic diagram depicting the flow of the authentication process.
 
@@ -218,9 +226,9 @@ width="80%" alt="Sign-in flow" title="Sign-in flow">
 
 Thereafter, "Cookie: session_id=xxxxxx" is always set in subsequent communications, until the cookie expires or until the user explicitly hits the logout button on the web page.
 
-# Frontend Auth
+## Frontend Auth
 
-## Sign in with Google button
+### Sign in with Google button
 
 To display a `Sign in with Google` button, we need to use a JavaScript library provided by Google and place a code snippet somewhere in the HTML.
 
@@ -235,7 +243,7 @@ To load the JavaScript library, add the following `<script>` tag in the document
 Inside the navigation bar, we place a code snippet to show the "Sign in with Google" button.
 This code snippet is available in two versions: JavaScript and HTML. Either version can be used.
 
-### JavaScript Version
+#### JavaScript Version
 
 ```javascript
 <script>
@@ -269,7 +277,7 @@ The `google.accounts.id.renderButton` function defines the presentation style of
 
 The `google.accounts.id.prompt` method displays the One Tap prompt (and is disabled in this particular case).
 
-### HTML Version
+#### HTML Version
 
 ```html
 <script src="https://accounts.google.com/gsi/client" async></script>
@@ -303,7 +311,7 @@ The `<div id="g_id_onload">` element initializes and configures the sign-in proc
 
 The `<div id="g_id_sigin">` division defines the presentation style of the Sign in with Google button.
 
-## The Callback Function
+### The Callback Function
 
 Below is an implementation of the callback function to forward the JWT to the backend:
 
@@ -317,7 +325,7 @@ Below is an implementation of the callback function to forward the JWT to the ba
 ```
 The `onSignIn` function sends the JWT received from Google's sign-in page to `{{ login_url }}`, a backend endpoint designed to handle the received JWT.
 
-# Backend Auth
+## Backend Auth
 
 The backend endpoint receives the JWT, verifies it using Google's public certificate, and then creates a session to maintain a logged-in status in subsequent communications.
 
@@ -390,6 +398,104 @@ async def VerifyToken(jwt: str):
     print("idinfo: ", idinfo)
     return idinfo
 ```
+
+# Sign Out
+
+## Overview
+
+<a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/htmx-fastapi02.drawio.png"
+target="_blank">
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/htmx-fastapi02.drawio.png"
+width="80%" alt="Sign-in flow" title="Sign-in flow">
+</a>
+
+
+## Frontend
+
+```html
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <div hx-get="{{logout_url}}" hx-trigger="click" hx-target="#content_section" hx-swap="innerHTML">
+                    <img class="rounded-circle" src="{{icon_url}}" alt="logout" name="logout"
+                        style="width:2rem;height:2rem;border-radius:2rem">
+                </div>
+            </ul>
+```
+
+Navbar has the login button that fires hx-get to {{ logout_ur }}, i.e., /auth/logout endpoint of the backend server.
+
+## Backend
+
+
+```python
+@router.get("/logout", response_class=HTMLResponse)
+async def logout(request: Request, response: Response, hx_request: Optional[str] = Header(None), cs: Session = Depends(get_cache)):
+    if not hx_request:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only HX request is allowed to this end point."
+            )
+
+    req_session_id = request.cookies.get("session_id") # get session_id from cookie of request
+    if req_session_id:
+        delete_session(req_session_id, cs)
+        response.delete_cookie("session_id") # delete key="session_id" from cookie of response
+
+    context = {"request": request, "message": "User logged out"}
+    response = templates.TemplateResponse("content.error.j2", context)
+    response.headers["HX-Trigger"] = "LoginStatusChange"
+    return response
+```
+
+1. Cause browser delete session_id="xxxx" in Cookie
+2. Delete session information in the database.
+
+response.delete_cookie actually set Set-Cookie: session_id="" max-age=0 in the response header.
+https://fastapi.tiangolo.com/reference/response/#fastapi.Response.delete_cookie
+
+# Switch Navbar
+
+The navbar has a various menus using hx-get.
+The nabvar itself gets swapped depending on the loggin status.
+
+Switching navigation bar
+
+```python
+@router.get("/auth_navbar", response_class=HTMLResponse)
+async def auth_navbar(request: Request, hx_request: Optional[str] = Header(None), ds: Session = Depends(get_db), cs: Session = Depends(get_cache)):
+
+    if not hx_request:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only HX request is allowed to this end point."
+            )
+
+    # For authenticated users, return the menu.logout component.
+    try:
+        session_id = request.cookies.get("session_id")
+        user = await get_current_user(session_id=session_id, cs=cs, ds=ds)
+        logout_url = settings.origin_server + "/auth/logout"
+        icon_url = settings.origin_server + "/img/logout.png"
+
+        context = {"request": request, "session_id": session_id, "logout_url":logout_url, "icon_url": icon_url,
+                   "name": user.name, "picture": user.picture, "email": user.email}
+        return templates.TemplateResponse("auth_navbar.logout.j2", context)
+    except:
+        print("User not logged-in.")
+
+    # For unauthenticated users, return the menu.login component.
+    client_id = settings.google_oauth2_client_id
+    login_url = settings.origin_server + "/auth/login"
+    icon_url = settings.origin_server + "/img/icon.png"
+
+    context = {"request": request, "client_id": client_id, "login_url": login_url, "icon_url": icon_url}
+    return templates.TemplateResponse("auth_navbar.login.j2", context)
+```
+
+This code will return one of the two kinds of navbar HTML chunk depending on the login status.
+
+for actual navbar layout Readers are refered to GitHub repo.
+
+# Protect Route
 
 # Conclusion
 

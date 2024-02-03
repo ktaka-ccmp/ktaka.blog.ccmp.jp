@@ -14,6 +14,7 @@
   - [The Callback Function](#the-callback-function)
 - [Backend Auth](#backend-auth)
 - [Conclusion](#conclusion)
+- [Seeking Oppotunities](#seeking-oppotunities)
 
 # TL;DR
 
@@ -398,7 +399,7 @@ We included either an HTML or JavaScript version of a code snippet from Google's
 The FastAPI backend has been configured to create a session from the JWT and set "Set-Cookie: session_id" in the header, allowing subsequent communications to maintain the login status through a session cookie.
 Thanks to HTMX functionality, the application page can dynamically update the navigation bar upon a change in login status, clearly indicating whether the user is logged in.
 
-P.S.
+# Seeking Oppotunities
 I'm based in Japan and am seeking remote work opportunities overseas.
 I'm also open to on-site positions in North America, Australia, the EU, etc., if visa support is available.
 [LinkedIn](https://www.linkedin.com/in/ktaka-phd/)

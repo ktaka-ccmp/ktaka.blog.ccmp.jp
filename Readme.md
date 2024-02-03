@@ -13,6 +13,7 @@
 1. Markdown形式でBlog作成
 1. TOC生成: ../../gh-md-toc Readme.md
 1. md->html: pandoc Readme.md -o Readme.html
+1. or: pandoc -s -c ../../github-markdown.css Readme.en.md -o Readme.en.html --metadata title="....."
 1. blogger記事にコピペ
 
 

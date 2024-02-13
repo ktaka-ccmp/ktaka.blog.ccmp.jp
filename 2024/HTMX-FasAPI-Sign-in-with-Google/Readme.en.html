@@ -8,7 +8,9 @@
 <li><a href="#authenticated-user-page">Authenticated User Page</a></li>
 </ul></li>
 <li><a href="#htmx-with-fastapi">HTMX with FastAPI</a></li>
-<li><a href="#authentication-overview">Authentication Overview</a></li>
+<li><a href="#sign-in">Sign In</a>
+<ul>
+<li><a href="#overview">Overview</a></li>
 <li><a href="#frontend-auth">Frontend Auth</a>
 <ul>
 <li><a href="#sign-in-with-google-button">Sign in with Google button</a>
@@ -19,6 +21,15 @@
 <li><a href="#the-callback-function">The Callback Function</a></li>
 </ul></li>
 <li><a href="#backend-auth">Backend Auth</a></li>
+</ul></li>
+<li><a href="#sign-out">Sign Out</a>
+<ul>
+<li><a href="#overview-1">Overview</a></li>
+<li><a href="#frontend">Frontend</a></li>
+<li><a href="#backend">Backend</a></li>
+</ul></li>
+<li><a href="#switch-navbar">Switch Navbar</a></li>
+<li><a href="#protecting-routes">Protecting Routes</a></li>
 <li><a href="#conclusion">Conclusion</a></li>
 <li><a href="#seeking-oppotunities">Seeking Oppotunities</a></li>
 </ul>
@@ -234,7 +245,8 @@ the same directory as:</p>
 <pre><code>{% include &#39;head.j2&#39; %}</code></pre>
 <p>These examples illustrate the basic usage of HTMX and FastAPI with
 Jinja templating.</p>
-<h1 id="authentication-overview">Authentication Overview</h1>
+<h1 id="sign-in">Sign In</h1>
+<h2 id="overview">Overview</h2>
 <p>The figure below shows a schematic diagram depicting the flow of the
 authentication process.</p>
 <p><a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/htmx-fastapi01.drawio.png"
@@ -260,8 +272,8 @@ if one does not already exist.</li>
 <p>Thereafter, “Cookie: session_id=xxxxxx” is always set in subsequent
 communications, until the cookie expires or until the user explicitly
 hits the logout button on the web page.</p>
-<h1 id="frontend-auth">Frontend Auth</h1>
-<h2 id="sign-in-with-google-button">Sign in with Google button</h2>
+<h2 id="frontend-auth">Frontend Auth</h2>
+<h3 id="sign-in-with-google-button">Sign in with Google button</h3>
 <p>To display a <code>Sign in with Google</code> button, we need to use
 a JavaScript library provided by Google and place a code snippet
 somewhere in the HTML.</p>
@@ -273,7 +285,7 @@ somewhere in the HTML.</p>
 <p>Inside the navigation bar, we place a code snippet to show the “Sign
 in with Google” button. This code snippet is available in two versions:
 JavaScript and HTML. Either version can be used.</p>
-<h3 id="javascript-version">JavaScript Version</h3>
+<h4 id="javascript-version">JavaScript Version</h4>
 <div class="sourceCode" id="cb6"><pre
 class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="op">&lt;</span>script<span class="op">&gt;</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    google<span class="op">.</span><span class="at">accounts</span><span class="op">.</span><span class="at">id</span><span class="op">.</span><span class="fu">initialize</span>({</span>
@@ -309,7 +321,7 @@ to be ‘popup’ instead of ‘redirect’.</li>
 presentation style of the Sign in with Google button:</p>
 <p>The <code>google.accounts.id.prompt</code> method displays the One
 Tap prompt (and is disabled in this particular case).</p>
-<h3 id="html-version">HTML Version</h3>
+<h4 id="html-version">HTML Version</h4>
 <div class="sourceCode" id="cb7"><pre
 class="sourceCode html"><code class="sourceCode html"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">&lt;script</span> <span class="er">src</span><span class="ot">=</span><span class="st">&quot;https://accounts.google.com/gsi/client&quot;</span> <span class="er">async</span><span class="kw">&gt;&lt;/script&gt;</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -347,7 +359,7 @@ display One Tap or not.</li>
 </ul>
 <p>The <code>&lt;div id="g_id_sigin"&gt;</code> division defines the
 presentation style of the Sign in with Google button.</p>
-<h2 id="the-callback-function">The Callback Function</h2>
+<h3 id="the-callback-function">The Callback Function</h3>
 <p>Below is an implementation of the callback function to forward the
 JWT to the backend:</p>
 <div class="sourceCode" id="cb8"><pre
@@ -360,7 +372,7 @@ class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb8-
 <p>The <code>onSignIn</code> function sends the JWT received from
 Google’s sign-in page to <code>{{ login_url }}</code>, a backend
 endpoint designed to handle the received JWT.</p>
-<h1 id="backend-auth">Backend Auth</h1>
+<h2 id="backend-auth">Backend Auth</h2>
 <p>The backend endpoint receives the JWT, verifies it using Google’s
 public certificate, and then creates a session to maintain a logged-in
 status in subsequent communications.</p>
@@ -437,6 +449,191 @@ class="sourceCode python"><code class="sourceCode python"><span id="cb10-1"><a h
 <span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">&quot;idinfo: &quot;</span>, idinfo)</span>
 <span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> idinfo</span></code></pre></div>
+<h1 id="sign-out">Sign Out</h1>
+<h2 id="overview-1">Overview</h2>
+<p>The figure below shows a schematic diagram depicting the flow of the
+sign out process.</p>
+<p><a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/htmx-fastapi02.drawio.png"
+target="_blank">
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/htmx-fastapi02.drawio.png"
+width="80%" alt="Sign-in flow" title="Sign-in flow"> </a></p>
+<ol type="1">
+<li>When a user clicks the ‘Sign-out’ button, an hx-get request is sent
+to /auth/logout, an endpoint prepared using FastAPI.</li>
+<li>The session associated with the session_id is deleted in the
+database.</li>
+<li>FastAPI sends a response with a header containing the entry
+<code>Set-Cookie: session_id="", max_age=0</code>.</li>
+</ol>
+<p>Thereafter, the browser unsets the <code>session_id</code> in the
+Cookie header and will no longer send the <code>session_id</code> cookie
+in subsequent requests.</p>
+<h2 id="frontend">Frontend</h2>
+<p>Here is a snippet of the Jinja template, which shows a logout button
+for authenticated users in the navigation bar.</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode html"><code class="sourceCode html"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>            <span class="kw">&lt;ul</span> <span class="er">class</span><span class="ot">=</span><span class="st">&quot;navbar-nav me-auto mb-2 mb-lg-0&quot;</span><span class="kw">&gt;</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>                <span class="kw">&lt;div</span> <span class="er">hx-get</span><span class="ot">=</span><span class="st">&quot;{{logout_url}}&quot;</span> <span class="er">hx-trigger</span><span class="ot">=</span><span class="st">&quot;click&quot;</span> <span class="er">hx-target</span><span class="ot">=</span><span class="st">&quot;#content_section&quot;</span> <span class="er">hx-swap</span><span class="ot">=</span><span class="st">&quot;innerHTML&quot;</span><span class="kw">&gt;</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>                    <span class="kw">&lt;img</span> <span class="er">class</span><span class="ot">=</span><span class="st">&quot;rounded-circle&quot;</span> <span class="er">src</span><span class="ot">=</span><span class="st">&quot;{{icon_url}}&quot;</span> <span class="er">alt</span><span class="ot">=</span><span class="st">&quot;logout&quot;</span> <span class="er">name</span><span class="ot">=</span><span class="st">&quot;logout&quot;</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="ot">                        style=</span><span class="st">&quot;width:2rem;height:2rem;border-radius:2rem&quot;</span><span class="kw">&gt;</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>                <span class="kw">&lt;/div&gt;</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>            <span class="kw">&lt;/ul&gt;</span></span></code></pre></div>
+<p>The <code>{{ logout_url }}</code> and <code>{{icon_url}}</code> will
+be filled by the <a href="#auth_navbar">(backend code)</a> when it’s
+returned to the client browsers.</p>
+<p>Upon a click, the logout button fires an hx-get request to
+<code>{{ logout_url }}</code>, which translates to
+<code>/auth/logout</code>, an endpoint of the backend server. The
+attributes <code>hx-target="#content_section"</code> and
+<code>hx-swap="innerHTML"</code> will cause the HTMX libray to replace
+the content in inside the
+<code>&lt;div id="content_section"&gt;&lt;/div&gt;</code>.</p>
+<h2 id="backend">Backend</h2>
+<p>The backend endpoint receives an AJAX get request, deletes the
+session associated with the session_id from the database, and instructs
+the browser to unset the ‘Cookie: session_id’.</p>
+<p>Here is the code snippet of the backend endpoint, which performs the
+following operations:</p>
+<ul>
+<li><code>delete_session</code>: delete the session from the session
+database.</li>
+<li><code>response.delete_cookie</code>: Causes the browser to delete
+the <code>session_id</code> cookie from the Cookie header by setting
+<code>Set-Cookie: session_id="", max-age=0</code> in the response
+header(see <a
+href="https://fastapi.tiangolo.com/reference/response/#fastapi.Response.delete_cookie">explanation</a>
+and <a
+href="https://github.com/encode/starlette/blob/master/starlette/responses.py#L130">source
+code</a>).</li>
+</ul>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="at">@router.get</span>(<span class="st">&quot;/logout&quot;</span>, response_class<span class="op">=</span>HTMLResponse)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> logout(request: Request, response: Response, hx_request: Optional[<span class="bu">str</span>] <span class="op">=</span> Header(<span class="va">None</span>), cs: Session <span class="op">=</span> Depends(get_cache)):</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> hx_request:</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">raise</span> HTTPException(</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>            status_code<span class="op">=</span>status.HTTP_400_BAD_REQUEST,</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>            detail<span class="op">=</span><span class="st">&quot;Only HX request is allowed to this end point.&quot;</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>            )</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    req_session_id <span class="op">=</span> request.cookies.get(<span class="st">&quot;session_id&quot;</span>) <span class="co"># get session_id from cookie of request</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> req_session_id:</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>        delete_session(req_session_id, cs)</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>        response.delete_cookie(<span class="st">&quot;session_id&quot;</span>) <span class="co"># delete key=&quot;session_id&quot; from cookie of response</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>    context <span class="op">=</span> {<span class="st">&quot;request&quot;</span>: request, <span class="st">&quot;message&quot;</span>: <span class="st">&quot;User logged out&quot;</span>}</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>    response <span class="op">=</span> templates.TemplateResponse(<span class="st">&quot;content.error.j2&quot;</span>, context)</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>    response.headers[<span class="st">&quot;HX-Trigger&quot;</span>] <span class="op">=</span> <span class="st">&quot;LoginStatusChange&quot;</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> response</span></code></pre></div>
+<p>Please also note that there is a line setting “HX-Trigger:
+LoginStatusChange” in the response header as same as the case for
+/auth/login endpoint. This triggers an hx-get to
+<code>/auth/auth_navbar</code>, causing the navigation bar to reload <a
+href="#LoginStatusChange">(see above)</a>.</p>
+<h1 id="switch-navbar">Switch Navbar</h1>
+<p>The following code snippet returns the partial HTML content to
+display the navigation bar. Depending on the existence of the valid
+session_id in the Cookie header, the code returns the different HTMLs.
+When there is a valid session_id in the Cookie header, it returns the
+HTML generated from a Jinja template <code>auth_navbar.logout.j2</code>
+for authenticated users with the user’s Google account icon and logout
+button. When there isn’t a valid session_id in the Cookie header, it
+returns the HTML generated from a Jinja template
+<code>auth_navbar.login.j2</code> for anonymous users with a “Sign in
+with Google” button.</p>
+<p><a name="auth_navbar"></a></p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="at">@router.get</span>(<span class="st">&quot;/auth_navbar&quot;</span>, response_class<span class="op">=</span>HTMLResponse)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> auth_navbar(request: Request, hx_request: Optional[<span class="bu">str</span>] <span class="op">=</span> Header(<span class="va">None</span>), ds: Session <span class="op">=</span> Depends(get_db), cs: Session <span class="op">=</span> Depends(get_cache)):</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> hx_request:</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">raise</span> HTTPException(</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>            status_code<span class="op">=</span>status.HTTP_400_BAD_REQUEST,</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>            detail<span class="op">=</span><span class="st">&quot;Only HX request is allowed to this end point.&quot;</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>            )</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># For authenticated users, return the menu.logout component.</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">try</span>:</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>        session_id <span class="op">=</span> request.cookies.get(<span class="st">&quot;session_id&quot;</span>)</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>        user <span class="op">=</span> <span class="cf">await</span> get_current_user(session_id<span class="op">=</span>session_id, cs<span class="op">=</span>cs, ds<span class="op">=</span>ds)</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>        logout_url <span class="op">=</span> settings.origin_server <span class="op">+</span> <span class="st">&quot;/auth/logout&quot;</span></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>        icon_url <span class="op">=</span> settings.origin_server <span class="op">+</span> <span class="st">&quot;/img/logout.png&quot;</span></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>        context <span class="op">=</span> {<span class="st">&quot;request&quot;</span>: request, <span class="st">&quot;session_id&quot;</span>: session_id, <span class="st">&quot;logout_url&quot;</span>:logout_url, <span class="st">&quot;icon_url&quot;</span>: icon_url,</span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>                   <span class="st">&quot;name&quot;</span>: user.name, <span class="st">&quot;picture&quot;</span>: user.picture, <span class="st">&quot;email&quot;</span>: user.email}</span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> templates.TemplateResponse(<span class="st">&quot;auth_navbar.logout.j2&quot;</span>, context)</span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">except</span>:</span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="st">&quot;User not logged-in.&quot;</span>)</span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a>    <span class="co"># For unauthenticated users, return the menu.login component.</span></span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a>    client_id <span class="op">=</span> settings.google_oauth2_client_id</span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a>    login_url <span class="op">=</span> settings.origin_server <span class="op">+</span> <span class="st">&quot;/auth/login&quot;</span></span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a>    icon_url <span class="op">=</span> settings.origin_server <span class="op">+</span> <span class="st">&quot;/img/icon.png&quot;</span></span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a>    context <span class="op">=</span> {<span class="st">&quot;request&quot;</span>: request, <span class="st">&quot;client_id&quot;</span>: client_id, <span class="st">&quot;login_url&quot;</span>: login_url, <span class="st">&quot;icon_url&quot;</span>: icon_url}</span>
+<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> templates.TemplateResponse(<span class="st">&quot;auth_navbar.login.j2&quot;</span>, context)</span></code></pre></div>
+<p>The <code>settings.origin_server</code> and
+<code>settings.google_oauth2_client_id</code> are defined else where in
+the code tree to provied necessary information from a <code>.env</code>
+file.</p>
+<h1 id="protecting-routes">Protecting Routes</h1>
+<p>Access to the secret pages is controlled through the
+<code>auth.is_authenticated</code> dependency, as shown in the following
+code snippet. If the <code>auth.is_authenticated</code> does not raise
+an exception, it allows access to the routes defined in
+<code>htmx/htmx_secret.py</code>; otherwise, it disallows it.</p>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> htmx <span class="im">import</span> htmx_secret</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>app <span class="op">=</span> FastAPI()</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>app.include_router(</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    htmx_secret.router,</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    prefix<span class="op">=</span><span class="st">&quot;/htmx&quot;</span>,</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    tags<span class="op">=</span>[<span class="st">&quot;htmx&quot;</span>],</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    dependencies<span class="op">=</span>[Depends(auth.is_authenticated)],</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div>
+<p>The <code>auth.is_authenticated</code> is defined as the
+following:</p>
+<ul>
+<li>In the function <code>get_current_user</code>, the user’s email is
+retrieved from the session database, and then the other information is
+retrieved from the user database.</li>
+<li>The function <code>is_authenticated</code> raises an HTTPException
+when there is no user information returned by the
+<code>get_current_user</code> or the <code>user.disabled</code> is
+true.</li>
+</ul>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode python"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> get_current_user(session_id: <span class="bu">str</span>, ds: Session <span class="op">=</span> Depends(get_db), cs: Session <span class="op">=</span> Depends(get_cache)):</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> session_id:</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">None</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    session <span class="op">=</span> get_session_by_session_id(session_id, cs)</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> session:</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">None</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    user_dict <span class="op">=</span> get_user_by_email(session[<span class="st">&quot;email&quot;</span>], ds)</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>    user<span class="op">=</span>UserBase(<span class="op">**</span>user_dict)</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> user</span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a><span class="at">@router.get</span>(<span class="st">&quot;/is_authenticated&quot;</span>)</span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> is_authenticated(session_id: Annotated[<span class="bu">str</span> <span class="op">|</span> <span class="va">None</span>, Cookie()] <span class="op">=</span> <span class="va">None</span>, ds: Session <span class="op">=</span> Depends(get_db), cs: Session <span class="op">=</span> Depends(get_cache)):</span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>    user <span class="op">=</span> <span class="cf">await</span> get_current_user(session_id<span class="op">=</span>session_id, cs<span class="op">=</span>cs, ds<span class="op">=</span>ds)</span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="kw">not</span> user:</span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>        <span class="cf">raise</span> HTTPException(</span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>            status_code<span class="op">=</span>status.HTTP_401_UNAUTHORIZED,</span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>            detail<span class="op">=</span><span class="st">&quot;NotAuthenticated&quot;</span></span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> user.disabled:</span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a>        <span class="cf">raise</span> HTTPException(</span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a>            status_code<span class="op">=</span>status.HTTP_403_FORBIDDEN,</span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>            detail<span class="op">=</span><span class="st">&quot;Disabled user&quot;</span></span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="st">&quot;Authenticated.&quot;</span>)</span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> JSONResponse({<span class="st">&quot;message&quot;</span>: <span class="st">&quot;Authenticated&quot;</span>})</span></code></pre></div>
 <h1 id="conclusion">Conclusion</h1>
 <p>In this post, I’ve shared what I learned about integrating the Sign
 in with Google feature with an HTMX+FastAPI web application. The “Sign

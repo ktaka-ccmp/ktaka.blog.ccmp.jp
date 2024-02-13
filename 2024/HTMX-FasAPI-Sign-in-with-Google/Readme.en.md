@@ -6,13 +6,20 @@
   - [Anonymous User Page](#anonymous-user-page)
   - [Authenticated User Page](#authenticated-user-page)
 - [HTMX with FastAPI](#htmx-with-fastapi)
-- [Authentication Overview](#authentication-overview)
-- [Frontend Auth](#frontend-auth)
-  - [Sign in with Google button](#sign-in-with-google-button)
-    - [JavaScript Version](#javascript-version)
-    - [HTML Version](#html-version)
-  - [The Callback Function](#the-callback-function)
-- [Backend Auth](#backend-auth)
+- [Sign In](#sign-in)
+  - [Overview](#overview)
+  - [Frontend Auth](#frontend-auth)
+    - [Sign in with Google button](#sign-in-with-google-button)
+      - [JavaScript Version](#javascript-version)
+      - [HTML Version](#html-version)
+    - [The Callback Function](#the-callback-function)
+  - [Backend Auth](#backend-auth)
+- [Sign Out](#sign-out)
+  - [Overview](#overview-1)
+  - [Frontend](#frontend)
+  - [Backend](#backend)
+- [Switch Navbar](#switch-navbar)
+- [Protecting Routes](#protecting-routes)
 - [Conclusion](#conclusion)
 - [Seeking Oppotunities](#seeking-oppotunities)
 
@@ -198,7 +205,8 @@ The document head is included from the file `head.j2` in the same directory as:
 ```
 These examples illustrate the basic usage of HTMX and FastAPI with Jinja templating.
 
-# Authentication Overview
+# Sign In
+## Overview
 
 The figure below shows a schematic diagram depicting the flow of the authentication process.
 
@@ -218,9 +226,9 @@ width="80%" alt="Sign-in flow" title="Sign-in flow">
 
 Thereafter, "Cookie: session_id=xxxxxx" is always set in subsequent communications, until the cookie expires or until the user explicitly hits the logout button on the web page.
 
-# Frontend Auth
+## Frontend Auth
 
-## Sign in with Google button
+### Sign in with Google button
 
 To display a `Sign in with Google` button, we need to use a JavaScript library provided by Google and place a code snippet somewhere in the HTML.
 
@@ -235,7 +243,7 @@ To load the JavaScript library, add the following `<script>` tag in the document
 Inside the navigation bar, we place a code snippet to show the "Sign in with Google" button.
 This code snippet is available in two versions: JavaScript and HTML. Either version can be used.
 
-### JavaScript Version
+#### JavaScript Version
 
 ```javascript
 <script>
@@ -269,7 +277,7 @@ The `google.accounts.id.renderButton` function defines the presentation style of
 
 The `google.accounts.id.prompt` method displays the One Tap prompt (and is disabled in this particular case).
 
-### HTML Version
+#### HTML Version
 
 ```html
 <script src="https://accounts.google.com/gsi/client" async></script>
@@ -303,7 +311,7 @@ The `<div id="g_id_onload">` element initializes and configures the sign-in proc
 
 The `<div id="g_id_sigin">` division defines the presentation style of the Sign in with Google button.
 
-## The Callback Function
+### The Callback Function
 
 Below is an implementation of the callback function to forward the JWT to the backend:
 
@@ -317,7 +325,7 @@ Below is an implementation of the callback function to forward the JWT to the ba
 ```
 The `onSignIn` function sends the JWT received from Google's sign-in page to `{{ login_url }}`, a backend endpoint designed to handle the received JWT.
 
-# Backend Auth
+## Backend Auth
 
 The backend endpoint receives the JWT, verifies it using Google's public certificate, and then creates a session to maintain a logged-in status in subsequent communications.
 
@@ -391,6 +399,173 @@ async def VerifyToken(jwt: str):
     return idinfo
 ```
 
+# Sign Out
+
+## Overview
+
+The figure below shows a schematic diagram depicting the flow of the sign out process.
+
+<a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/htmx-fastapi02.drawio.png"
+target="_blank">
+<img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/HTMX-FasAPI-Sign-in-with-Google/image/htmx-fastapi02.drawio.png"
+width="80%" alt="Sign-in flow" title="Sign-in flow">
+</a>
+
+1. When a user clicks the 'Sign-out' button, an hx-get request is sent to /auth/logout, an endpoint prepared using FastAPI.
+2. The session associated with the session_id is deleted in the database.
+3. FastAPI sends a response with a header containing the entry `Set-Cookie: session_id="", max_age=0`.
+
+Thereafter, the browser unsets the `session_id` in the Cookie header and will no longer send the `session_id` cookie in subsequent requests.
+
+## Frontend
+
+Here is a snippet of the Jinja template, which shows a logout button for authenticated users in the navigation bar.
+
+```html
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <div hx-get="{{logout_url}}" hx-trigger="click" hx-target="#content_section" hx-swap="innerHTML">
+                    <img class="rounded-circle" src="{{icon_url}}" alt="logout" name="logout"
+                        style="width:2rem;height:2rem;border-radius:2rem">
+                </div>
+            </ul>
+```
+
+The `{{ logout_url }}` and `{{icon_url}}` will be filled by the [(backend code)](#auth_navbar) when it's returned to the client browsers.
+
+Upon a click, the logout button fires an hx-get request to `{{ logout_url }}`, which translates to `/auth/logout`, an endpoint of the backend server.
+The attributes `hx-target="#content_section"` and `hx-swap="innerHTML"` will cause the HTMX libray to replace the content in inside the `<div id="content_section"></div>`.
+
+## Backend
+
+The backend endpoint receives an AJAX get request, deletes the session associated with the session_id from the database, and instructs the browser to unset the 'Cookie: session_id'.
+
+Here is the code snippet of the backend endpoint, which performs the following operations:
+
+- `delete_session`: delete the session from the session database.
+- `response.delete_cookie`: Causes the browser to delete the `session_id` cookie from the Cookie header by setting `Set-Cookie: session_id="", max-age=0` in the response header(see [explanation](https://fastapi.tiangolo.com/reference/response/#fastapi.Response.delete_cookie) and [source code](https://github.com/encode/starlette/blob/master/starlette/responses.py#L130)).
+
+```python
+@router.get("/logout", response_class=HTMLResponse)
+async def logout(request: Request, response: Response, hx_request: Optional[str] = Header(None), cs: Session = Depends(get_cache)):
+    if not hx_request:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only HX request is allowed to this end point."
+            )
+
+    req_session_id = request.cookies.get("session_id") # get session_id from cookie of request
+    if req_session_id:
+        delete_session(req_session_id, cs)
+        response.delete_cookie("session_id") # delete key="session_id" from cookie of response
+
+    context = {"request": request, "message": "User logged out"}
+    response = templates.TemplateResponse("content.error.j2", context)
+    response.headers["HX-Trigger"] = "LoginStatusChange"
+    return response
+```
+
+Please also note that there is a line setting "HX-Trigger: LoginStatusChange" in the response header as same as the case for /auth/login endpoint.
+This triggers an hx-get to `/auth/auth_navbar`, causing the navigation bar to reload [(see above)](#LoginStatusChange).
+
+# Switch Navbar
+
+The following code snippet returns the partial HTML content to display the navigation bar.
+Depending on the existence of the valid session_id in the Cookie header, the code returns the different HTMLs.
+When there is a valid session_id in the Cookie header, it returns the HTML generated from a Jinja template `auth_navbar.logout.j2` for authenticated users with the user's Google account icon and logout button.
+When there isn't a valid session_id in the Cookie header, it returns the HTML generated from a Jinja template `auth_navbar.login.j2` for anonymous users with a "Sign in with Google" button.
+
+<a name="auth_navbar"></a>
+
+```python
+@router.get("/auth_navbar", response_class=HTMLResponse)
+async def auth_navbar(request: Request, hx_request: Optional[str] = Header(None), ds: Session = Depends(get_db), cs: Session = Depends(get_cache)):
+
+    if not hx_request:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only HX request is allowed to this end point."
+            )
+
+    # For authenticated users, return the menu.logout component.
+    try:
+        session_id = request.cookies.get("session_id")
+        user = await get_current_user(session_id=session_id, cs=cs, ds=ds)
+        logout_url = settings.origin_server + "/auth/logout"
+        icon_url = settings.origin_server + "/img/logout.png"
+
+        context = {"request": request, "session_id": session_id, "logout_url":logout_url, "icon_url": icon_url,
+                   "name": user.name, "picture": user.picture, "email": user.email}
+        return templates.TemplateResponse("auth_navbar.logout.j2", context)
+    except:
+        print("User not logged-in.")
+
+    # For unauthenticated users, return the menu.login component.
+    client_id = settings.google_oauth2_client_id
+    login_url = settings.origin_server + "/auth/login"
+    icon_url = settings.origin_server + "/img/icon.png"
+
+    context = {"request": request, "client_id": client_id, "login_url": login_url, "icon_url": icon_url}
+    return templates.TemplateResponse("auth_navbar.login.j2", context)
+```
+
+The `settings.origin_server` and `settings.google_oauth2_client_id` are defined else where in the code tree to provied necessary information from a `.env` file.  
+
+# Protecting Routes
+
+Access to the secret pages is controlled through the `auth.is_authenticated` dependency, as shown in the following code snippet.
+If the `auth.is_authenticated` does not raise an exception, it allows access to the routes defined in `htmx/htmx_secret.py`; otherwise, it disallows it.
+
+```python
+from htmx import htmx_secret
+
+app = FastAPI()
+
+app.include_router(
+    htmx_secret.router,
+    prefix="/htmx",
+    tags=["htmx"],
+    dependencies=[Depends(auth.is_authenticated)],
+)
+```
+
+The `auth.is_authenticated` is defined as the following:
+
+- In the function `get_current_user`, the user's email is retrieved from the session database, and then the other information is retrieved from the user database.
+- The function `is_authenticated` raises an HTTPException when there is no user information returned by the `get_current_user` or the `user.disabled` is true.
+
+```python
+async def get_current_user(session_id: str, ds: Session = Depends(get_db), cs: Session = Depends(get_cache)):
+    if not session_id:
+        return None
+
+    session = get_session_by_session_id(session_id, cs)
+    if not session:
+        return None
+
+    user_dict = get_user_by_email(session["email"], ds)
+    user=UserBase(**user_dict)
+
+    return user
+
+@router.get("/is_authenticated")
+async def is_authenticated(session_id: Annotated[str | None, Cookie()] = None, ds: Session = Depends(get_db), cs: Session = Depends(get_cache)):
+    user = await get_current_user(session_id=session_id, cs=cs, ds=ds)
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="NotAuthenticated"
+        )
+    elif user.disabled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Disabled user"
+        )
+    else:
+        print("Authenticated.")
+        return JSONResponse({"message": "Authenticated"})
+```
+
 # Conclusion
 
 In this post, I've shared what I learned about integrating the Sign in with Google feature with an HTMX+FastAPI web application.
@@ -400,6 +575,7 @@ The FastAPI backend has been configured to create a session from the JWT and set
 Thanks to HTMX functionality, the application page can dynamically update the navigation bar upon a change in login status, clearly indicating whether the user is logged in.
 
 # Seeking Oppotunities
+
 I'm based in Japan and am seeking remote work opportunities overseas.
 I'm also open to on-site positions in North America, Australia, the EU, etc., if visa support is available.
 [LinkedIn](https://www.linkedin.com/in/ktaka-phd/)

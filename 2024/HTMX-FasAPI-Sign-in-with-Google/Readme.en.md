@@ -10,8 +10,6 @@
   - [Overview](#overview)
   - [Frontend Auth](#frontend-auth)
     - [Sign in with Google button](#sign-in-with-google-button)
-      - [JavaScript Version](#javascript-version)
-      - [HTML Version](#html-version)
     - [The Callback Function](#the-callback-function)
   - [Backend Auth](#backend-auth)
 - [Sign Out](#sign-out)

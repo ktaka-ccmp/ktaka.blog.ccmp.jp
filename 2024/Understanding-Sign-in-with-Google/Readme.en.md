@@ -1,6 +1,6 @@
-# Sign in with Google vs OpenID Connect: Understanding the difference
+<!-- # Sign in with Google vs OpenID Connect: Understanding the difference -->
 
-## Introduction
+# Introduction
 
 Third-party authentication has become ubiquitous in modern web applications, allowing users to sign in using existing accounts from major providers. While OAuth 2.0 and OpenID Connect (OIDC) are the standard protocols for implementing such authentication, Google offers two distinct approaches - the standard OIDC implementation and Sign in with Google - whose relationship is often misunderstood. The similarity between Sign in with Google and OIDC's implicit flow can be particularly misleading. Though they share some characteristics, such as direct ID token delivery, they are fundamentally different implementations with distinct capabilities and limitations.
 
@@ -8,7 +8,7 @@ This confusion is understandable. Sign in with Google's token delivery mechanism
 
 > **Note on Documentation**: Google's own [documentation](https://developers.google.com/identity/gsi/web/guides/overview) states that "Sign in with Google is based on OAuth 2.0". However, the same documentation describes it as a proprietary SDK that "aims to offer an easier and more secure experience for developers than the standard OAuth and OpenID Connect protocols". This mixed messaging has contributed to developer confusion. While Sign in with Google might be inspired by OAuth 2.0 concepts, its actual implementation is a proprietary protocol that diverges significantly from standard OAuth 2.0/OIDC flows.
 
-## Technical Relationship
+# Technical Relationship
 
 The resemblance between Sign in with Google and OIDC is apparent when examining OIDC's implicit flow configuration:
 
@@ -19,9 +19,9 @@ response_mode=query
 
 Both approaches deliver ID tokens directly to the frontend. However, this architectural similarity obscures fundamental differences in implementation, security considerations, and extensibility. While Sign in with Google provides a streamlined, Google-specific authentication solution, OIDC offers a comprehensive, standardized protocol with multiple flows and security options.
 
-## Implementation Comparison
+# Implementation Comparison
 
-### Sign in with Google
+## Sign in with Google
 
 Sign in with Google provides a simplified implementation through its Identity Services API:
 
@@ -44,7 +44,7 @@ The Google Sign in page (loaded either in a popup window or redirected main wind
 In popup mode: passes it to the main window's callback function via gsi_client.js
 In redirect mode: posts it to the specified login_uri
 
-### Standard OIDC
+## Standard OIDC
 
 OIDC provides multiple implementation options, accommodating different security needs:
 
@@ -70,12 +70,12 @@ nonce=...
 
 The client (on the web browser) can receive an ID token or authorization code as parameters in the redirect URL.
 
-## Authentication Flows
+# Authentication Flows
 
 The flow differences reveal the architectural distinctions between these approaches.
 Sign in with Google implements a flow similar to OIDC's implicit flow. However, OIDC also provides the code flow, which offers enhanced security through backend token exchange.
 
-### Sign in with Google Flow
+## Sign in with Google Flow
 
 ```text
 +-------------+  1. Init Sign-in   +----------------+
@@ -110,7 +110,7 @@ While this approach simplifies implementation, it comes with security considerat
 
 In contrast, authorization codes in OIDC's code flow are specifically designed for such transmission through the frontend.
 
-### OIDC Code Flow
+## OIDC Code Flow
 
 ```text
 +-------------+  1. Init Auth      +----------------+
@@ -146,25 +146,25 @@ In contrast, authorization codes in OIDC's code flow are specifically designed f
 
 The OIDC code flow demonstrates the protocol's flexibility, offering enhanced security through backend token exchange and supporting additional features like refresh tokens.
 
-## Implementation Distinctions
+# Implementation Distinctions
 
 The divergence between these approaches manifests in several key areas:
 
-### Protocol Implementation
+## Protocol Implementation
 
 Sign in with Google employs a proprietary implementation that, while similar to OIDC's implicit flow, uses custom mechanisms and focuses solely on authentication. This specialization allows for a simpler developer experience but limits flexibility and provider portability.
 
 Standard OIDC, conversely, implements a complete authentication and authorization protocol. It supports multiple flows, token types, and security models, enabling developers to choose the most appropriate approach for their specific requirements.
 
-### Security Considerations
+## Security Considerations
 
 The security models reflect different priorities. Sign in with Google optimizes for simplicity, handling tokens in the frontend with a predetermined security model. OIDC provides more options, including the secure code flow that keeps sensitive tokens server-side and supports various security configurations.
 
-### Feature Scope
+## Feature Scope
 
 Sign in with Google's focused approach provides efficient authentication but limits additional capabilities. OIDC's comprehensive protocol supports various authentication and authorization scenarios, multiple token types, and standardized endpoints.
 
-## Choosing the Right Approach
+# Choosing the Right Approach
 
 The selection between Sign in with Google and OIDC should be guided by specific project requirements:
 
@@ -172,7 +172,7 @@ Sign in with Google excels in scenarios requiring quick implementation of Google
 
 Standard OIDC becomes essential when projects require provider flexibility, enhanced security options, or additional OAuth features. Its standardized approach supports long-term maintainability and compliance requirements, though at the cost of increased implementation complexity.
 
-## Conclusion
+# Conclusion
 
 While Sign in with Google shares surface similarities with OIDC's implicit flow, understanding their distinct implementations is crucial for informed architectural decisions. The resemblance in token delivery mechanisms can mask significant differences in protocol implementation, security models, and available features.
 

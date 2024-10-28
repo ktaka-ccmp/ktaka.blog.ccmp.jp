@@ -1,5 +1,20 @@
 <!-- # Sign in with Google vs OpenID Connect: Understanding the difference -->
 
+- [Introduction](#introduction)
+- [Technical Relationship](#technical-relationship)
+- [Implementation Comparison](#implementation-comparison)
+  - [Sign in with Google](#sign-in-with-google)
+  - [Standard OIDC](#standard-oidc)
+- [Authentication Flows](#authentication-flows)
+  - [Sign in with Google Flow](#sign-in-with-google-flow)
+  - [OIDC Code Flow](#oidc-code-flow)
+- [Implementation Distinctions](#implementation-distinctions)
+  - [Protocol Implementation](#protocol-implementation)
+  - [Security Considerations](#security-considerations)
+  - [Feature Scope](#feature-scope)
+- [Choosing the Right Approach](#choosing-the-right-approach)
+- [Conclusion](#conclusion)
+
 # Introduction
 
 Third-party authentication has become ubiquitous in modern web applications, allowing users to sign in using existing accounts from major providers. While OAuth 2.0 and OpenID Connect (OIDC) are the standard protocols for implementing such authentication, Google offers two distinct approaches - the standard OIDC implementation and Sign in with Google - whose relationship is often misunderstood. The similarity between Sign in with Google and OIDC's implicit flow can be particularly misleading. Though they share some characteristics, such as direct ID token delivery, they are fundamentally different implementations with distinct capabilities and limitations.

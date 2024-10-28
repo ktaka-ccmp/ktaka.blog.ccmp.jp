@@ -4,7 +4,7 @@
 **Table of Contents**
 
 - [Blog原稿](#blog原稿)
-    - [手順](#手順)
+  - [手順](#手順)
 
 <!-- markdown-toc end -->
 
@@ -12,8 +12,9 @@
 
 1. Markdown形式でBlog作成
 1. TOC生成: ../../gh-md-toc Readme.md
-1. md->html: pandoc Readme.md -o Readme.html
-1. blogger記事にコピペ
+2. ( cat README.md | ../../gh-md-toc -)
+3. md->html: pandoc Readme.md -o Readme.html
+4. blogger記事にコピペ
 
 
 

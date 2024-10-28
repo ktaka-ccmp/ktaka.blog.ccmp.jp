@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Social media authentication has become ubiquitous in modern web applications, with Google's authentication solutions being particularly widespread. While Google offers two distinct approaches - the standard OpenID Connect (OIDC) implementation and Sign in with Google - their relationship is often misunderstood. The similarity between Sign in with Google and OIDC's implicit flow can be particularly misleading. Though they share some characteristics, such as direct ID token delivery, they are fundamentally different implementations with distinct capabilities and limitations.
+Third-party authentication has become ubiquitous in modern web applications, allowing users to sign in using existing accounts from major providers. While OAuth 2.0 and OpenID Connect (OIDC) are the standard protocols for implementing such authentication, Google offers two distinct approaches - the standard OIDC implementation and Sign in with Google - whose relationship is often misunderstood. The similarity between Sign in with Google and OIDC's implicit flow can be particularly misleading. Though they share some characteristics, such as direct ID token delivery, they are fundamentally different implementations with distinct capabilities and limitations.
 
 This confusion is understandable. Sign in with Google's token delivery mechanism resembles OIDC's implicit flow (response_type=id_token), leading developers to assume it's simply a wrapper around OIDC. However, this surface-level similarity masks significant differences in protocol implementation, security models, and available features.
 
@@ -10,9 +10,9 @@ This confusion is understandable. Sign in with Google's token delivery mechanism
 
 ## Technical Relationship
 
-The resemblance between Sign in with Google and OIDC becomes apparent when examining OIDC's implicit flow configuration:
+The resemblance between Sign in with Google and OIDC is apparent when examining OIDC's implicit flow configuration:
 
-```
+```text
 response_type=id_token
 response_mode=query
 ```
@@ -22,26 +22,33 @@ Both approaches deliver ID tokens directly to the frontend. However, this archit
 ## Implementation Comparison
 
 ### Sign in with Google
+
 Sign in with Google provides a simplified implementation through its Identity Services API:
 
 ```javascript
 // Simple initialization
 google.accounts.id.initialize({
   client_id: 'YOUR_CLIENT_ID',
-  callback: handleCredentialResponse
+  callback: handleCredentialResponse,  // for popup mode
+  login_uri: 'YOUR_LOGIN_URI'         // for redirect mode
 });
 
 // Callback receives:
 {
-  credential: "eyJhbGci..." // JWT ID token
+  credential: "eyJhbGci..." // JWT ID token containing user information
   ...
 }
 ```
 
+The Google Sign in page (loaded either in a popup window or redirected main window) receives an ID token from /gsi/issue endpoint and then:
+In popup mode: passes it to the main window's callback function via gsi_client.js
+In redirect mode: posts it to the specified login_uri
+
 ### Standard OIDC
+
 OIDC provides multiple implementation options, accommodating different security needs:
 
-```
+```text
 // Implicit Flow (Similar to Sign in with Google)
 /authorize?
 response_type=id_token&
@@ -61,36 +68,52 @@ state=...&
 nonce=...
 ```
 
+The client (on the web browser) can receive an ID token or authorization code as parameters in the redirect URL.
+
 ## Authentication Flows
 
-Understanding the flow differences reveals the architectural distinctions between these approaches.
+The flow differences reveal the architectural distinctions between these approaches.
+Sign in with Google implements a flow similar to OIDC's implicit flow. However, OIDC also provides the code flow, which offers enhanced security through backend token exchange.
 
 ### Sign in with Google Flow
-```
+
+```text
 +-------------+  1. Init Sign-in   +----------------+
 |   Web App   | ---------------->  |                |
 |  (Browser)  |                    |  Google Auth   |
 |             | <----------------  |                |
-+-------------+  2. ID Token       +----------------+
++-------------+  2. ID token       +----------------+
        |                                   
-       | 3. Send ID Token                  
-       | (ID Token transmission            
-       |  through frontend)                
+       | 3. Send ID token                  
+       | (ID token transmission
+       |  through frontend)
        v                                   
-+-------------+  4. Validate Token +----------------+
-|  Backend    | --------------->  |  Google APIs    |
-|   Server    | <---------------  |                 |
-+-------------+  5. Token Info    +----------------+
++-------------+  4. Fetch         +----------------+
+|  Backend    |     public jwks   |                |
+|  Server     | <---------------  |  Google APIs   |
+|             |                   |                |
++-------------+                   +----------------+
        |
-       | 6. Create Session
+       | 5. Validate ID token
+       |  (verify signature using jwks and validate claims)
+       |
+       | 6. Create Session and respond to browser
        v
 ```
 
-Sign in with Google implements a straightforward flow focused on ID token delivery. This approach simplifies implementation but requires frontend token handling and provides limited security options.
+Sign in with Google implements a straightforward flow focused on ID token delivery.
+While this approach simplifies implementation, it comes with security considerations:
+
+- Applications typically need to establish sessions with their backend servers, requiring the ID token to be transmitted from the frontend to the backend
+- ID tokens contain sensitive user information and are meant for authentication
+- ID tokens are not designed to be passed between different parties - they should ideally only flow from the authentication provider to the intended recipient
+
+In contrast, authorization codes in OIDC's code flow are specifically designed for such transmission through the frontend.
 
 ### OIDC Code Flow
-```
-+-------------+  1. Init Auth     +----------------+
+
+```text
++-------------+  1. Init Auth      +----------------+
 |   Web App   | ---------------->  |                |
 |  (Browser)  |                    |  Google Auth   |
 |             | <----------------  |                |
@@ -100,17 +123,24 @@ Sign in with Google implements a straightforward flow focused on ID token delive
        | (Code-only frontend               |
        |  transmission)                    |
        v                                   |
-+-------------+  4. Exchange Code          |
-|  Backend    | -------------------------  |
-|   Server    | client_id + client_secret  |
-|             |                            |
-|             | <------------------------- |
-|             | 5. ID Token +              |
-|             |    Access Token +          |
-|             |    Refresh Token           |
-+-------------+                            |
++-------------+  4. Exchange Code      +----------------+
+|  Backend    | ---------------------> |                |
+|   Server    | code + client_id       | Google's       |
+|             |      + client_secret   | Token endpoint |
+|             |                        |                |
+|             | <--------------------- |                |
+|             | 5. ID token +          |                |
+|             |    Access token +      +----------------+
+|             |    Refresh token
+|             |                        +----------------+
+|             |                        |                |
+|             | <--------------------- | Google APIs    |
+|             | 6. Fetch User info     |                |
+|             |    from Google API     |                |
+|             |    using access token  |                |
++-------------+                        +----------------+
        |
-       | 6. Create Session
+       | 7. Create Session and respond to browser
        v
 ```
 
@@ -121,14 +151,17 @@ The OIDC code flow demonstrates the protocol's flexibility, offering enhanced se
 The divergence between these approaches manifests in several key areas:
 
 ### Protocol Implementation
+
 Sign in with Google employs a proprietary implementation that, while similar to OIDC's implicit flow, uses custom mechanisms and focuses solely on authentication. This specialization allows for a simpler developer experience but limits flexibility and provider portability.
 
 Standard OIDC, conversely, implements a complete authentication and authorization protocol. It supports multiple flows, token types, and security models, enabling developers to choose the most appropriate approach for their specific requirements.
 
 ### Security Considerations
+
 The security models reflect different priorities. Sign in with Google optimizes for simplicity, handling tokens in the frontend with a predetermined security model. OIDC provides more options, including the secure code flow that keeps sensitive tokens server-side and supports various security configurations.
 
 ### Feature Scope
+
 Sign in with Google's focused approach provides efficient authentication but limits additional capabilities. OIDC's comprehensive protocol supports various authentication and authorization scenarios, multiple token types, and standardized endpoints.
 
 ## Choosing the Right Approach

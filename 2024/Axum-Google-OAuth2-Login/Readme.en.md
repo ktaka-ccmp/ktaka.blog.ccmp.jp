@@ -2,18 +2,23 @@
 
 - [Implementing Google OAuth2 with Rust and Axum](#implementing-google-oauth2-with-rust-and-axum)
   - [Introduction](#introduction)
-  - [Basic Flow](#basic-flow)
-  - [How Login Works](#how-login-works)
-  - [Detailed Authentication Flow](#detailed-authentication-flow)
+  - [Overview of OAuth2 Authentication](#overview-of-oauth2-authentication)
+    - [Basic Authentication Flow](#basic-authentication-flow)
+    - [Identify Authenticated Access](#identify-authenticated-access)
+    - [OAuth2 Basic](#oauth2-basic)
+  - [Detail of OAuth2 Authentication Implementations](#detail-of-oauth2-authentication-implementations)
+    - [More precise Authentication Flow](#more-precise-authentication-flow)
     - [Route Handlers](#route-handlers)
-    - [/ endpoint](#-endpoint)
-    - [/auth/google](#authgoogle)
-    - [/auth/authorized](#authauthorized)
+    - [Main Page and Authentication UI](#main-page-and-authentication-ui)
+    - [Starting Authentication](#starting-authentication)
+    - [Handling OAuth2 Callback](#handling-oauth2-callback)
       - [Response Modes](#response-modes)
       - [Common Processing](#common-processing)
-    - [/auth/popup\_close](#authpopup_close)
-    - [/logout](#logout)
-    - [/protected](#protected)
+    - [Completing Authentication](#completing-authentication)
+    - [Session Management](#session-management)
+      - [Logout Process](#logout-process)
+      - [Protected Resource Access](#protected-resource-access)
+    - [How Login Works](#how-login-works)
   - [Security Considerations](#security-considerations)
     - [1. CSRF Protection](#1-csrf-protection)
     - [2. Nonce Validation](#2-nonce-validation)
@@ -24,13 +29,19 @@
 
 ## Introduction
 
-OAuth2 authentication is a crucial component of modern web applications. Recently, I have been learning this technology and implemented a login system for the Axum web application using Google OAuth2 for a study.
-In this post, I will explain my implementation in detail and discuss some technical considerations. I use simplified code snippets for ease of explanation.
-The complete code for this implementation is available at [https://github.com/ktaka-ccmp/axum-google-oauth2](https://github.com/ktaka-ccmp/axum-google-oauth2). Feel free to reference it as I go through the implementation details.
+OAuth2 authentication is a crucial component of modern web applications.
+Recently, I have been learning this technology and have implemented a login system for an Axum web application using Google OAuth2 as a study project.
+In this post, I will explain my implementation in detail and discuss some technical considerations I made.
+I use simplified code snippets for ease of explanation.
+The complete code for this implementation is available at https://github.com/ktaka-ccmp/axum-google-oauth2.
+Feel free to reference it as I explain the implementation details.
 
-## Basic Flow
+## Overview of OAuth2 Authentication
 
-Let's understand how our authentication flow works:
+
+### Basic Authentication Flow
+
+Let's roughly understand how our authentication flow works:
 
 ```mermaid
 sequenceDiagram
@@ -55,82 +66,70 @@ When a user clicks the login button:
 1. A popup window opens, redirecting to Google's authentication page
 2. After successful authentication, Google returns an authorization code
 3. Our server exchanges this code for access and ID tokens
-4. We create a session and set a cookie
+4. We create a session and set a cookie to identify the authenticated user
 5. The popup closes automatically and the main window refreshes
 
-Now that we understand the basic flow, let's see how the application keeps track of authenticated users...
+Now that we understand the basic flow, let's see how the application keeps track of authenticated users.
 
-## How Login Works
+### Identify Authenticated Access
 
-The existence of the session cookie is the key to distinguishing authenticated users. When the function associated with a route needs a "user," it is retrieved from the session store using the session cookie in the request header. I will explain this behavior using an implementation for the "/protected" endpoint.
+The session cookie is essential for identifying authenticated users. When an HTTP request includes a cookie that can retrieve session information stored on the backend server, the request can be considered as originating from an authenticated user. The server may then provide information related to the user.
 
-Here's the implementation:
+- Cookies are shared across the tabs of a browser, so the session cookie is valid for all tabs after the popup window closed
+- For security, session cookies should be configured with attributes such as HttpOnly, Secure, and SameSite to mitigate common vulnerabilities like cross-site scripting (XSS) and cross-site request forgery (CSRF).
 
-```rust
-// Protected route example.
-// Calls the from_request_parts(), since we need the user
-async fn protected(user: User) -> impl IntoResponse {
-    format!("Welcome, {}!", user.name)
-}
+Identify Authenticated Access
+To determine whether a user is authenticated, the server relies on a session cookie. This cookie, set during the login process, allows the server to retrieve session information stored in the backend. If valid session data is found, the request is recognized as coming from an authenticated user, and the server can respond with user-specific information or resources.
 
-// User struct representing authenticated user data
-#[derive(Debug, Serialize, Deserialize)]
-struct User {
-    email: String,
-    name: String,
-    // ... other fields
-}
+Key considerations for session cookies in authentication:
 
-struct AuthRedirect;
+Shared Across Tabs: Once set, the session cookie applies across all browser tabs, maintaining authentication even after the login popup window closes.
+Security Best Practices: Session cookies should be configured with:
+HttpOnly: Prevents client-side scripts from accessing the cookie.
+Secure: Ensures the cookie is transmitted only over HTTPS.
+SameSite: Restricts the cookie to same-site requests, reducing the risk of CSRF attacks.
+By securely managing session cookies, the application ensures consistent and safe identification of authenticated users.
 
-impl IntoResponse for AuthRedirect {
-    fn into_response(self) -> Response {
-        Redirect::temporary("/").into_response()
-    }
-}
+### OAuth2 Basic
 
-// Retrieve user from session store using session cookie
-#[async_trait]
-impl<S> FromRequestParts<S> for User
-where
-    MemoryStore: FromRef<S>,
-    S: Send + Sync,
-{
-    // If anything goes wrong or no session is found, redirect to the auth page
-    type Rejection = AuthRedirect;
+OAuth2 major parameters
 
-    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let store = MemoryStore::from_ref(state);
-        let cookies = parts
-            .extract::<TypedHeader<headers::Cookie>>()
-            .await
-            .map_err(|_| AuthRedirect)?;
+- response_type: code, token, id_token
+- response_mode: query, fragment, form_post
+- scope: openid, email, profile, etc...
+- client_id
+- client_secret
+- redirect_uri
+- nonce
+- state
 
-        // Get session from cookie
-        let session_cookie = cookies.get(SESSION_COOKIE_NAME).ok_or(AuthRedirect)?;
-        let session = store
-            .load_session(session_cookie.to_string())
-            .await
-            .map_err(|_| AuthRedirect)?;
+The `response_type` determines what is returned from the authorization endpoint. The `response_mode` determines how these values are returned. To improve security, only the `code` value is recommended for the `response_type`. For the `response_mode`, both `form_post` and `query` are recommended, with `form_post` being more secure.
 
-        // Get user data from session
-        let session = session.ok_or(AuthRedirect)?;
-        let user = session.get::<User>("user").ok_or(AuthRedirect)?;
-        Ok(user)
-    }
-}
-```
+The `code` is used to obtain an `access token`, `refresh token`, and `id token` from the token endpoint.
 
-When a user accesses any protected route, a function from_request_parts() is called to retrieve the User, which does the following:
+The `scope` determines what is authorized for the access token. When `email` and `profile` are specified, user info with email address can be obtained. By specifying `openid`, an `id_token` is returned along with the access token from the token endpoint.
 
-1. get session_cookie
-2. load session data from the session store using session_cookie
-3. retrieve user data from the session
-4. if anything goes wrong, it will redirect to the login page
+- query: redirect to https://redirect_uri?code=xxxx
+- form_post: POST https://redirect_uri, code=xxxx as body
 
-With this understanding of session-based authentication, we can dive deeper into how each step of the authentication process works...
+- fragment: redirect to https://redirect_uri#id_token=xxxx
 
-## Detailed Authentication Flow
+We use the following parameters, since they are considered most secure.
+
+Most secure:
+response_mode=form_post
+response_type=code
+scope=openid+email+profile
+
+2nd most secure:
+response_mode=query
+response_type=code
+scope=openid+email+profile
+
+
+## Detail of OAuth2 Authentication Implementations
+
+### More precise Authentication Flow
 
 Let's break down each step of the authentication process in detail:
 
@@ -142,22 +141,24 @@ sequenceDiagram
     participant Google
 
     Note over Browser,Server: 1. Initial Request
+    Browser->>Browser: Click Login button -> Open popup window
     Browser->>Server: GET /auth/google
     Server->>Session Store: Store CSRF & Nonce data
-    Server-->>Browser: Set __Host-CsrfId cookie
-    Server-->>Browser: Redirect to Google OAuth URL
+    Server->>Browser: 303 Redirect to Google OAuth URL<br/>Set-Cookie: __Host-CsrfId=xxxxx
 
     Note over Browser,Google: 2. Google Auth
     Browser->>Google: Login & Grant Consent
-    Google-->>Browser: Return with code & state
+    Google->>Browser: 302 Redirect with code & state (query)<br/> 200 auto-submit form with code & state (form_post)
 
     Note over Browser,Server: 3. Callback Processing
-    Browser->>Server: POST or GET /auth/authorized
+    Browser->>Server: GET /auth/authorized (query) <br/>POST /auth/authorized (form_post)
     Server<<->>Session Store: Validate tokens
     Server<<->>Google: Exchange code for tokens
     Server->>Session Store: Create user session
     Server-->>Browser: Set __Host-SessionId cookie
 ```
+
+1. By clicking the
 
 ### Route Handlers
 
@@ -180,39 +181,34 @@ Our application has the following endpoints:
    - Shows logout button and welcome message for authenticated users
    - When login button is clicked, opens popup window to "/auth/google"
 
-2. "/": Index page
-   - Shows login button for anonymous users
-   - Shows logout button and welcome message for authenticated users
-   - When login button is clicked, opens popup window to "/auth/google"
-
-3. "/auth/google"
+2. "/auth/google"
    - Starting point of Google authentication
    - Generates security tokens
    - Redirects to Google's sign-in page
 
-4. "/auth/authorized"
+3. "/auth/authorized"
    - Callback endpoint where Google sends authentication result
    - Receives and validates authentication code
    - Creates user session if authentication successful
    - Sets session cookie in browser
 
-5. "/popup_close"
+4. "/popup_close"
    - Simple page that automatically closes after successful login
    - Triggers main page reload through JavaScript
 
-6. "/logout"
+5. "/logout"
    - Removes user session
    - Clears session cookie
    - Redirects back to index page
 
-7. "/protected"
+6. "/protected"
    - Example of authenticated-only page
    - Shows user information if authenticated
    - Redirects to index if not authenticated
 
-### / endpoint
+### Main Page and Authentication UI
 
-- returns pages with different templates depending on authentication status
+The main page serves different content based on the user's authentication status, and handles the login flow through a popup window.
 
 ```rust
 async fn index(user: Option<User>) -> impl IntoResponse {
@@ -296,7 +292,9 @@ Template for authenticated users
 </html>
 ```
 
-### /auth/google
+### Starting Authentication
+
+This is where the OAuth2 flow begins. We generate necessary security tokens and redirect the user to Google's authentication page.
 
 - For improved security
   - Generate and store nonce and csrf
@@ -355,9 +353,9 @@ The following is an example URL of Google's authentication endpoint:
 
 The query parameters in the URL determine behavior of the OAuth2 flow.
 
-### /auth/authorized
+### Handling OAuth2 Callback
 
-This endpoint handles the callback from Google's authentication in two possible modes:
+This is where we process Google's authentication response. The response can come in two different modes:
 
 #### Response Modes
 
@@ -454,7 +452,9 @@ sequenceDiagram
 - Create user session & set set-cookie header with session_id
 - Redirect to /auth/popup_close, to close the popup window
 
-### /auth/popup_close
+### Completing Authentication
+
+After successful authentication, we need to close the popup window and refresh the main page.
 
 - This endpoint lets the popup close after 0.5 seconds
 
@@ -485,7 +485,11 @@ async fn popup_close() -> impl IntoResponse {
 }
 ```
 
-### /logout
+### Session Management
+
+These endpoints handle user session creation and cleanup.
+
+#### Logout Process
 
 - This endpoint is accessed when the logout button is clicked.
 - Remove session_id cookie
@@ -512,38 +516,84 @@ async fn logout(
 }
 ```
 
-### /protected
+#### Protected Resource Access
 
-An example page for protected pages, which is already explained in ["How Login Works"](#how-login-works).
-
-The popup window implementation provides a smooth user experience:
-
-```html
-<button onclick="openPopup()">Login</button>
-
-<script>
-    let popupWindow;
-    let isReloading = false;
-
-    function openPopup() {
-        popupWindow = window.open(
-            `/auth/google`,
-            "PopupWindow",
-            "width=700,height=800,left=1000,top=-1000,resizable=yes,scrollbars=yes"
-        );
-
-        const checkInterval = setInterval(() => {
-            if (popupWindow.closed) {
-                clearInterval(checkInterval);
-                handlePopupClosed();
-            }
-        }, 100);
-    }
-...
-</script>
-```
+As explained in ["How Login Works"](#how-login-works), protected routes require valid session cookies.
 
 Having covered the implementation details, let's examine important security considerations...
+
+### How Login Works
+
+The session cookie is essential for identifying authenticated users.
+When a function associated with a route includes "user: User" in its arguments, the user object is retrieved from the session store using the session cookie provided in the request header.
+The following implementation demonstrates this behavior for the "/protected" endpoint:
+
+```rust
+// Example of a protected route.
+// The "user: User" argument is populated by the from_request_parts() function.
+async fn protected(user: User) -> impl IntoResponse {
+    format!("Welcome, {}!", user.name)
+}
+
+// User struct representing authenticated user data
+#[derive(Debug, Serialize, Deserialize)]
+struct User {
+    email: String,
+    name: String,
+    // ... other fields
+}
+
+struct AuthRedirect;
+
+impl IntoResponse for AuthRedirect {
+    fn into_response(self) -> Response {
+        Redirect::temporary("/").into_response()
+    }
+}
+
+// Retrieve user from session store using session cookie
+#[async_trait]
+impl<S> FromRequestParts<S> for User
+where
+    MemoryStore: FromRef<S>,
+    S: Send + Sync,
+{
+    // If anything goes wrong or no session is found, redirect to the auth page
+    type Rejection = AuthRedirect;
+
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        let store = MemoryStore::from_ref(state);
+        let cookies = parts
+            .extract::<TypedHeader<headers::Cookie>>()
+            .await
+            .map_err(|_| AuthRedirect)?;
+
+        // Get session from cookie
+        let session_cookie = cookies.get(SESSION_COOKIE_NAME).ok_or(AuthRedirect)?;
+        let session = store
+            .load_session(session_cookie.to_string())
+            .await
+            .map_err(|_| AuthRedirect)?;
+
+        // Get user data from session
+        let session = session.ok_or(AuthRedirect)?;
+        let user = session.get::<User>("user").ok_or(AuthRedirect)?;
+        Ok(user)
+    }
+}
+```
+
+Any route can be protected by including "user: User" in the arguments of its associated function.
+When a user accesses such a route, the from_request_parts() function is called to retrieve the User object.
+This function performs the following steps:
+
+1. Retrieves the session_cookie.
+1. Loads session data from the session store using the session_cookie.
+1. Extracts the user data from the session.
+1. If any step fails, the user is redirected to the login page.
+
+With this understanding of session-based authentication, we can dive deeper into how each step of the authentication process works.
+
 
 ## Security Considerations
 

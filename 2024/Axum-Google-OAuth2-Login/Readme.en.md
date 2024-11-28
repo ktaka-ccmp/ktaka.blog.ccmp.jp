@@ -9,15 +9,17 @@
     - [/ endpoint](#-endpoint)
     - [/auth/google](#authgoogle)
     - [/auth/authorized](#authauthorized)
+      - [Response Modes](#response-modes)
+      - [Common Processing](#common-processing)
     - [/auth/popup\_close](#authpopup_close)
     - [/logout](#logout)
     - [/protected](#protected)
   - [Security Considerations](#security-considerations)
     - [1. CSRF Protection](#1-csrf-protection)
     - [2. Nonce Validation](#2-nonce-validation)
-    - [3. Secure Cookies](#3-secure-cookies)
+    - [3. Cookie Security](#3-cookie-security)
     - [Form Post vs Query Mode](#form-post-vs-query-mode)
-    - [Why Use a Popup Window?](#why-use-a-popup-window)
+  - [Why Use a Popup Window?](#why-use-a-popup-window)
   - [Conclusion](#conclusion)
 
 ## Introduction
@@ -55,6 +57,8 @@ When a user clicks the login button:
 3. Our server exchanges this code for access and ID tokens
 4. We create a session and set a cookie
 5. The popup closes automatically and the main window refreshes
+
+Now that we understand the basic flow, let's see how the application keeps track of authenticated users...
 
 ## How Login Works
 
@@ -124,6 +128,8 @@ When a user accesses any protected route, a function from_request_parts() is cal
 3. retrieve user data from the session
 4. if anything goes wrong, it will redirect to the login page
 
+With this understanding of session-based authentication, we can dive deeper into how each step of the authentication process works...
+
 ## Detailed Authentication Flow
 
 Let's break down each step of the authentication process in detail:
@@ -166,6 +172,43 @@ let app = Router::new()
     .route("/logout", get(logout))
     .route("/protected", get(protected));
 ```
+
+Our application has the following endpoints:
+
+1. "/": Index page
+   - Shows login button for anonymous users
+   - Shows logout button and welcome message for authenticated users
+   - When login button is clicked, opens popup window to "/auth/google"
+
+2. "/": Index page
+   - Shows login button for anonymous users
+   - Shows logout button and welcome message for authenticated users
+   - When login button is clicked, opens popup window to "/auth/google"
+
+3. "/auth/google"
+   - Starting point of Google authentication
+   - Generates security tokens
+   - Redirects to Google's sign-in page
+
+4. "/auth/authorized"
+   - Callback endpoint where Google sends authentication result
+   - Receives and validates authentication code
+   - Creates user session if authentication successful
+   - Sets session cookie in browser
+
+5. "/popup_close"
+   - Simple page that automatically closes after successful login
+   - Triggers main page reload through JavaScript
+
+6. "/logout"
+   - Removes user session
+   - Clears session cookie
+   - Redirects back to index page
+
+7. "/protected"
+   - Example of authenticated-only page
+   - Shows user information if authenticated
+   - Redirects to index if not authenticated
 
 ### / endpoint
 
@@ -314,84 +357,102 @@ The query parameters in the URL determine behavior of the OAuth2 flow.
 
 ### /auth/authorized
 
+This endpoint handles the callback from Google's authentication in two possible modes:
+
+#### Response Modes
+
+1. Form Post Mode (Default):
+
+```rust
+// Receive auth code via POST body
+async fn post_authorized(
+    State(state): State<AppState>,
+    Form(form): Form<AuthResponse>,
+) -> Result<impl IntoResponse, AppError> {
+    // Basic validation
+    validate_origin(&headers, &state.oauth2_params.auth_url).await?;
+    authorized(&form, state).await
+}
+```
+
+- Code sent in POST body
+- More secure as parameters aren't in URL
+- Cookie not sent due to SameSite=Lax
+- Relies on nonce validation for security
+
+2. Query Mode:
+
+```rust
+// Receive auth code via URL parameters
+async fn get_authorized(
+    Query(query): Query<AuthResponse>,
+    State(state): State<AppState>,
+    TypedHeader(cookies): TypedHeader<headers::Cookie>,
+) -> Result<impl IntoResponse, AppError> {
+    // Full CSRF validation
+    csrf_checks(cookies.clone(), &state.store, &query, headers).await?;
+    authorized(&query, state).await
+}
+```
+
+- Code sent in URL parameters
+- Cookie sent with GET request
+- Enables CSRF token validation
+- Less secure due to URL exposure
+
+#### Common Processing
+
+Both modes share the same core authentication flow:
+
+```rust
+async fn authorized(auth_response: &AuthResponse, state: AppState) -> Result<impl IntoResponse, AppError> {
+    // 1. Exchange code for tokens
+    let (access_token, id_token) = exchange_code_for_token(...).await?;
+
+    // 2. Verify tokens and get user info
+    let user_data = fetch_user_data_from_google(access_token).await?;
+    verify_nonce(auth_response, idinfo, &state.store).await?;
+
+    // 3. Create user session
+    let session_id = create_and_store_session(user_data, ...).await?;
+
+    // 4. Set session cookie and redirect
+    Ok((set_cookie_header(session_id), Redirect::to("/popup_close")))
+}
+```
+
+The following diagram illustrates the security differences between form post and query modes:
+
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant Server
+    participant Store
+    participant Google
+
+    Note over Browser,Google: Form Post Mode Security
+    Server->>Store: 1. Store nonce & csrf data
+    Server-->>Browser: 2. Set cookie (won't be sent back)
+    Browser->>Google: 3. Login
+    Google-->>Browser: 4. Return HTML form with code
+    Browser->>Server: 5. POST /auth/authorized
+    Note right of Server: Security Checks:<br/>1. Origin validation<br/>2. Nonce in ID token<br/>3. Token signature
+
+    Note over Browser,Google: Query Mode Security
+    Server->>Store: 1. Store nonce & csrf data
+    Server-->>Browser: 2. Set cookie (will be sent back)
+    Browser->>Google: 3. Login
+    Google-->>Browser: 4. 302 redirect with code
+    Browser->>Server: 5. GET /auth/authorized
+    Note right of Server: Security Checks:<br/>1. Origin validation<br/>2. CSRF token match<br/>3. Nonce in ID token<br/>4. User-Agent match<br/>5. Token signature
+```
+
 - Process the authorization code returned from Google
 - Receive the code as a query parameter(query mode) or URL-encoded body parameter(form post mode).
 - Exchange the code for an access token and an ID token from the Google token endpoint
 - Retrieve user information from Google
 - Create user session & set set-cookie header with session_id
 - Redirect to /auth/popup_close, to close the popup window
-
-```rust
-// For form post mode. Acquire authorization code in form param, then call main authorized function
-async fn post_authorized(
-    State(state): State<AppState>,
-    Form(form): Form<AuthResponse>,
-    ...
-) -> Result<impl IntoResponse, AppError> {
-    ...
-    authorized(&form, state).await
-}
-
-// For query mode.  Acquire authorization code in query param, then call main authorized function 
-async fn get_authorized(
-    Query(query): Query<AuthResponse>,
-    State(state): State<AppState>,
-    ...
-) -> Result<impl IntoResponse, AppError> {
-    ...
-    authorized(&query, state).await
-}
-
-// Main authorized function 
-async fn authorized(
-    auth_response: &AuthResponse,
-    state: AppState,
-) -> Result<impl IntoResponse, AppError> {
-
-    // Exchange the code for access token and id token
-    let (access_token, id_token) =
-        exchange_code_for_token(state.oauth2_params.clone(), auth_response.code.clone()).await?;
-
-    // Fetch user data from Google
-    let user_data = fetch_user_data_from_google(access_token).await?;
-
-    // Some verification here...
-
-    let max_age = SESSION_COOKIE_MAX_AGE;
-    let expires_at = Utc::now() + Duration::seconds(max_age);
-
-    // Store session to session store, then obtain session_id as a key
-    let session_id = create_and_store_session(user_data, &state.store, expires_at).await?;
-
-    // Format headers(to include set-cookie)
-    let mut headers = HeaderMap::new();
-    header_set_cookie(
-        &mut headers,
-        SESSION_COOKIE_NAME.to_string(),
-        session_id,
-        max_age,
-    )?;
-
-    // Redirect to "/popup_close" with header including set-cookie:...
-    Ok((headers, Redirect::to("/popup_close")))
-}
-
-fn header_set_cookie(
-    headers: &mut HeaderMap,
-    name: String,
-    value: String,
-    max_age: i64,
-) -> Result<&HeaderMap, AppError> {
-    let cookie =
-        format!("{name}={value}; SameSite=Lax; Secure; HttpOnly; Path=/; Max-Age={max_age}");
-
-    headers.append(
-        SET_COOKIE,
-        cookie.parse().context("failed to parse cookie")?,
-    );
-    Ok(headers)
-}
-```
 
 ### /auth/popup_close
 
@@ -455,18 +516,6 @@ async fn logout(
 
 An example page for protected pages, which is already explained in ["How Login Works"](#how-login-works).
 
-
-
-- "/": Index page. When the login button in this page is clicked, it will open popup with URL, "/auth/google".
-- "/auth/google":  This route is accessed when the login button is clicked. Server and then redirect to the Google OAuth endpoint.
-- "/auth/authorized": Callback endpoint to receive authentication code from Google.
--
-
-(To Claude: Fix this please.)
-
-When a user opens https://my_host_name/, they find login button in the page.
-When the login button is clicked in the index page, the popup with url=https://my_host_name/auth/google will open.
-
 The popup window implementation provides a smooth user experience:
 
 ```html
@@ -494,81 +543,148 @@ The popup window implementation provides a smooth user experience:
 </script>
 ```
 
+Having covered the implementation details, let's examine important security considerations...
 
 ## Security Considerations
 
-Our implementation includes several important security measures:
+I'll elaborate on the security considerations with clearer explanations and diagrams.
+
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant Server
+    participant Store
+    participant Google
+
+    Note over Browser,Google: CSRF Protection
+    Browser->>Server: Click Login
+    Server->>Store: 1. Store csrf_token in session
+    Server-->>Browser: 2. Set __Host-CsrfId cookie
+    Server-->>Browser: 3. Redirect with state=csrf_token
+    Note over Browser: 4. (Later) Cookie returned<br/>only if request is from<br/>our domain
+
+    Note over Browser,Google: Nonce Protection
+    Server->>Store: 1. Store nonce
+    Server->>Google: 2. Send nonce parameter
+    Google->>Browser: 3. Returns ID token with nonce
+    Browser->>Server: 4. Send ID token
+    Server->>Store: 5. Verify stored nonce<br/>matches token nonce
+
+```
+
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant Server
+    participant Store
+    participant Google
+
+    Note over Browser,Server: Token Validation
+    Browser->>Server: Send code & tokens
+    Server->>Store: 1. Load stored nonce
+    Server->>Server: 2. Verify ID token signature
+    Server->>Server: 3. Check nonce matches
+    Server->>Server: 4. Validate token claims
+    Note right of Server: Claims checked:<br/>- Issuer (iss)<br/>- Audience (aud)<br/>- Expiration (exp)<br/>- Issued at (iat)
+
+    Note over Browser,Server: Session Creation
+    Server->>Store: 1. Delete used tokens
+    Server->>Store: 2. Create user session
+    Server-->>Browser: 3. Set session cookie
+    Note right of Browser: Cookie settings:<br/>- HttpOnly<br/>- Secure<br/>- SameSite=Lax<br/>- __Host prefix
+```
+
+Our implementation includes several important security measures. Let's understand each one:
 
 ### 1. CSRF Protection
 
-```rust
-struct CsrfData {
-    csrf_token: String,
-    expires_at: DateTime<Utc>,
-    user_agent: String,
-}
-```
+Cross-Site Request Forgery (CSRF) protection prevents attackers from tricking users into making unwanted requests. Our protection works in two ways:
 
-The CSRF token is:
+a) During Initial Request:
 
-- Generated on initial request
-- Stored in server-side session
-- Included in the OAuth state parameter
-- Validated on callback
+- Generate random csrf_token
+- Store it in server session
+- Set cookie with session ID
+- Include csrf_token in state parameter
+
+b) During Callback:
+
+- Compare state parameter's csrf_token with stored token
+- Validate that cookie comes from our domain
+- Check user agent matches
+
+Example of how CSRF protects:
+
+1. Attacker tries to forge request → No access to our cookie
+2. Attacker tries to modify state → Won't match stored token
+3. Request from different site → Cookie won't be sent
 
 ### 2. Nonce Validation
 
-```rust
-#[derive(Serialize, Deserialize, Debug)]
-struct StateParams {
-    csrf_token: String,
-    nonce_id: String,
-}
+Nonce (Number used ONCE) prevents replay attacks. Here's how:
 
-struct NonceData {
-    nonce: String,
-    expires_at: DateTime<Utc>,
-}
+a) How it works:
+
+- Server generates random nonce
+- Sends it to Google during authentication
+- Google includes nonce in ID token
+- Server verifies nonce matches
+
+b) Why it's important:
+
+- Ensures response is for current authentication attempt
+- Prevents reuse of old tokens
+- Adds cryptographic verification through Google's signature
+
+### 3. Cookie Security
+
+We use several cookie security features:
+
+a) __Host- Prefix:
+
+- Forces HTTPS usage
+- Makes cookie host-only
+- Requires Path=/
+- Cannot be set from subdomains
+
+b) Cookie Flags:
+
+```rust
+"{name}={value}; SameSite=Lax; Secure; HttpOnly; Path=/; Max-Age={max_age}"
 ```
 
-Nonces prevent replay attacks by:
-
-- Being stored server-side
-- Getting included in ID tokens
-- Being validated during callback
-- Single-use enforcement
-
-### 3. Secure Cookies
-
-We use `__Host-` prefixed cookies with secure settings:
-
-```rust
-let cookie = format!(
-    "{name}={value}; SameSite=Lax; Secure; HttpOnly; Path=/; Max-Age={max_age}"
-);
-```
+- SameSite=Lax: Protects against CSRF
+- Secure: Requires HTTPS
+- HttpOnly: Prevents JavaScript access
+- Path=/: Scopes to whole domain
+- Max-Age: Ensures expiration
 
 ### Form Post vs Query Mode
 
-OAuth2 callback can use either:
+Two ways to receive authentication response:
 
 1. Form Post Mode (Recommended):
 
-- Parameters in POST body
-- Not exposed in URLs/logs
-- No Referer header leakage
-- Requires additional security measures
+- Advantages:
+  - Code in POST body
+  - Not visible in URLs
+  - No browser history exposure
+  - No Referer header leaks
+- Trade-offs:
+  - More complex implementation
+  - Needs extra security measures
 
 2. Query Mode:
 
-- Parameters in URL
-- Simpler CSRF validation
-- Potential exposure in logs
-- Less secure for sensitive data
+- Advantages:
+  - Simpler implementation
+  - Easier debugging
+- Disadvantages:
+  - Code exposed in URL
+  - Visible in logs
+  - Potential security risks
 
-We recommend form post mode because protecting sensitive tokens outweighs the benefits of simpler CSRF protection.
-
-### Why Use a Popup Window?
+## Why Use a Popup Window?
 
 The popup window approach offers several advantages:
 

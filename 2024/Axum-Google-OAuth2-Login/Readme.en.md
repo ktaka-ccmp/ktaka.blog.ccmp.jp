@@ -2,12 +2,15 @@
 
 - [Implementing Google OAuth2 with Rust and Axum](#implementing-google-oauth2-with-rust-and-axum)
   - [Introduction](#introduction)
-  - [Overview of OAuth2 Authentication](#overview-of-oauth2-authentication)
+  - [OAuth2 and OpenID Connect Overview](#oauth2-and-openid-connect-overview)
     - [Basic Authentication Flow](#basic-authentication-flow)
     - [Identify Authenticated Access](#identify-authenticated-access)
-    - [OAuth2 Basic](#oauth2-basic)
-  - [Detail of OAuth2 Authentication Implementations](#detail-of-oauth2-authentication-implementations)
-    - [More precise Authentication Flow](#more-precise-authentication-flow)
+    - [OAuth2 Parameters](#oauth2-parameters)
+      - [Key Details and Recommendations](#key-details-and-recommendations)
+      - [Recommended Parameter Configurations](#recommended-parameter-configurations)
+      - [Notes on Security and Future Considerations](#notes-on-security-and-future-considerations)
+  - [Implementation details](#implementation-details)
+    - [Precise Authentication Flow](#precise-authentication-flow)
     - [Route Handlers](#route-handlers)
     - [Main Page and Authentication UI](#main-page-and-authentication-ui)
     - [Starting Authentication](#starting-authentication)
@@ -18,7 +21,6 @@
     - [Session Management](#session-management)
       - [Logout Process](#logout-process)
       - [Protected Resource Access](#protected-resource-access)
-    - [How Login Works](#how-login-works)
   - [Security Considerations](#security-considerations)
     - [1. CSRF Protection](#1-csrf-protection)
     - [2. Nonce Validation](#2-nonce-validation)
@@ -29,15 +31,19 @@
 
 ## Introduction
 
-OAuth2 authentication is a crucial component of modern web applications.
-Recently, I have been learning this technology and have implemented a login system for an Axum web application using Google OAuth2 as a study project.
+OAuth2 authentication is a crucial component of modern web applications. Recently, I have been learning this technology and have implemented a login system for an Axum web application using Google OAuth2 as a study project.
 In this post, I will explain my implementation in detail and discuss some technical considerations I made.
-I use simplified code snippets for ease of explanation.
-The complete code for this implementation is available at https://github.com/ktaka-ccmp/axum-google-oauth2.
-Feel free to reference it as I explain the implementation details.
+I use simplified code snippets for ease of explanation. The complete code for this implementation is available at https://github.com/ktaka-ccmp/axum-google-oauth2. Feel free to reference it as I explain the implementation details.
 
-## Overview of OAuth2 Authentication
+## OAuth2 and OpenID Connect Overview
 
+OAuth2 and OpenID Connect (OIDC) are two closely related standards for authorization and authentication in web applications.
+
+**OAuth2: The Authorization Framework**  
+OAuth2 enables users to grant applications access to their resources without sharing credentials, using access tokens instead. The most common implementation is the **authorization code flow**, where users authenticate with an authorization server (like Google) and the application receives tokens to access resources. OAuth2 focuses solely on authorization - granting permission to access resources.
+
+**OpenID Connect (OIDC): Adding Authentication**  
+OIDC builds on OAuth2 by adding authentication capabilities. It introduces the **ID token**, a JWT containing user identity information, allowing applications to verify user identity while getting resource access in a single process. While OAuth2 handles "what can this app access?", OIDC answers "who is this user?"
 
 ### Basic Authentication Flow
 
@@ -73,63 +79,87 @@ Now that we understand the basic flow, let's see how the application keeps track
 
 ### Identify Authenticated Access
 
-The session cookie is essential for identifying authenticated users. When an HTTP request includes a cookie that can retrieve session information stored on the backend server, the request can be considered as originating from an authenticated user. The server may then provide information related to the user.
-
-- Cookies are shared across the tabs of a browser, so the session cookie is valid for all tabs after the popup window closed
-- For security, session cookies should be configured with attributes such as HttpOnly, Secure, and SameSite to mitigate common vulnerabilities like cross-site scripting (XSS) and cross-site request forgery (CSRF).
-
-Identify Authenticated Access
 To determine whether a user is authenticated, the server relies on a session cookie. This cookie, set during the login process, allows the server to retrieve session information stored in the backend. If valid session data is found, the request is recognized as coming from an authenticated user, and the server can respond with user-specific information or resources.
 
 Key considerations for session cookies in authentication:
 
-Shared Across Tabs: Once set, the session cookie applies across all browser tabs, maintaining authentication even after the login popup window closes.
-Security Best Practices: Session cookies should be configured with:
-HttpOnly: Prevents client-side scripts from accessing the cookie.
-Secure: Ensures the cookie is transmitted only over HTTPS.
-SameSite: Restricts the cookie to same-site requests, reducing the risk of CSRF attacks.
+- Shared Across Tabs: Once set, the session cookie applies across all browser tabs, maintaining authentication even after the login popup window closes.
+- Security Best Practices: Session cookies should be configured with:
+  - `HttpOnly`: Prevents client-side scripts from accessing the cookie.
+  - `Secure`: Ensures the cookie is transmitted only over HTTPS.
+  - `SameSite`: Restricts the cookie to same-site requests, reducing the risk of CSRF attacks.
+
 By securely managing session cookies, the application ensures consistent and safe identification of authenticated users.
 
-### OAuth2 Basic
+### OAuth2 Parameters
 
-OAuth2 major parameters
+The OAuth2 and OpenID Connect (OIDC) standards define a set of parameters that dictate the authentication process. Below are some of the key parameters relevant to our implementation:
 
-- response_type: code, token, id_token
-- response_mode: query, fragment, form_post
-- scope: openid, email, profile, etc...
-- client_id
-- client_secret
-- redirect_uri
-- nonce
-- state
+- **`response_type`** : Specifies what is returned from the authorization endpoint. Common values include `code`, `token`, and `id_token`.
+- **`response_mode`** : Determines how the authorization response is delivered. Common options are `query`, `fragment`, and `form_post`.
+- **`scope`** : Defines the level of access granted by the access token. Common scopes include `openid`, `email`, and `profile`.
+- **`client_id`** : Identifies the client application making the request.
+- **`client_secret`** : A secret known only to the client and the authorization server, used for secure communication.
+- **`redirect_uri`** : Specifies where the authorization server sends the user after authentication.
+- **`nonce`** : Ensures the response has not been tampered with.
+- **`state`** : Helps prevent cross-site request forgery (CSRF) attacks by maintaining state between the client and server.
 
-The `response_type` determines what is returned from the authorization endpoint. The `response_mode` determines how these values are returned. To improve security, only the `code` value is recommended for the `response_type`. For the `response_mode`, both `form_post` and `query` are recommended, with `form_post` being more secure.
+#### Key Details and Recommendations
 
-The `code` is used to obtain an `access token`, `refresh token`, and `id token` from the token endpoint.
+1. **`response_type`**
+   - Determines what is returned from the authorization endpoint
+     - **`code`** : Recommended for security, as it enables token exchange on the server side.
+     - **`token`**  or ****`token`**  or `id_token`** : Less secure, as tokens are exposed directly in the URL.
+1. **`response_mode`**
+   - Specifies how the response is returned to the client:
+     - **`form_post`** : Returns values in the POST body (most secure).
+     - **`query`** : Returns values as query parameters.
+     - **`fragment`** : Returns values in the URL fragment (less secure and generally deprecated).
+   - Example flows:
+     - `form_post`: `POST https://redirect_uri`, with `code=xxxx` in the request body.
+     - `query`: `https://redirect_uri?code=xxxx`.
+     - `fragment`: `https://redirect_uri#id_token=xxxx`.
+1. **`scope`**
+   - Specifies what the access token authorizes:
+     - **`openid`** : Ensures an ID token is returned.
+     - **`email`**  and ****`email`**  and `profile`** : Allow retrieval of the user's email and basic profile information.
 
-The `scope` determines what is authorized for the access token. When `email` and `profile` are specified, user info with email address can be obtained. By specifying `openid`, an `id_token` is returned along with the access token from the token endpoint.
+#### Recommended Parameter Configurations
 
-- query: redirect to https://redirect_uri?code=xxxx
-- form_post: POST https://redirect_uri, code=xxxx as body
+To maximize security, I used the following parameter configurations:
 
-- fragment: redirect to https://redirect_uri#id_token=xxxx
+1. **Most Secure Option** :
+   - `response_mode`: `form_post`
+   - `response_type`: `code`
+   - `scope`: `openid email profile`
+2. **Second Most Secure Option** :
+   - `response_mode`: `query`
+   - `response_type`: `code`
+   - `scope`: `openid email profile`
 
-We use the following parameters, since they are considered most secure.
+#### Notes on Security and Future Considerations
 
-Most secure:
-response_mode=form_post
-response_type=code
-scope=openid+email+profile
+- **PKCE (Proof Key for Code Exchange)** : PKCE enhances the security of the authorization code flow, especially for public clients like SPAs or mobile apps. However, to the best of my knowledge, Google’s OAuth2 endpoints do not currently support PKCE. Incorporating PKCE into this implementation is a potential area for future work.
 
-2nd most secure:
-response_mode=query
-response_type=code
-scope=openid+email+profile
+- **Nonce and State** : Parameters like `nonce` (to prevent replay attacks) and `state` (to protect against CSRF) are crucial for secure OAuth2/OIDC implementations. These will be addressed in more detail later in this post.
+
+By adhering to these configurations and principles, sensitive tokens remain protected during transmission, ensuring a secure authentication process.
+
+## Implementation details
+
+Here is the overview of actual implementation details.
+
+1. obtain authorization code from Google
+2. exchange the code for access token and id_token from Google
+3. verify validity of the id_token
+4. obtain user information from Google
+5. (verify user information against claim of id_token(todo. might be removed in this post))
+6. Create a session information and store it in cache store
+7. Set session id in cookie header
+8. Distinguish the user by the session id cookie
 
 
-## Detail of OAuth2 Authentication Implementations
-
-### More precise Authentication Flow
+### Precise Authentication Flow
 
 Let's break down each step of the authentication process in detail:
 
@@ -148,17 +178,33 @@ sequenceDiagram
 
     Note over Browser,Google: 2. Google Auth
     Browser->>Google: Login & Grant Consent
-    Google->>Browser: 302 Redirect with code & state (query)<br/> 200 auto-submit form with code & state (form_post)
+    Google->>Browser: i. 302 Redirect with code & state (query)<br/> ii. 200 auto-submit form with code & state (form_post)
 
     Note over Browser,Server: 3. Callback Processing
-    Browser->>Server: GET /auth/authorized (query) <br/>POST /auth/authorized (form_post)
+    Note over Session Store: i: query mode<br/>ii: form_post mode
+    Browser->>Server: i. GET /auth/authorized?code=xxx...<br/>ii. POST /auth/authorized {code=xxxx...}
     Server<<->>Session Store: Validate tokens
     Server<<->>Google: Exchange code for tokens
+    Server<<->>Google: Retrieve user information
     Server->>Session Store: Create user session
-    Server-->>Browser: Set __Host-SessionId cookie
+    Server-->>Browser: 303 Redirect response<br/>Set session id in cookie
+    Server<<->>Browser: Obtain Popup closing javascript
+    Browser<<->>Browser: Close popup window
 ```
 
-1. By clicking the
+1. By clicking the login button, popup window is opened and GET request is send to the server
+2. Server creates CSRF token and Nonce identifier and store them in session store
+3. Server return a redirect response to the browser, with URL to the Google's authorization endpoint and OAuth2 query parameters, and with CSRF cookie.
+4. The user sign in to Google and consent sharing tokens with the designated redirect uri
+5. Google returns authorization code
+   1. as a query parameter in a redirect response
+   2. as a form body parameter embedded in a html that automatically post it to the server.
+6. Server validate tokens: verify CSRF, Nonce and id token signature
+7. Retrieve user information
+8. Create user session
+9. Return redirect response with session id in cookie header
+10. Close popup window
+11. The user is regarded as signed in as long as the request has session id cookie
 
 ### Route Handlers
 
@@ -518,12 +564,6 @@ async fn logout(
 
 #### Protected Resource Access
 
-As explained in ["How Login Works"](#how-login-works), protected routes require valid session cookies.
-
-Having covered the implementation details, let's examine important security considerations...
-
-### How Login Works
-
 The session cookie is essential for identifying authenticated users.
 When a function associated with a route includes "user: User" in its arguments, the user object is retrieved from the session store using the session cookie provided in the request header.
 The following implementation demonstrates this behavior for the "/protected" endpoint:
@@ -592,8 +632,7 @@ This function performs the following steps:
 1. Extracts the user data from the session.
 1. If any step fails, the user is redirected to the login page.
 
-With this understanding of session-based authentication, we can dive deeper into how each step of the authentication process works.
-
+Having covered the implementation details, let's examine important security considerations.
 
 ## Security Considerations
 

@@ -3,51 +3,43 @@
 - [Implementing Google OAuth2 with Rust and Axum](#implementing-google-oauth2-with-rust-and-axum)
   - [Introduction](#introduction)
   - [OAuth2 and OpenID Connect Overview](#oauth2-and-openid-connect-overview)
-    - [Basic Authentication Flow](#basic-authentication-flow)
-    - [Identify Authenticated Access](#identify-authenticated-access)
-    - [OAuth2 Parameters](#oauth2-parameters)
-      - [Key Details and Recommendations](#key-details-and-recommendations)
-      - [Recommended Parameter Configurations](#recommended-parameter-configurations)
-      - [Notes on Security and Future Considerations](#notes-on-security-and-future-considerations)
-  - [Implementation details](#implementation-details)
+  - [Basic Authentication Flow](#basic-authentication-flow)
+  - [Identifying Authenticated Access](#identifying-authenticated-access)
+  - [OAuth2 Parameters](#oauth2-parameters)
+  - [Implementation Details](#implementation-details)
     - [Precise Authentication Flow](#precise-authentication-flow)
-    - [Route Handlers](#route-handlers)
-    - [Main Page and Authentication UI](#main-page-and-authentication-ui)
+    - [Route Overview and Structure](#route-overview-and-structure)
+    - [Main Page and Authentication Interface](#main-page-and-authentication-interface)
     - [Starting Authentication](#starting-authentication)
     - [Handling OAuth2 Callback](#handling-oauth2-callback)
-      - [Response Modes](#response-modes)
-      - [Common Processing](#common-processing)
-    - [Completing Authentication](#completing-authentication)
+      - [Form Post Mode](#form-post-mode)
+      - [Query Mode](#query-mode)
     - [Session Management](#session-management)
-      - [Logout Process](#logout-process)
-      - [Protected Resource Access](#protected-resource-access)
   - [Security Considerations](#security-considerations)
-    - [1. CSRF Protection](#1-csrf-protection)
-    - [2. Nonce Validation](#2-nonce-validation)
-    - [3. Cookie Security](#3-cookie-security)
-    - [Form Post vs Query Mode](#form-post-vs-query-mode)
+    - [CSRF Protection](#csrf-protection)
+    - [Nonce Validation](#nonce-validation)
+    - [Cookie Security](#cookie-security)
+    - [Response Mode Security](#response-mode-security)
   - [Why Use a Popup Window?](#why-use-a-popup-window)
   - [Conclusion](#conclusion)
 
 ## Introduction
 
-OAuth2 authentication is a crucial component of modern web applications. Recently, I have been learning this technology and have implemented a login system for an Axum web application using Google OAuth2 as a study project.
-In this post, I will explain my implementation in detail and discuss some technical considerations I made.
-I use simplified code snippets for ease of explanation. The complete code for this implementation is available at https://github.com/ktaka-ccmp/axum-google-oauth2. Feel free to reference it as I explain the implementation details.
+Modern web applications frequently rely on OAuth2 authentication to provide secure user access. As part of my journey learning this technology, I've implemented a login system for an Axum web application using Google OAuth2. This post details that implementation, exploring both the theoretical foundations and practical considerations in building a secure authentication system.
+
+Throughout this guide, I'll use simplified code snippets to explain key concepts clearly. The complete implementation is available in my [GitHub repository](https://github.com/ktaka-ccmp/axum-google-oauth2) for reference as we explore the details.
 
 ## OAuth2 and OpenID Connect Overview
 
-OAuth2 and OpenID Connect (OIDC) are two closely related standards for authorization and authentication in web applications.
+Authentication in modern web applications involves two closely related standards: OAuth2 and OpenID Connect (OIDC). Understanding their relationship is crucial to implementing secure authentication.
 
-**OAuth2: The Authorization Framework**  
-OAuth2 enables users to grant applications access to their resources without sharing credentials, using access tokens instead. The most common implementation is the **authorization code flow**, where users authenticate with an authorization server (like Google) and the application receives tokens to access resources. OAuth2 focuses solely on authorization - granting permission to access resources.
+OAuth2 serves as the foundation, providing an authorization framework that lets users grant applications access to their resources without sharing credentials directly. Instead, applications receive access tokens to interact with protected resources. The authorization code flow, which we'll implement, is the most common and secure approach.
 
-**OpenID Connect (OIDC): Adding Authentication**  
-OIDC builds on OAuth2 by adding authentication capabilities. It introduces the **ID token**, a JWT containing user identity information, allowing applications to verify user identity while getting resource access in a single process. While OAuth2 handles "what can this app access?", OIDC answers "who is this user?"
+OpenID Connect builds upon OAuth2 by adding a standardized authentication layer. While OAuth2 handles authorization ("what can this app access?"), OIDC handles authentication ("who is this user?"). OIDC introduces the ID token, a JWT (JSON Web Token) containing verified user identity information, allowing applications to authenticate users while obtaining resource access permissions in a single flow.
 
-### Basic Authentication Flow
+## Basic Authentication Flow
 
-Let's roughly understand how our authentication flow works:
+Let's examine how our implementation handles the authentication process:
 
 ```mermaid
 sequenceDiagram
@@ -67,101 +59,31 @@ sequenceDiagram
     Browser->>Server: 8. Main window reloads
 ```
 
-When a user clicks the login button:
+When a user initiates login by clicking the login button, our application opens a popup window and redirects to Google's authentication page. After successful authentication, Google provides an authorization code, which our server exchanges for access and ID tokens. We then create a session, set a cookie to identify the authenticated user, and close the popup window, refreshing the main window to reflect the authenticated state.
 
-1. A popup window opens, redirecting to Google's authentication page
-2. After successful authentication, Google returns an authorization code
-3. Our server exchanges this code for access and ID tokens
-4. We create a session and set a cookie to identify the authenticated user
-5. The popup closes automatically and the main window refreshes
+## Identifying Authenticated Access
 
-Now that we understand the basic flow, let's see how the application keeps track of authenticated users.
+Session cookies form the backbone of our authentication system, enabling the server to identify authenticated users across requests. When our server sets a session cookie during the login process, subsequent requests from the browser include this cookie automatically, allowing us to retrieve the associated session data from our backend storage.
 
-### Identify Authenticated Access
+For secure session management, we implement several crucial cookie security features. We configure cookies with the HttpOnly flag to prevent client-side script access, the Secure flag to ensure transmission only over HTTPS, and appropriate SameSite settings to protect against cross-site request forgery (CSRF) attacks. These settings work together to maintain a secure authentication state across all browser tabs, even after the login popup window closes.
 
-To determine whether a user is authenticated, the server relies on a session cookie. This cookie, set during the login process, allows the server to retrieve session information stored in the backend. If valid session data is found, the request is recognized as coming from an authenticated user, and the server can respond with user-specific information or resources.
+## OAuth2 Parameters
 
-Key considerations for session cookies in authentication:
+OAuth2 and OpenID Connect define several parameters that control the authentication process. Understanding these parameters is essential for implementing secure authentication. Let's explore the key parameters and their recommended configurations.
 
-- Shared Across Tabs: Once set, the session cookie applies across all browser tabs, maintaining authentication even after the login popup window closes.
-- Security Best Practices: Session cookies should be configured with:
-  - `HttpOnly`: Prevents client-side scripts from accessing the cookie.
-  - `Secure`: Ensures the cookie is transmitted only over HTTPS.
-  - `SameSite`: Restricts the cookie to same-site requests, reducing the risk of CSRF attacks.
+The response_type parameter determines what the authorization server returns. We use the code response type, which provides an authorization code that can be securely exchanged for tokens on our server. The response_mode parameter controls how this response is delivered - either through form_post for enhanced security or query parameters for simpler debugging.
 
-By securely managing session cookies, the application ensures consistent and safe identification of authenticated users.
+Through the scope parameter, we specify exactly what information we need. Our implementation requests openid, email, and profile scopes to access basic user information while maintaining clear boundaries of access. Additional parameters like client_id and redirect_uri ensure secure communication between our application and Google's authentication servers.
 
-### OAuth2 Parameters
+For maximum security, we recommend using form_post response mode with the code response type and carefully selected scopes. This configuration ensures sensitive tokens remain protected during transmission while providing the necessary user information for authentication.
 
-The OAuth2 and OpenID Connect (OIDC) standards define a set of parameters that dictate the authentication process. Below are some of the key parameters relevant to our implementation:
+## Implementation Details
 
-- **`response_type`** : Specifies what is returned from the authorization endpoint. Common values include `code`, `token`, and `id_token`.
-- **`response_mode`** : Determines how the authorization response is delivered. Common options are `query`, `fragment`, and `form_post`.
-- **`scope`** : Defines the level of access granted by the access token. Common scopes include `openid`, `email`, and `profile`.
-- **`client_id`** : Identifies the client application making the request.
-- **`client_secret`** : A secret known only to the client and the authorization server, used for secure communication.
-- **`redirect_uri`** : Specifies where the authorization server sends the user after authentication.
-- **`nonce`** : Ensures the response has not been tampered with.
-- **`state`** : Helps prevent cross-site request forgery (CSRF) attacks by maintaining state between the client and server.
-
-#### Key Details and Recommendations
-
-1. **`response_type`**
-   - Determines what is returned from the authorization endpoint
-     - **`code`** : Recommended for security, as it enables token exchange on the server side.
-     - **`token`**  or ****`token`**  or `id_token`** : Less secure, as tokens are exposed directly in the URL.
-1. **`response_mode`**
-   - Specifies how the response is returned to the client:
-     - **`form_post`** : Returns values in the POST body (most secure).
-     - **`query`** : Returns values as query parameters.
-     - **`fragment`** : Returns values in the URL fragment (less secure and generally deprecated).
-   - Example flows:
-     - `form_post`: `POST https://redirect_uri`, with `code=xxxx` in the request body.
-     - `query`: `https://redirect_uri?code=xxxx`.
-     - `fragment`: `https://redirect_uri#id_token=xxxx`.
-1. **`scope`**
-   - Specifies what the access token authorizes:
-     - **`openid`** : Ensures an ID token is returned.
-     - **`email`**  and ****`email`**  and `profile`** : Allow retrieval of the user's email and basic profile information.
-
-#### Recommended Parameter Configurations
-
-To maximize security, I used the following parameter configurations:
-
-1. **Most Secure Option** :
-   - `response_mode`: `form_post`
-   - `response_type`: `code`
-   - `scope`: `openid email profile`
-2. **Second Most Secure Option** :
-   - `response_mode`: `query`
-   - `response_type`: `code`
-   - `scope`: `openid email profile`
-
-#### Notes on Security and Future Considerations
-
-- **PKCE (Proof Key for Code Exchange)** : PKCE enhances the security of the authorization code flow, especially for public clients like SPAs or mobile apps. However, to the best of my knowledge, Google’s OAuth2 endpoints do not currently support PKCE. Incorporating PKCE into this implementation is a potential area for future work.
-
-- **Nonce and State** : Parameters like `nonce` (to prevent replay attacks) and `state` (to protect against CSRF) are crucial for secure OAuth2/OIDC implementations. These will be addressed in more detail later in this post.
-
-By adhering to these configurations and principles, sensitive tokens remain protected during transmission, ensuring a secure authentication process.
-
-## Implementation details
-
-Here is the overview of actual implementation details.
-
-1. obtain authorization code from Google
-2. exchange the code for access token and id_token from Google
-3. verify validity of the id_token
-4. obtain user information from Google
-5. (verify user information against claim of id_token(todo. might be removed in this post))
-6. Create a session information and store it in cache store
-7. Set session id in cookie header
-8. Distinguish the user by the session id cookie
-
+Our implementation follows a step-by-step process to authenticate users securely. Let's examine how each part works together to create a complete authentication system.
 
 ### Precise Authentication Flow
 
-Let's break down each step of the authentication process in detail:
+The authentication process involves careful coordination between the browser, our server, Google, and our session store. Here's a detailed look at the flow:
 
 ```mermaid
 sequenceDiagram
@@ -192,23 +114,9 @@ sequenceDiagram
     Browser<<->>Browser: Close popup window
 ```
 
-1. By clicking the login button, popup window is opened and GET request is send to the server
-2. Server creates CSRF token and Nonce identifier and store them in session store
-3. Server return a redirect response to the browser, with URL to the Google's authorization endpoint and OAuth2 query parameters, and with CSRF cookie.
-4. The user sign in to Google and consent sharing tokens with the designated redirect uri
-5. Google returns authorization code
-   1. as a query parameter in a redirect response
-   2. as a form body parameter embedded in a html that automatically post it to the server.
-6. Server validate tokens: verify CSRF, Nonce and id token signature
-7. Retrieve user information
-8. Create user session
-9. Return redirect response with session id in cookie header
-10. Close popup window
-11. The user is regarded as signed in as long as the request has session id cookie
+### Route Overview and Structure
 
-### Route Handlers
-
-Our application's routes are organized as follows:
+Our application organizes its functionality through several key endpoints, each handling a specific part of the authentication process:
 
 ```rust
 let app = Router::new()
@@ -220,52 +128,20 @@ let app = Router::new()
     .route("/protected", get(protected));
 ```
 
-Our application has the following endpoints:
+The root endpoint ("/") serves as our main page, presenting either a login button for anonymous users or a welcome message for authenticated users. The "/auth/google" endpoint initiates the OAuth2 flow, while "/auth/authorized" handles Google's authentication response. Additional endpoints manage session completion and user logout.
 
-1. "/": Index page
-   - Shows login button for anonymous users
-   - Shows logout button and welcome message for authenticated users
-   - When login button is clicked, opens popup window to "/auth/google"
+### Main Page and Authentication Interface
 
-2. "/auth/google"
-   - Starting point of Google authentication
-   - Generates security tokens
-   - Redirects to Google's sign-in page
-
-3. "/auth/authorized"
-   - Callback endpoint where Google sends authentication result
-   - Receives and validates authentication code
-   - Creates user session if authentication successful
-   - Sets session cookie in browser
-
-4. "/popup_close"
-   - Simple page that automatically closes after successful login
-   - Triggers main page reload through JavaScript
-
-5. "/logout"
-   - Removes user session
-   - Clears session cookie
-   - Redirects back to index page
-
-6. "/protected"
-   - Example of authenticated-only page
-   - Shows user information if authenticated
-   - Redirects to index if not authenticated
-
-### Main Page and Authentication UI
-
-The main page serves different content based on the user's authentication status, and handles the login flow through a popup window.
+Our main page adapts its content based on the user's authentication status, providing a seamless user experience. For unauthenticated users, we display a login button that triggers our popup-based authentication flow:
 
 ```rust
 async fn index(user: Option<User>) -> impl IntoResponse {
     match user {
-        // For authenticated users
         Some(u) => {
             let message = format!("Hey {}! You're logged in!", u.name);
             let template = IndexTemplateUser { message: &message };
             (StatusCode::OK, Html(template.render().unwrap())).into_response()
         }
-        // For anonymous users
         None => {
             let message = "You're not logged in.\nClick the Login button below.".to_string();
             let template = IndexTemplateAnon { message: &message };
@@ -275,79 +151,9 @@ async fn index(user: Option<User>) -> impl IntoResponse {
 }
 ```
 
-Template for anonymous users
-
-- When the Login button is clicked, it will open a popup window with /auth/google endpoint.
-- When the popup is closed, it will reload the parent window.
-
-```html
-<html lang="en">
-
-<body>
-    <div>
-        <h1>Welcome to the Index Page</h1>
-        <p>{{message}}</p>
-    </div>
-    <div>
-        <button onclick="openPopup()">Login</button>
-        <script>
-            // Open popup window for OAuth authentication
-            function openPopup() {
-                popupWindow = window.open(
-                    `/auth/google`,
-                    "PopupWindow",
-                    "width=700,height=800,left=1000,top=-1000,resizable=yes,scrollbars=yes"
-                );
-
-                // If the popup is closed, reload the parent window.
-                const checkInterval = setInterval(() => {
-                    if (popupWindow.closed) {
-                        clearInterval(checkInterval);
-                        window.location.reload();
-                    }
-                }, 100);  // Check every 100ms
-            }
-        </script>
-    </div>
-</body>
-</html>
-```
-
-Template for authenticated users
-
-- When the Logout button is clicked, it will access /logout endpoint
-
-```html
-<html lang="en">
-<body>
-    <div>
-        <h1>Welcome to the Index Page</h1>
-        <p>{{message}}</p>
-        <p>You may now access <a href="/protected">/protected</a>.</p>
-    </div>
-
-    <div>
-        <button onclick="Logout()">Logout</button>
-        <script>
-            function Logout() {
-                window.location.href = "/logout";
-            }
-        </script>
-    </div>
-</body>
-</html>
-```
-
 ### Starting Authentication
 
-This is where the OAuth2 flow begins. We generate necessary security tokens and redirect the user to Google's authentication page.
-
-- For improved security
-  - Generate and store nonce and csrf
-  - Set csrf_id in cookie
-  - Encode and embed nonce_id and csrf_token in the state parameter
-  - Set nonce in the nonce parameter
-- Populate authentication URL and headers, then redirect to the URL
+The authentication flow begins when a user clicks the login button. Our `/auth/google` endpoint handles this initial request, setting up necessary security measures and redirecting to Google's authentication page. Here's how the process works:
 
 ```rust
 async fn google_auth(
@@ -358,6 +164,7 @@ async fn google_auth(
     let expires_at = Utc::now() + Duration::seconds(CSRF_COOKIE_MAX_AGE);
     let user_agent = headers.get(axum::http::header::USER_AGENT)...
 
+    // Generate and store security tokens
     let (csrf_token, csrf_id) =
         generate_store_token("csrf_data", expires_at, Some(user_agent) ....
     let (nonce_token, nonce_id) =
@@ -365,6 +172,7 @@ async fn google_auth(
         
     let encoded_state = encode_state(csrf_token, nonce_id);
 
+    // Construct authorization URL
     let auth_url = format!(
         "{}?{}&client_id={}&redirect_uri={}&state={}&nonce={}",
         OAUTH2_AUTH_URL,
@@ -375,6 +183,7 @@ async fn google_auth(
         nonce_token
     );
 
+    // Set security cookie and redirect
     let mut headers = HeaderMap::new();
     header_set_cookie(
         &mut headers,
@@ -388,255 +197,95 @@ async fn google_auth(
 }
 ```
 
-The following is an example URL of Google's authentication endpoint:
-
-> <https://accounts.google.com/o/oauth2/v2/auth\>
-> ?response_type=code&scope=openid+email+profile\\
-> &response_mode=form_post&access_type=online&prompt=consent\\
-> &client_id=xxxxxxx\\
-> &redirect_uri=https://my_host_name/auth/authorized\\
-> &state=yyyyyyy&nonce=zzzzzzzz
-
-The query parameters in the URL determine behavior of the OAuth2 flow.
+This process generates necessary security tokens, stores them securely, and initiates the OAuth2 flow by redirecting to Google's authorization endpoint. The URL includes carefully configured parameters that determine how the authentication process will proceed.
 
 ### Handling OAuth2 Callback
 
-This is where we process Google's authentication response. The response can come in two different modes:
+After Google authenticates the user, it sends the response back to our application. We support two response modes, each with its own security characteristics:
 
-#### Response Modes
+#### Form Post Mode
 
-1. Form Post Mode (Default):
+In this recommended mode, Google returns the authorization code and state in a POST request body:
 
 ```rust
-// Receive auth code via POST body
 async fn post_authorized(
     State(state): State<AppState>,
     Form(form): Form<AuthResponse>,
 ) -> Result<impl IntoResponse, AppError> {
-    // Basic validation
     validate_origin(&headers, &state.oauth2_params.auth_url).await?;
     authorized(&form, state).await
 }
 ```
 
-- Code sent in POST body
-- More secure as parameters aren't in URL
-- Cookie not sent due to SameSite=Lax
-- Relies on nonce validation for security
+This approach offers enhanced security by keeping sensitive parameters out of URLs and browser histories. While it doesn't benefit from CSRF cookie protection due to browser SameSite behavior, it relies on other security measures like nonce validation and origin checking.
 
-2. Query Mode:
+#### Query Mode
+
+The alternative approach receives parameters through URL query strings:
 
 ```rust
-// Receive auth code via URL parameters
 async fn get_authorized(
     Query(query): Query<AuthResponse>,
     State(state): State<AppState>,
     TypedHeader(cookies): TypedHeader<headers::Cookie>,
 ) -> Result<impl IntoResponse, AppError> {
-    // Full CSRF validation
     csrf_checks(cookies.clone(), &state.store, &query, headers).await?;
     authorized(&query, state).await
 }
 ```
 
-- Code sent in URL parameters
-- Cookie sent with GET request
-- Enables CSRF token validation
-- Less secure due to URL exposure
-
-#### Common Processing
-
-Both modes share the same core authentication flow:
+Both modes share a common processing pipeline that handles token exchange and session creation:
 
 ```rust
 async fn authorized(auth_response: &AuthResponse, state: AppState) -> Result<impl IntoResponse, AppError> {
-    // 1. Exchange code for tokens
     let (access_token, id_token) = exchange_code_for_token(...).await?;
-
-    // 2. Verify tokens and get user info
     let user_data = fetch_user_data_from_google(access_token).await?;
     verify_nonce(auth_response, idinfo, &state.store).await?;
-
-    // 3. Create user session
+    
     let session_id = create_and_store_session(user_data, ...).await?;
-
-    // 4. Set session cookie and redirect
     Ok((set_cookie_header(session_id), Redirect::to("/popup_close")))
-}
-```
-
-The following diagram illustrates the security differences between form post and query modes:
-
-```mermaid
-sequenceDiagram
-    participant Browser
-    participant Server
-    participant Store
-    participant Google
-
-    Note over Browser,Google: Form Post Mode Security
-    Server->>Store: 1. Store nonce & csrf data
-    Server-->>Browser: 2. Set cookie (won't be sent back)
-    Browser->>Google: 3. Login
-    Google-->>Browser: 4. Return HTML form with code
-    Browser->>Server: 5. POST /auth/authorized
-    Note right of Server: Security Checks:<br/>1. Origin validation<br/>2. Nonce in ID token<br/>3. Token signature
-
-    Note over Browser,Google: Query Mode Security
-    Server->>Store: 1. Store nonce & csrf data
-    Server-->>Browser: 2. Set cookie (will be sent back)
-    Browser->>Google: 3. Login
-    Google-->>Browser: 4. 302 redirect with code
-    Browser->>Server: 5. GET /auth/authorized
-    Note right of Server: Security Checks:<br/>1. Origin validation<br/>2. CSRF token match<br/>3. Nonce in ID token<br/>4. User-Agent match<br/>5. Token signature
-```
-
-- Process the authorization code returned from Google
-- Receive the code as a query parameter(query mode) or URL-encoded body parameter(form post mode).
-- Exchange the code for an access token and an ID token from the Google token endpoint
-- Retrieve user information from Google
-- Create user session & set set-cookie header with session_id
-- Redirect to /auth/popup_close, to close the popup window
-
-### Completing Authentication
-
-After successful authentication, we need to close the popup window and refresh the main page.
-
-- This endpoint lets the popup close after 0.5 seconds
-
-```rust
-async fn popup_close() -> impl IntoResponse {
-    let html = r#"
-<html lang="en">
-<head>
-    <script>
-        window.onload = function() {
-            setTimeout(function() {
-                window.close();
-            }, 500); // 500 milliseconds = 0.5 seconds
-        }
-    </script>
-</head>
-<body>
-    <h2>Login Successful</h2>
-</body>
-</html>
-"#
-    .to_string();
-
-    Response::builder()
-        .header("Content-Type", "text/html")
-        .body(html)
-        .unwrap()
 }
 ```
 
 ### Session Management
 
-These endpoints handle user session creation and cleanup.
-
-#### Logout Process
-
-- This endpoint is accessed when the logout button is clicked.
-- Remove session_id cookie
-- Delete a session associated with the session_id
+Our session management system ensures secure user authentication across requests. When a user successfully authenticates, we create a session containing their information:
 
 ```rust
-async fn logout(
-    State(store): State<MemoryStore>,
-    TypedHeader(cookies): TypedHeader<headers::Cookie>,
-) -> Result<impl IntoResponse, AppError> {
-
-    let mut headers = HeaderMap::new();
-    header_set_cookie(
-        &mut headers,
-        SESSION_COOKIE_NAME.to_string(),
-        "value".to_string(),
-        Utc::now() - Duration::seconds(86400),
-        -86400,
-    )?;
-
-    delete_session_from_store(cookies, SESSION_COOKIE_NAME.to_string(), &store).await?;
-
-    Ok((headers, Redirect::to("/")))
+async fn create_and_store_session(
+    user_data: User,
+    store: &MemoryStore,
+    expires_at: DateTime<Utc>,
+) -> Result<String, AppError> {
+    let mut session = Session::new();
+    session.insert("user", &user_data)?;
+    session.set_expiry(expires_at);
+    let session_id = store.store_session(session).await?;
+    Ok(session_id)
 }
 ```
 
-#### Protected Resource Access
-
-The session cookie is essential for identifying authenticated users.
-When a function associated with a route includes "user: User" in its arguments, the user object is retrieved from the session store using the session cookie provided in the request header.
-The following implementation demonstrates this behavior for the "/protected" endpoint:
+For protected routes, we automatically verify the user's authentication status through our User extractor:
 
 ```rust
-// Example of a protected route.
-// The "user: User" argument is populated by the from_request_parts() function.
-async fn protected(user: User) -> impl IntoResponse {
-    format!("Welcome, {}!", user.name)
-}
-
-// User struct representing authenticated user data
-#[derive(Debug, Serialize, Deserialize)]
-struct User {
-    email: String,
-    name: String,
-    // ... other fields
-}
-
-struct AuthRedirect;
-
-impl IntoResponse for AuthRedirect {
-    fn into_response(self) -> Response {
-        Redirect::temporary("/").into_response()
-    }
-}
-
-// Retrieve user from session store using session cookie
 #[async_trait]
 impl<S> FromRequestParts<S> for User
 where
     MemoryStore: FromRef<S>,
     S: Send + Sync,
 {
-    // If anything goes wrong or no session is found, redirect to the auth page
-    type Rejection = AuthRedirect;
-
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let store = MemoryStore::from_ref(state);
-        let cookies = parts
-            .extract::<TypedHeader<headers::Cookie>>()
-            .await
-            .map_err(|_| AuthRedirect)?;
-
-        // Get session from cookie
-        let session_cookie = cookies.get(SESSION_COOKIE_NAME).ok_or(AuthRedirect)?;
-        let session = store
-            .load_session(session_cookie.to_string())
-            .await
-            .map_err(|_| AuthRedirect)?;
-
-        // Get user data from session
-        let session = session.ok_or(AuthRedirect)?;
-        let user = session.get::<User>("user").ok_or(AuthRedirect)?;
+        let session_cookie = get_session_cookie(parts)?;
+        let user = load_user_from_session(store, session_cookie).await?;
         Ok(user)
     }
 }
 ```
 
-Any route can be protected by including "user: User" in the arguments of its associated function.
-When a user accesses such a route, the from_request_parts() function is called to retrieve the User object.
-This function performs the following steps:
-
-1. Retrieves the session_cookie.
-1. Loads session data from the session store using the session_cookie.
-1. Extracts the user data from the session.
-1. If any step fails, the user is redirected to the login page.
-
-Having covered the implementation details, let's examine important security considerations.
-
 ## Security Considerations
 
-I'll elaborate on the security considerations with clearer explanations and diagrams.
+Security lies at the heart of our authentication implementation. Let's examine the key security measures that protect our authentication flow:
 
 ```mermaid
 sequenceDiagram
@@ -658,8 +307,21 @@ sequenceDiagram
     Google->>Browser: 3. Returns ID token with nonce
     Browser->>Server: 4. Send ID token
     Server->>Store: 5. Verify stored nonce<br/>matches token nonce
-
 ```
+
+### CSRF Protection
+
+Cross-Site Request Forgery (CSRF) protection forms our first line of defense against unauthorized requests. During the initial authentication request, we generate a unique CSRF token and store it in two places: our session store and the state parameter sent to Google. When Google redirects back to our application, we verify that these tokens match, ensuring the request originates from our legitimate authentication flow.
+
+For example, if an attacker attempts to forge an authentication request:
+
+1. They cannot access our CSRF cookie due to browser security restrictions
+2. Any attempt to modify the state parameter will fail validation
+3. Requests from malicious sites won't include our secure cookie
+
+### Nonce Validation
+
+The nonce (Number used ONCE) mechanism provides cryptographic verification of our authentication flow. We generate a unique nonce for each authentication attempt, which Google includes in the signed ID token. This process ensures that:
 
 ```mermaid
 sequenceDiagram
@@ -683,129 +345,68 @@ sequenceDiagram
     Note right of Browser: Cookie settings:<br/>- HttpOnly<br/>- Secure<br/>- SameSite=Lax<br/>- __Host prefix
 ```
 
-Our implementation includes several important security measures. Let's understand each one:
+Each authentication response corresponds to a specific request, preventing replay attacks and token reuse. The nonce validation process verifies both the token's authenticity and its timeliness.
 
-### 1. CSRF Protection
+### Cookie Security
 
-Cross-Site Request Forgery (CSRF) protection prevents attackers from tricking users into making unwanted requests. Our protection works in two ways:
+Our implementation employs multiple cookie security features to protect user sessions. The `__Host-` prefix enforces strict security requirements:
 
-a) During Initial Request:
+- HTTPS must be used
+- Cookies are bound to the specific host
+- Path must be set to root
+- No access from subdomains is allowed
 
-- Generate random csrf_token
-- Store it in server session
-- Set cookie with session ID
-- Include csrf_token in state parameter
-
-b) During Callback:
-
-- Compare state parameter's csrf_token with stored token
-- Validate that cookie comes from our domain
-- Check user agent matches
-
-Example of how CSRF protects:
-
-1. Attacker tries to forge request → No access to our cookie
-2. Attacker tries to modify state → Won't match stored token
-3. Request from different site → Cookie won't be sent
-
-### 2. Nonce Validation
-
-Nonce (Number used ONCE) prevents replay attacks. Here's how:
-
-a) How it works:
-
-- Server generates random nonce
-- Sends it to Google during authentication
-- Google includes nonce in ID token
-- Server verifies nonce matches
-
-b) Why it's important:
-
-- Ensures response is for current authentication attempt
-- Prevents reuse of old tokens
-- Adds cryptographic verification through Google's signature
-
-### 3. Cookie Security
-
-We use several cookie security features:
-
-a) __Host- Prefix:
-
-- Forces HTTPS usage
-- Makes cookie host-only
-- Requires Path=/
-- Cannot be set from subdomains
-
-b) Cookie Flags:
+Additionally, we set comprehensive security flags for all cookies:
 
 ```rust
 "{name}={value}; SameSite=Lax; Secure; HttpOnly; Path=/; Max-Age={max_age}"
 ```
 
-- SameSite=Lax: Protects against CSRF
-- Secure: Requires HTTPS
-- HttpOnly: Prevents JavaScript access
-- Path=/: Scopes to whole domain
-- Max-Age: Ensures expiration
+These settings ensure cookies remain protected from various attack vectors while maintaining necessary functionality.
 
-### Form Post vs Query Mode
+### Response Mode Security
 
-Two ways to receive authentication response:
+Our implementation supports two response modes, each with distinct security characteristics:
 
-1. Form Post Mode (Recommended):
+Form Post Mode (Recommended):
 
-- Advantages:
-  - Code in POST body
-  - Not visible in URLs
-  - No browser history exposure
-  - No Referer header leaks
-- Trade-offs:
-  - More complex implementation
-  - Needs extra security measures
+- Authorization code travels in POST body, hidden from URLs and logs
+- Immune to Referer header leakage
+- Protected by origin validation and nonce verification
+- Requires careful implementation of security measures
 
-2. Query Mode:
+Query Mode:
 
-- Advantages:
-  - Simpler implementation
-  - Easier debugging
-- Disadvantages:
-  - Code exposed in URL
-  - Visible in logs
-  - Potential security risks
+- Simpler implementation for debugging
+- Full CSRF protection available
+- Authorization code exposed in URLs
+- Higher risk of information leakage
 
 ## Why Use a Popup Window?
 
-The popup window approach offers several advantages:
+Our choice of a popup window for authentication offers several advantages:
 
-1. Better User Experience:
+From a user experience perspective, the main page remains loaded and visible throughout the authentication process. Users don't experience jarring full-page reloads or lose their context. The smooth transition from login to authenticated state enhances the overall application flow.
 
-- Main page stays loaded
-- No full page redirects
-- Smooth transition after login
-
-2. Technical Benefits:
-
-- Simpler state management
-- Works with both response modes
-- Clean separation of auth flow
-- Automatic cleanup on main window close
+Technically, popup windows simplify state management and work seamlessly with both response modes. The clear separation between authentication flow and main application state reduces complexity and potential security issues. When authentication completes, the popup closes automatically, and the main window updates to reflect the new authenticated state.
 
 ## Conclusion
 
-This implementation provides:
+Our implementation demonstrates a secure, user-friendly approach to OAuth2 authentication in Rust using Axum. By combining:
 
-- Secure Google OAuth2 authentication
-- Smooth user experience
 - Comprehensive security measures
+- Smooth user experience
 - Session-based authentication
+- Proper token handling
 
-Remember to:
+We've created a robust authentication system suitable for modern web applications.
 
-- Use HTTPS in production
-- Configure Google OAuth credentials properly
-- Consider rate limiting
-- Use a production-grade session store
+For production deployment, remember to:
 
-The complete implementation is available at [https://github.com/ktaka-ccmp/axum-google-oauth2](https://github.com/ktaka-ccmp/axum-google-oauth2).
+1. Configure HTTPS properly
+2. Set up Google OAuth credentials correctly
+3. Implement rate limiting
+4. Use a production-grade session store
+5. Regularly update security settings
 
-For local development and testing, follow the setup instructions in the repository's README.
+The complete implementation, available at [GitHub repository](https://github.com/ktaka-ccmp/axum-google-oauth2), provides a foundation for building secure authentication systems in Rust web applications.

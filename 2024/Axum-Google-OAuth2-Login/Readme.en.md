@@ -16,9 +16,9 @@
       - [Query Mode](#query-mode)
     - [Session Management](#session-management)
   - [Security Considerations](#security-considerations)
+    - [Nonce Validation](#nonce-validation)
     - [CSRF Protection in Query Mode](#csrf-protection-in-query-mode)
     - [CSRF Protection in Form Post Mode](#csrf-protection-in-form-post-mode)
-    - [Nonce Validation](#nonce-validation)
     - [Cookie Security](#cookie-security)
     - [Response Mode Security](#response-mode-security)
   - [Why Use a Popup Window?](#why-use-a-popup-window)
@@ -313,7 +313,36 @@ where
 
 ## Security Considerations
 
-Our authentication implementation employs multiple security mechanisms working in concert. Here's how each component functions.
+Our authentication implementation relies on several security mechanisms working together. Here's a breakdown of how each component enhances security.
+
+### Nonce Validation
+
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant Server
+    participant Store
+    participant Google
+
+    Browser->>Server: Initial request
+    Server->>Store: Store {nonce_id: nonce_token}
+    Server->>Google: Auth request with state=encoded(csrf_token,nonce_id)<br/>and nonce=nonce_token
+    Google->>Google: Include nonce_token in ID token
+    Google-->>Browser: Return ID token + state
+    Browser->>Server: Send ID token + state
+    Note over Server: Extract nonce_id from state
+    Server->>Store: Get nonce_token using nonce_id
+    Note over Server: Extract nonce from ID token
+    Note over Server: Compare nonce values
+```
+
+Nonce validation ensures the ID token is valid and specific to the current authentication request by comparing:
+
+1. **Nonce from the session store:**  Retrieved using the `nonce_id` from the state parameter.
+
+2. **Nonce in the ID token:**  Included by Google in the signed token.
+
+This prevents replay attacks and confirms the token’s authenticity.
 
 ### CSRF Protection in Query Mode
 
@@ -338,76 +367,62 @@ sequenceDiagram
 
 In query mode, CSRF protection works by comparing two tokens:
 
-- One stored securely in the session store and retrieved using the cookie
-- Another included in the state parameter that travels through Google
-This ensures the callback request comes from the same browser that initiated authentication.
+1. **Token from the session store:**  Retrieved using the `csrf_id` from the `__Host-CsrfId` cookie.
+
+2. **Token from the state parameter:**  Sent through Google during the authentication process.
+
+This comparison ensures the callback request originates from the same browser that initiated the authentication process.
 
 ### CSRF Protection in Form Post Mode
 
-Form post mode skips CSRF checks because:
+Form post mode doesn’t rely on CSRF checks because of built-in browser security:
 
-- The callback comes as a POST request from Google's domain
-- Browser security prevents the `__Host-CsrfId` cookie from being sent with cross-origin POST requests
-- Security relies instead on origin validation and nonce verification
+- The callback is a POST request from Google’s domain.
 
-### Nonce Validation
+- The browser prevents the `__Host-CsrfId` cookie from being sent with cross-origin POST requests.
 
-```mermaid
-sequenceDiagram
-    participant Browser
-    participant Server
-    participant Store
-    participant Google
+- Instead, security relies on **origin validation**  and **nonce verification** .
 
-    Browser->>Server: Initial request
-    Server->>Store: Store {nonce_id: nonce_token}
-    Server->>Google: Auth request with state=encoded(csrf_token,nonce_id)<br/>and nonce=nonce_token
-    Google->>Google: Include nonce_token in ID token
-    Google-->>Browser: Return ID token + state
-    Browser->>Server: Send ID token + state
-    Note over Server: Extract nonce_id from state
-    Server->>Store: Get nonce_token using nonce_id
-    Note over Server: Extract nonce from ID token
-    Note over Server: Compare nonce values
-```
+---
 
-The nonce mechanism verifies two values:
+| Security Element | What's Compared | Source 1 | Source 2 | Purpose |
+| --- | --- | --- | --- | --- |
+| CSRF Token | csrf_token | Retrieved from store using csrf_id in cookie | Extracted from state parameter | Ensures the callback request originates from the same browser session |
+| Nonce | nonce_token | Retrieved from store using nonce_id from state | Extracted from ID token | Verifies the ID token is specific to this authentication request |
 
-- The nonce stored in our session store, retrieved using the nonce_id from the state parameter
-- The nonce included in Google's signed ID token
-This proves the ID token was issued specifically for this authentication request.
-
-| Security Element | What's Compared | Source 1 | Source 2 | Security Purpose |
-|-----------------|-----------------|-----------|-----------|------------------|
-| CSRF Token | csrf_token | Retrieved from store using csrf_id in cookie | Extracted from state parameter | Ensures the callback request comes from the same browser that initiated auth |
-| Nonce | nonce_token | Retrieved from store using nonce_id from state | Extracted from ID token | Verifies the ID token was issued for this specific auth request |
+---
 
 ### Cookie Security
 
-All cookies use comprehensive security settings:
+All cookies are configured with strict security settings:
 
 ```rust
 "{name}={value}; SameSite=Lax; Secure; HttpOnly; Path=/; Max-Age={max_age}"
 ```
 
-- `__Host-` prefix enforces HTTPS and domain restrictions
-- `HttpOnly` prevents JavaScript access
-- `Secure` ensures HTTPS-only transmission
-- `SameSite=Lax` protects against CSRF while allowing navigation
+- **`__Host-` prefix:**  Enforces HTTPS and domain restrictions.
+
+- **`HttpOnly:`**  Blocks JavaScript access to cookies.
+
+- **`Secure:`**  Restricts transmission to HTTPS-only.
+
+- **`SameSite=Lax:`**  Guards against CSRF while allowing same-origin navigation.
+
+These settings ensure cookies remain protected against common attack vectors.
+
+---
 
 ### Response Mode Security
 
 **Form Post Mode (Recommended)**
 
-- Authorization code in POST body
-- Protected by origin validation and nonce verification
-- Not visible in URLs or logs
+- The authorization code is included in the POST body, keeping it hidden from URLs and logs.
+- Security relies on origin validation and nonce verification.
 
 **Query Mode**
 
-- Code visible in URL
-- Full CSRF protection available
-- Higher risk of exposure in logs
+- The code is visible in the URL, making it easier to debug but more prone to exposure (e.g., logs, bookmarks).
+- Offers full CSRF protection, but there’s a higher risk of leakage in environments where URLs are recorded.
 
 ## Why Use a Popup Window?
 

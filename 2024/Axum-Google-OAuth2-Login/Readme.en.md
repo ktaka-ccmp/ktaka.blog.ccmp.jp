@@ -19,6 +19,7 @@
     - [Nonce Validation](#nonce-validation)
     - [CSRF Protection in Query Mode](#csrf-protection-in-query-mode)
     - [CSRF Protection in Form Post Mode](#csrf-protection-in-form-post-mode)
+    - [Security Comparison Table](#security-comparison-table)
     - [Cookie Security](#cookie-security)
     - [Response Mode Security](#response-mode-security)
   - [Why Use a Popup Window?](#why-use-a-popup-window)
@@ -336,10 +337,9 @@ sequenceDiagram
     Note over Server: Compare nonce values
 ```
 
-Nonce validation ensures the ID token is valid and specific to the current authentication request by comparing:
+Nonce validation ensures that the ID token is valid and specific to the current authentication request by comparing:
 
 1. **Nonce from the session store:**  Retrieved using the `nonce_id` from the state parameter.
-
 2. **Nonce in the ID token:**  Included by Google in the signed token.
 
 This prevents replay attacks and confirms the token’s authenticity.
@@ -368,29 +368,24 @@ sequenceDiagram
 In query mode, CSRF protection works by comparing two tokens:
 
 1. **Token from the session store:**  Retrieved using the `csrf_id` from the `__Host-CsrfId` cookie.
-
 2. **Token from the state parameter:**  Sent through Google during the authentication process.
 
-This comparison ensures the callback request originates from the same browser that initiated the authentication process.
+This ensures the callback request originates from the same browser that initiated the authentication process.
 
 ### CSRF Protection in Form Post Mode
 
-Form post mode doesn’t rely on CSRF checks because of built-in browser security:
+Form post mode does not rely on CSRF checks due to built-in browser security measures:
 
 - The callback is a POST request from Google’s domain.
-
-- The browser prevents the `__Host-CsrfId` cookie from being sent with cross-origin POST requests.
-
+- The browser blocks the `__Host-CsrfId` cookie from being sent with cross-origin POST requests.
 - Instead, security relies on **origin validation**  and **nonce verification** .
 
----
+### Security Comparison Table
 
 | Security Element | What's Compared | Source 1 | Source 2 | Purpose |
 | --- | --- | --- | --- | --- |
 | CSRF Token | csrf_token | Retrieved from store using csrf_id in cookie | Extracted from state parameter | Ensures the callback request originates from the same browser session |
 | Nonce | nonce_token | Retrieved from store using nonce_id from state | Extracted from ID token | Verifies the ID token is specific to this authentication request |
-
----
 
 ### Cookie Security
 
@@ -400,29 +395,22 @@ All cookies are configured with strict security settings:
 "{name}={value}; SameSite=Lax; Secure; HttpOnly; Path=/; Max-Age={max_age}"
 ```
 
-- **`__Host-` prefix:**  Enforces HTTPS and domain restrictions.
-
-- **`HttpOnly:`**  Blocks JavaScript access to cookies.
-
-- **`Secure:`**  Restricts transmission to HTTPS-only.
-
+- **`__Host-` prefix:**  Enforces HTTPS and domain-specific restrictions.
+- **`HttpOnly:`**  Prevents JavaScript access to cookies.
+- **`Secure:`**  Ensures transmission occurs only over HTTPS.
 - **`SameSite=Lax:`**  Guards against CSRF while allowing same-origin navigation.
 
-These settings ensure cookies remain protected against common attack vectors.
-
----
+These settings ensure cookies are protected from common attack vectors.
 
 ### Response Mode Security
 
 **Form Post Mode (Recommended)**
 
-- The authorization code is included in the POST body, keeping it hidden from URLs and logs.
-- Security relies on origin validation and nonce verification.
+The authorization code is included in the POST body, keeping it hidden from URLs and logs. Security relies on **origin validation**  and **nonce verification** .
 
 **Query Mode**
 
-- The code is visible in the URL, making it easier to debug but more prone to exposure (e.g., logs, bookmarks).
-- Offers full CSRF protection, but there’s a higher risk of leakage in environments where URLs are recorded.
+The authorization code is visible in the URL, making it easier to debug but more prone to exposure (e.g., logs, bookmarks). Offers full CSRF protection but carries a higher risk of leakage in environments where URLs are recorded.
 
 ## Why Use a Popup Window?
 

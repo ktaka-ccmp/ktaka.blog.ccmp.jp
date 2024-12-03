@@ -168,7 +168,7 @@ This design ensures a seamless user experience, adapting content dynamically bas
 
 ### Starting Authentication
 
-The `/auth/google` endpoint initiates the authentication process. It sets up necessary security tokens and redirects the user to Google’s authentication page with all required parameters:
+The authentication flow begins when a user clicks the login button. The /auth/google endpoint handles this initial request, setting up necessary security measures and redirecting to Google's authentication page. Here's how the process works:
 
 ```rust
 async fn google_auth(
@@ -218,11 +218,11 @@ async fn google_auth(
 }
 ```
 
-This step ensures security by generating CSRF and nonce tokens while redirecting users to Google for authentication.
+This process generates necessary security tokens, stores them securely, and initiates the OAuth2 flow by redirecting to Google's authorization endpoint. The URL is constructed with carefully chosen parameters. These parameters determine how the authentication process will proceed.
 
 ### Handling OAuth2 Callback
 
-After the user completes authentication, Google sends a callback to our application. The `/auth/authorized` endpoint processes this response, supporting both form_post and query modes.
+After Google authenticates the user, it sends the response back to our application. The `/auth/authorized` endpoint processes this response, supporting both form_post and query modes.
 
 #### Form Post Mode
 
@@ -237,6 +237,8 @@ async fn post_authorized(
     authorized(&form, state).await
 }
 ```
+
+> [!NOTE] Add Automatic Form sending HTML here
 
 This approach avoids exposing sensitive data in URLs and browser histories.
 
@@ -286,9 +288,14 @@ async fn create_and_store_session(
 }
 ```
 
-To protect sensitive routes, the `User` extractor automatically verifies the session cookie and retrieves user data:
+To protect sensitive routes, the function arguments include `user: User`. The `User` extractor automatically verifies the session cookie and retrieves the user data for subsequent requests:
 
 ```rust
+// The "user: User" argument ensures access to authenticated user data.
+async fn protected(user: User) -> impl IntoResponse {
+    format!("Welcome, {}!", user.name)
+}
+
 #[async_trait]
 impl<S> FromRequestParts<S> for User
 where

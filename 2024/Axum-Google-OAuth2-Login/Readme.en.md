@@ -15,13 +15,15 @@
       - [Form Post Mode](#form-post-mode)
       - [Query Mode](#query-mode)
     - [Session Management](#session-management)
-  - [Security Considerations](#security-considerations)
-    - [Nonce Validation](#nonce-validation)
-    - [CSRF Protection](#csrf-protection)
-    - [Security Mechanism Comparison](#security-mechanism-comparison)
-    - [Cookie Security](#cookie-security)
-    - [Response Mode Security](#response-mode-security)
-  - [Why Use a Popup Window?](#why-use-a-popup-window)
+  - [Technical Considerations](#technical-considerations)
+    - [Seurity](#seurity)
+      - [Nonce Validation](#nonce-validation)
+      - [CSRF Protection](#csrf-protection)
+      - [Security Mechanism Comparison](#security-mechanism-comparison)
+      - [Cookie Security](#cookie-security)
+      - [Response Mode Security](#response-mode-security)
+    - [Why Use a Popup Window?](#why-use-a-popup-window)
+    - [Why use code flow](#why-use-code-flow)
   - [Conclusion](#conclusion)
 
 ## Introduction
@@ -311,11 +313,13 @@ where
 }
 ```
 
-## Security Considerations
+## Technical Considerations
+
+### Seurity
 
 Our authentication implementation relies on several security mechanisms working together. Since we use ID token claims for authentication, these mechanisms focus on protecting the authentication process and verifying token authenticity.
 
-### Nonce Validation
+#### Nonce Validation
 
 The nonce mechanism is crucial for verifying that the ID token we'll use for authentication was issued specifically for this request.
 
@@ -345,7 +349,7 @@ sequenceDiagram
     Note over Server: Compare nonce values
 ```
 
-### CSRF Protection
+#### CSRF Protection
 
 CSRF protection varies by response mode, with different mechanisms ensuring request authenticity.
 
@@ -381,14 +385,14 @@ Browser security handles CSRF protection differently here:
 
   - **Nonce verification:**  Confirms token authenticity.
 
-### Security Mechanism Comparison
+#### Security Mechanism Comparison
 
 | Security Element | What's Compared | Source 1 | Source 2 | Purpose |
 | --- | --- | --- | --- | --- |
 | CSRF Token | csrf_token | Retrieved from store using csrf_id in cookie | Extracted from state parameter | Ensures callback originates from the same browser session |
 | Nonce | nonce_token | Retrieved from store using nonce_id from state | Extracted from ID token | Verifies ID token is specific to this authentication request |
 
-### Cookie Security
+#### Cookie Security
 
 All cookies use comprehensive security settings:
 
@@ -403,7 +407,7 @@ All cookies use comprehensive security settings:
 
 These settings ensure cookies are protected from common attack vectors.
 
-### Response Mode Security
+#### Response Mode Security
 
 **Form Post Mode (Recommended)**
 
@@ -416,9 +420,14 @@ These settings ensure cookies are protected from common attack vectors.
 - Authorization code is visible in the URL, making it easier to debug but more prone to exposure (e.g., logs, bookmarks).
 - Offers full CSRF protection but carries a higher risk of leakage in environments where URLs are recorded.
 
-## Why Use a Popup Window?
+### Why Use a Popup Window?
 
 A popup-based flow keeps the main page responsive during the authentication process and simplifies state management. Once authentication completes, the popup closes automatically, and the main page updates to reflect the authenticated state. Since the browser shares cookie headers across different tabs, the login state is maintained until the cookie expires or is overwritten.
+
+### Why use code flow
+
+We used response_type=code instead of id_token. Here is why:
+
 
 ## Conclusion
 

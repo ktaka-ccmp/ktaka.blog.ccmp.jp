@@ -17,6 +17,7 @@
     - [Session Management](#session-management)
   - [Security Considerations](#security-considerations)
     - [CSRF Protection](#csrf-protection)
+    - [Why is csrf\_check skipped for post\_form?](#why-is-csrf_check-skipped-for-post_form)
     - [Nonce Validation](#nonce-validation)
     - [Cookie Security](#cookie-security)
     - [Response Mode Security](#response-mode-security)
@@ -31,11 +32,13 @@ To keep things concise, I’ve included simplified code snippets for key compone
 
 ## OAuth2 and OpenID Connect Overview
 
-OAuth2 and OpenID Connect (OIDC) are key to modern authentication systems, and understanding how they fit together can make implementing secure authentication easier. 
+OAuth2 and OpenID Connect (OIDC) are key to modern authentication systems, and understanding how they fit together can make implementing secure authentication easier.
 
-OAuth2 serves as a foundation, allowing users to grant applications access to their resources without sharing credentials. Applications interact with these resources through access tokens. In this implementation, I used the authorization code flow—a secure and widely adopted approach.
+OAuth2 serves as a foundation, allowing users to grant applications access to their resources without sharing credentials. Applications interact with these resources through access tokens. For this implementation, I used the authorization code flow, a secure and widely adopted approach, to retrieve user information from the identity provider.
 
-OIDC builds on OAuth2, adding a standardized layer for authentication. While OAuth2 focuses on "what can this app access?", OIDC answers "who is this user?" It introduces the ID token (a JWT containing verified user identity information), making it possible to authenticate users and manage access permissions in a single flow.
+OIDC builds on OAuth2, adding a standardized layer for authentication. While OAuth2 focuses on "what can this app access?", OIDC answers "who is this user?" It introduces the ID token, a JSON Web Token (JWT) that contains verified user identity information. This makes it possible to authenticate users while managing access permissions in a single, unified flow.
+
+In a nutshell, OAuth2 becomes more secure when extended with the ID token under the OIDC standard.
 
 ## Basic Authentication Flow
 
@@ -53,17 +56,19 @@ sequenceDiagram
     Browser->>Google: 3. Login & consent
     Google-->>Browser: 4. Return auth code
     Browser->>Server: 5. Send code
-    Server->>Google: 6. Exchange for tokens
-    Server-->>Browser: 7. Set session cookie
+    Server<<->>Google: 6. Exchange for tokens
+    Server<<->>Google: 7. Retrieve user information
+    Server->>Server: 8. Create session
+    Server->>Browser: 9. Set session cookie
     Note over Browser: Popup closes automatically
-    Browser->>Server: 8. Main window reloads
+    Browser->>Server: 10. Main window reloads
 ```
 
-The process begins when a user clicks the login button, which opens a popup and redirects to Google’s authentication page. After a successful login, Google returns an authorization code that the server exchanges for tokens. A session is created, and a cookie is set to identify the user, completing the authentication flow.
+The process begins when a user clicks the login button, which opens a popup and redirects to Google’s authentication page. After a successful login, Google returns an authorization code that the server exchanges for tokens. The server retrieves the user information, creates a session, and sets it as a cookie in the response to the browser, completing the authentication flow. The user is subsequently identified by this cookie in all future requests.
 
 ## Identifying Authenticated Access
 
-Session cookies play a central role in maintaining authenticated access. Once the server sets a session cookie during login, it automatically accompanies future browser requests. To ensure secure session management, I used several measures:
+Session cookies play a central role in maintaining authenticated access. Once the server sets a session cookie during login, it is automatically included in future browser requests. To ensure secure session management, I used several measures:
 
 - **HttpOnly flag**: Prevents client-side script access to cookies.
 - **Secure flag**: Ensures cookies are only transmitted over HTTPS.
@@ -73,7 +78,7 @@ These settings work together to maintain secure authentication states, even acro
 
 ## OAuth2 Parameters
 
-OAuth2 and OIDC define several parameters critical to the authentication process. Here’s how I approached their configuration:
+OAuth2 and OIDC define several parameters critical to the authentication process. Here’s how I approached configuring some of the key parameters:
 
 - **`response_type`**: Set to `code`, as it securely delivers an authorization code.
 - **`response_mode`**: Used `form_post` for better security by avoiding sensitive data in URLs.
@@ -87,7 +92,9 @@ Here’s how the implementation comes together, starting with the authentication
 
 ### Precise Authentication Flow
 
-The flow involves interactions between the browser, server, Google, and session store:
+The flow involves interactions between the browser, server, Google, and session store.
+
+The session store is responsible for managing the login session and storing security tokens, including the CSRF token and the nonce token.
 
 ```mermaid
 sequenceDiagram
@@ -104,7 +111,7 @@ sequenceDiagram
 
     Note over Browser,Google: 2. Google Auth
     Browser->>Google: Login & Grant Consent
-    Google->>Browser: i. 302 Redirect with code & state (query)<br/> ii. 200 auto-submit form with code & state (form_post)
+    Google->>Browser: i. 302 Redirect with code & state <br/> ii. 200 auto-submit form with code & state
 
     Note over Browser,Server: 3. Callback Processing
     Note over Session Store: i: query mode<br/>ii: form_post mode
@@ -191,6 +198,11 @@ async fn google_auth(
         nonce_token
     );
 
+    // OAUTH2_AUTH_URL and OAUTH2_QUERY_STRING are defined elsewhere as:
+    // static OAUTH2_AUTH_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
+    // static OAUTH2_QUERY_STRING: &str = "response_type=code&scope=openid+email+profile\
+    // &response_mode=form_post&access_type=online&prompt=consent";
+
     // Set security cookie and redirect
     let mut headers = HeaderMap::new();
     header_set_cookie(
@@ -201,6 +213,7 @@ async fn google_auth(
         CSRF_COOKIE_MAX_AGE,
     )?;
 
+    // Returning a response with the Set-Cookie header ensures that the browser sends the security tokens set in cookies with future requests.
     Ok((headers, Redirect::to(&auth_url)))
 }
 ```
@@ -321,6 +334,8 @@ sequenceDiagram
 
 CSRF tokens ensure that authentication requests originate from legitimate users. The system generates a unique CSRF token, stores it in both the session and state parameter, and validates it during the callback.
 
+### Why is csrf_check skipped for post_form?
+
 ### Nonce Validation
 
 The nonce mechanism provides additional protection against replay attacks. A unique nonce is generated for each authentication attempt, included in the ID token, and validated upon receipt.
@@ -337,9 +352,10 @@ Cookies are secured with several measures:
 
 Both form_post and query response modes are supported, with form_post recommended for its ability to keep sensitive data out of URLs.
 
+
 ## Why Use a Popup Window?
 
-A popup-based flow keeps the main page responsive during the authentication process and simplifies state management. Once authentication completes, the popup closes automatically, and the main page updates to reflect the authenticated state.
+A popup-based flow keeps the main page responsive during the authentication process and simplifies state management. Once authentication completes, the popup closes automatically, and the main page updates to reflect the authenticated state. Since the browser shares cookie headers across different tabs, the login state is maintained until the cookie expires or is overwritten.
 
 ## Conclusion
 

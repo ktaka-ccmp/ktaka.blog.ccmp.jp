@@ -187,9 +187,9 @@ async fn google_auth(
 
     // Generate and store security tokens
     let (csrf_token, csrf_id) =
-        generate_store_token("csrf_data", expires_at, Some(user_agent) ...);
+        generate_store_token("csrf_session", expires_at, Some(user_agent) ...);
     let (nonce_token, nonce_id) =
-        generate_store_token("nonce_data", expires_at, None ...);
+        generate_store_token("nonce_session", expires_at, None ...);
 
     let encoded_state = encode_state(csrf_token, nonce_id);
 
@@ -232,7 +232,7 @@ After Google authenticates the user, it sends the response back to our applicati
 
 #### Form Post Mode
 
-This mode is recommended for its enhanced security. Here, Google returns the authorization code and state as part of a POST request body:
+This mode is recommended for its enhanced security. Here, Google returns the authorization code and state as body of the response, then a javascript code automatically send them as a POST body to the callback endpoint:
 
 ```rust
 async fn post_authorized(
@@ -244,13 +244,11 @@ async fn post_authorized(
 }
 ```
 
-> [!NOTE] Add Automatic Form sending HTML here
-
 This approach avoids exposing sensitive data in URLs and browser histories.
 
 #### Query Mode
 
-In query mode, Google includes the authorization code and state as query parameters in the callback URL:
+In query mode, Google includes the authorization code and state as query parameters in the redirect URL, which is processed by the callback function:
 
 ```rust
 async fn get_authorized(
@@ -327,8 +325,8 @@ The nonce mechanism is crucial for verifying that the ID token we'll use for aut
 
 Nonce validation confirms the ID token’s authenticity by comparing two values:
 
+1. **Nonce in the ID token:**  Included by Google in the signed token.
 1. **Nonce from the session store:**  Retrieved using the `nonce_id` from the state parameter.
-2. **Nonce in the ID token:**  Included by Google in the signed token.
 
 This prevents replay attacks and ensures the token is tied to the current authentication request.
 
@@ -336,19 +334,21 @@ This prevents replay attacks and ensures the token is tied to the current authen
 sequenceDiagram
     participant Browser
     participant Server
-    participant Store
+    participant Session Store
     participant Google
 
     Browser->>Server: Initial request
-    Server->>Store: Store {nonce_id: nonce_token}
-    Server->>Google: Auth request with state=encoded(csrf_token,nonce_id)<br/>and nonce=nonce_token
-    Google->>Google: Include nonce_token in ID token
-    Google-->>Browser: Return ID token + state
-    Browser->>Server: Send ID token + state
-    Note over Server: Extract nonce_id from state
-    Server->>Store: Get nonce_token using nonce_id
-    Note over Server: Extract nonce from ID token
-    Note over Server: Compare nonce values
+    Server-->>Session Store: Store {nonce_id, nonce}
+    Server->>Browser: Redirect with nonce and state(nonce_id)
+    Browser->>Google: Request with nonce and state(nonce_id)
+    Google->>Browser: Return code & state(nonce_id)
+    Google-->>Google: Include nonce in ID token
+    Browser->>Server: GET or POST code & state(nonce_id)
+    Server->>Google: Get request with code
+    Google->>Server: Return ID token and access token
+    Server-->>Server: Extract nonce in ID token
+    Session Store-->>Server: Retrieve nonce using nonce_id
+    Server-->>Server: Compare nonce in id_token session
 ```
 
 ### CSRF Protection
@@ -362,19 +362,17 @@ This mode uses cookie-based CSRF validation to verify the request origin.
 sequenceDiagram
     participant Browser
     participant Server
-    participant Store
+    participant Session Store
     participant Google
 
-    Browser->>Server: Click Login
-    Server->>Store: Store {csrf_id: csrf_token}
-    Server-->>Browser: Cookie: __Host-CsrfId=csrf_id
-    Server-->>Browser: Redirect with state=encoded(csrf_token,nonce_id)
-    Google-->>Browser: Redirect with code & unchanged state
-    Browser->>Server: GET /auth/authorized?code=xxx&state=encoded(csrf_token,nonce_id)
-    Note over Server: Extract csrf_id from cookie
-    Server->>Store: Get csrf_token using csrf_id
-    Note over Server: Extract csrf_token from state
-    Note over Server: Compare csrf_tokens
+    Browser->>Server: Initial request
+    Server-->>Session Store: Store {csrf_id, csrf_token}
+    Server->>Browser: Redirect with state(csrf_token) <br/>Set-cookie: __Host-CsrfId=csrf_id
+    Browser->>Google: Request with state(csrf_token)
+    Google->>Browser: Redirect response with code & state(csrf_token)
+    Browser->>Server: GET with code, state(csrf_token) <br/>Cookie: __Host-CsrfId=csrf_id
+    Session Store-->>Server: Retrieve csrf_token using csrf_id
+    Server-->>Server: Compare csrf_token in state and session
 ```
 
 **Form Post Mode:**
@@ -388,10 +386,10 @@ Browser security handles CSRF protection differently here:
 
 ### Security Mechanism Comparison
 
-| Security Element | What's Compared | Source 1 | Source 2 | Purpose |
+| Security Element | What's Compared | Source 1 (Session store key) | Source 2 | Purpose |
 | --- | --- | --- | --- | --- |
-| CSRF Token | csrf_token | Retrieved from store using csrf_id in cookie | Extracted from state parameter | Ensures callback originates from the same browser session |
-| Nonce | nonce_token | Retrieved from store using nonce_id from state | Extracted from ID token | Verifies ID token is specific to this authentication request |
+| Nonce | nonce_token | nonce_id in state parameter  | Embedded in ID token | Verifies ID token is specific to this authentication request |
+| CSRF Token | csrf_token | csrf_id in cookie | state parameter | Ensures callback originates from the same browser session |
 
 ### Cookie Security
 

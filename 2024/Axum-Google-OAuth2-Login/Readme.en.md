@@ -23,7 +23,7 @@
     - [Cookie Security](#cookie-security)
     - [Response Mode Security](#response-mode-security)
     - [Why use code flow](#why-use-code-flow)
-    - [ID token claims checks against user info](#id-token-claims-checks-against-user-info)
+    - [ID token claims validation and userinfo endpoint](#id-token-claims-validation-and-userinfo-endpoint)
   - [Conclusion](#conclusion)
 
 ## Introduction
@@ -58,15 +58,14 @@ sequenceDiagram
     Browser->>Google: 3. Login & consent
     Google-->>Browser: 4. Return auth code
     Browser->>Server: 5. Send code
-    Server<<->>Google: 6. Exchange for tokens
-    Server<<->>Google: 7. Retrieve user information
-    Server->>Server: 8. Create session
-    Server->>Browser: 9. Set session cookie
+    Server<<->>Google: 6. Exchange code for tokens
+    Server->>Server: 7. Create session
+    Server->>Browser: 8. Set session cookie
     Note over Browser: Popup closes automatically
-    Browser->>Server: 10. Main window reloads
+    Browser->>Server: 9. Main window reloads
 ```
 
-The process begins when a user clicks the login button, which opens a popup and redirects to Google’s authentication page. After a successful login, Google returns an authorization code that the server exchanges for tokens. The server retrieves the user information, creates a session, and sets it as a cookie in the response to the browser, completing the authentication flow. The user is subsequently identified by this cookie in all future requests.
+The process begins when a user clicks the login button, which opens a popup and redirects to Google’s authentication page. After a successful login, Google returns an authorization code that the server exchanges for tokens. The server verifies ID token, creates a user session, and sets a session cookie in the response to the browser, completing the authentication flow. The user is subsequently identified by this cookie in all future requests.
 
 ### Why Use a Popup Window?
 
@@ -122,9 +121,8 @@ sequenceDiagram
     Note over Browser,Server: 3. Callback Processing
     Note over Session Store: i: query mode<br/>ii: form_post mode
     Browser->>Server: i. GET /auth/authorized?code=xxx...<br/>ii. POST /auth/authorized {code=xxxx...}
-    Server<<->>Session Store: Validate tokens
     Server<<->>Google: Exchange code for tokens
-    Server<<->>Google: Retrieve user information
+    Server<<->>Session Store: Validate tokens
     Server->>Session Store: Create user session
     Server-->>Browser: 303 Redirect response<br/>Set session id in cookie
     Server<<->>Browser: Obtain Popup closing javascript
@@ -174,7 +172,11 @@ This design ensures a seamless user experience, adapting content dynamically bas
 
 ### Starting Authentication
 
-The authentication flow begins when a user clicks the login button. The /auth/google endpoint handles this initial request, setting up necessary security measures and redirecting to Google's authentication page. Here's how the process works:
+The `/auth/google` endpoint initiates authentication by:
+
+1. Generating security tokens (CSRF and nonce)
+2. Storing them in the session
+3. Redirecting to Google's auth page
 
 ```rust
 async fn google_auth(
@@ -182,49 +184,49 @@ async fn google_auth(
     State(store): State<MemoryStore>,
     headers: HeaderMap,
 ) -> Result<impl IntoResponse, AppError> {
-    let expires_at = Utc::now() + Duration::seconds(CSRF_COOKIE_MAX_AGE);
-    let user_agent = headers.get(axum::http::header::USER_AGENT);
-
     // Generate and store security tokens
-    let (csrf_token, csrf_id) =
-        generate_store_token("csrf_session", expires_at, Some(user_agent) ...);
-    let (nonce_token, nonce_id) =
-        generate_store_token("nonce_session", expires_at, None ...);
+    let (csrf_token, csrf_id) = generate_store_token("csrf_session", expires_at, Some(user_agent));
+    let (nonce_token, nonce_id) = generate_store_token("nonce_session", expires_at, None);
 
+    // Combine tokens into a state parameter
     let encoded_state = encode_state(csrf_token, nonce_id);
 
-    // Construct authorization URL
+    // Construct the Google OAuth2 URL with required parameters
     let auth_url = format!(
         "{}?{}&client_id={}&redirect_uri={}&state={}&nonce={}",
-        OAUTH2_AUTH_URL,
-        OAUTH2_QUERY_STRING,
+        OAUTH2_AUTH_URL,         // e.g., https://accounts.google.com/o/oauth2/v2/auth
+        OAUTH2_QUERY_STRING,     // e.g., response_type=code&scope=openid+email+profile...
         params.client_id,
         params.redirect_uri,
         encoded_state,
         nonce_token
     );
 
-    // OAUTH2_AUTH_URL and OAUTH2_QUERY_STRING are defined elsewhere as:
-    // static OAUTH2_AUTH_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
-    // static OAUTH2_QUERY_STRING: &str = "response_type=code&scope=openid+email+profile\
-    // &response_mode=form_post&access_type=online&prompt=consent";
-
-    // Set security cookie and redirect
+    // Set security cookie and prepare the redirect response
     let mut headers = HeaderMap::new();
-    header_set_cookie(
-        &mut headers,
-        CSRF_COOKIE_NAME.to_string(),
-        csrf_id,
-        expires_at,
-        CSRF_COOKIE_MAX_AGE,
-    )?;
+    header_set_cookie(&mut headers, CSRF_COOKIE_NAME, csrf_id, expires_at)?;
 
-    // Returning a response with the Set-Cookie header ensures that the browser sends the security tokens set in cookies with future requests.
     Ok((headers, Redirect::to(&auth_url)))
 }
 ```
 
-This process generates necessary security tokens, stores them securely, and initiates the OAuth2 flow by redirecting to Google's authorization endpoint. The URL is constructed with carefully chosen parameters. These parameters determine how the authentication process will proceed.
+The state parameter combines security tokens:
+
+```rust
+fn encode_state(csrf_token: String, nonce_id: String) -> String {
+    let state_params = StateParams { csrf_token, nonce_id };
+    URL_SAFE.encode(serde_json::json!(state_params).to_string())
+}
+```
+
+The state parameter combines:
+
+- CSRF token for request forgery protection
+- Nonce ID to validate ID token authenticity
+- Base64URL encoding for URL safety
+- Returned unchanged by Google for validation
+
+This setup ensures secure token handling while maintaining a clean authentication flow.
 
 ### Handling OAuth2 Callback
 
@@ -261,13 +263,18 @@ async fn get_authorized(
 }
 ```
 
-Both modes follow a common processing pipeline to validate tokens, exchange the authorization code for tokens, and create user sessions:
+Both modes follow a common processing pipeline to exchange the authorization code for tokens, validate tokens and create user sessions:
 
 ```rust
 async fn authorized(auth_response: &AuthResponse, state: AppState) -> Result<impl IntoResponse, AppError> {
     let (access_token, id_token) = exchange_code_for_token(...).await?;
-    let user_data = fetch_user_data_from_google(access_token).await?;
-    verify_nonce(auth_response, idinfo, &state.store).await?;
+    let user_data = user_from_verified_idtoken(id_token, &state, auth_response).await?;
+
+    // Optional check for user data from userinfo endpoint
+    let user_data_userinfo = fetch_user_data_from_google(access_token).await?;
+    if user_data.id != user_data_userinfo.id {
+        return Err(anyhow::anyhow!("ID mismatch").into());
+    }
 
     let session_id = create_and_store_session(user_data, ...).await?;
     Ok((set_cookie_header(session_id), Redirect::to("/popup_close")))
@@ -386,6 +393,8 @@ Browser security handles CSRF protection differently here:
 
 ### Security Mechanism Comparison
 
+This table summarizes how nonce and CSRF tokens are used to secure the authentication flow, showing where each component is stored and validated:
+
 | Security Element | What's Compared | Source 1 (Session store key) | Source 2 | Purpose |
 | --- | --- | --- | --- | --- |
 | Nonce | nonce_token | nonce_id in state parameter  | Embedded in ID token | Verifies ID token is specific to this authentication request |
@@ -419,6 +428,8 @@ These settings ensure cookies are protected from common attack vectors.
 - Authorization code is visible in the URL, making it easier to debug but more prone to exposure (e.g., logs, bookmarks).
 - Offers full CSRF protection but carries a higher risk of leakage in environments where URLs are recorded.
 
+Here's a suggested revision that better explains the security implications and optional userinfo check:
+
 ### Why use code flow
 
 We use authorization code flow instead of implicit flow (response_type=id_token) because it offers:
@@ -430,16 +441,24 @@ We use authorization code flow instead of implicit flow (response_type=id_token)
 
 While we only use the ID token for authentication, the code flow's security benefits justify the additional complexity.
 
-### ID token claims checks against user info
+### ID token claims validation and userinfo endpoint
 
-The ID token contains cryptographically signed claims sufficient for authentication. While the userinfo endpoint provides similar data:
+The ID token contains cryptographically signed claims that provide secure authentication:
 
-- Both come from the same trusted source (Google)
-- Cross-checking offers no additional security
-- ID token claims are designed for authentication
-- Userinfo endpoint is optional for supplementary data
+- `aud` claim ensures the token was issued for our application
+- `iss` claim verifies Google as the token issuer
+- `exp` and `iat` claims prevent token reuse and replay attacks
+- `nonce` claim binds the token to our specific auth request
+- All claims are protected by Google's digital signature
 
-We rely on ID token claims for authentication and consider userinfo data supplementary.
+While the userinfo endpoint provides similar data, checking it is optional because:
+
+- ID token claims are cryptographically secure and sufficient for authentication
+- Userinfo data lacks the security guarantees of signed claims
+- Cross-checking adds latency without improving security
+- Userinfo endpoint is better suited for getting additional user attributes when needed
+
+We rely on ID token validation for secure authentication and use the userinfo endpoint only when additional profile data is required.
 
 ## Conclusion
 

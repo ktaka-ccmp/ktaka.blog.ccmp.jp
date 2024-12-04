@@ -1,6 +1,6 @@
-# Implementing Google OAuth2 with Rust and Axum
+# Implementing Google OAuth2/OIDC with Axum
 
-- [Implementing Google OAuth2 with Rust and Axum](#implementing-google-oauth2-with-rust-and-axum)
+- [Implementing Google OAuth2/OIDC with Axum](#implementing-google-oauth2oidc-with-axum)
   - [Introduction](#introduction)
   - [OAuth2 and OpenID Connect Overview](#oauth2-and-openid-connect-overview)
   - [Basic Authentication Flow](#basic-authentication-flow)
@@ -28,7 +28,7 @@
 
 ## Introduction
 
-Modern web applications often rely on OAuth2 for secure user authentication. As part of a recent exploration into Rust and Axum, I implemented a login system that integrates Google OAuth2. In this post, I’ll walk through the details of the implementation, covering both the theoretical aspects and practical steps involved in building a secure authentication system.
+Modern web applications often rely on OAuth2/OIDC for secure user authentication. As part of a recent exploration into Rust and Axum, I implemented a login system that integrates Google OAuth2. In this post, I’ll walk through the details of the implementation, covering both the theoretical aspects and practical steps involved in building a secure authentication system.
 
 To keep things concise, I’ve included simplified code snippets for key components. The full implementation is available in my [GitHub repository](https://github.com/ktaka-ccmp/axum-google-oauth2).
 
@@ -462,4 +462,4 @@ We rely on ID token validation for secure authentication and use the userinfo en
 
 ## Conclusion
 
-This implementation combines robust security practices, seamless user experience, and the flexibility of Axum to create a functional OAuth2 authentication system. The complete implementation can be found in the [GitHub repository](https://github.com/ktaka-ccmp/axum-google-oauth2). Feel free to explore it and share any feedback or improvements!
+This implementation combines robust security practices, seamless user experience, and the flexibility of Axum to create a functional OAuth2/OIDC authentication system. The complete implementation can be found in the [GitHub repository](https://github.com/ktaka-ccmp/axum-google-oauth2). Feel free to explore it and share any feedback or improvements!

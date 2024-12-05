@@ -1,25 +1,24 @@
-# Implementing Google OAuth2/OIDC with Axum
+<!-- Implementing Google OAuth2/OIDC with Axum -->
 
-- [Implementing Google OAuth2/OIDC with Axum](#implementing-google-oauth2oidc-with-axum)
-  - [Introduction](#introduction)
-  - [Overview](#overview)
-    - [What Are OAuth2 and OpenID Connect?](#what-are-oauth2-and-openid-connect)
-    - [How Authentication Works: Key Concepts](#how-authentication-works-key-concepts)
-  - [Implementation Details](#implementation-details)
-    - [Authentication Flow](#authentication-flow)
-    - [Route Structure](#route-structure)
-    - [Main Page Behavior](#main-page-behavior)
-    - [Initiating the OAuth2 Flow](#initiating-the-oauth2-flow)
-    - [Handling OAuth2 Callback](#handling-oauth2-callback)
-    - [Managing User Sessions](#managing-user-sessions)
-  - [Security Considerations](#security-considerations)
-    - [Nonce Validation](#nonce-validation)
-    - [CSRF Protection](#csrf-protection)
-    - [Cookie Security](#cookie-security)
-    - [Response Mode Security](#response-mode-security)
-    - [Advantages of the Authorization Code Flow](#advantages-of-the-authorization-code-flow)
-    - [ID token claims validation and userinfo endpoint](#id-token-claims-validation-and-userinfo-endpoint)
-  - [Conclusion](#conclusion)
+- [Introduction](#introduction)
+- [Overview](#overview)
+  - [What Are OAuth2 and OpenID Connect?](#what-are-oauth2-and-openid-connect)
+  - [How Authentication Works: Key Concepts](#how-authentication-works-key-concepts)
+- [Implementation Details](#implementation-details)
+  - [Authentication Flow](#authentication-flow)
+  - [Route Structure](#route-structure)
+  - [Main Page Behavior](#main-page-behavior)
+  - [Initiating the OAuth2 Flow](#initiating-the-oauth2-flow)
+  - [Handling OAuth2 Callback](#handling-oauth2-callback)
+  - [Managing User Sessions](#managing-user-sessions)
+- [Security Considerations](#security-considerations)
+  - [Nonce Validation](#nonce-validation)
+  - [CSRF Protection](#csrf-protection)
+  - [Cookie Security](#cookie-security)
+  - [Response Mode Security](#response-mode-security)
+  - [Authentication with Authorization Code Flow](#authentication-with-authorization-code-flow)
+  - [ID Token Validation](#id-token-validation)
+- [Conclusion](#conclusion)
 
 ## Introduction
 
@@ -73,6 +72,7 @@ Session cookies play a central role in maintaining authenticated access. Once th
 - **HttpOnly flag**: Prevents client-side script access to cookies.
 - **Secure flag**: Ensures cookies are only transmitted over HTTPS.
 - **SameSite settings**: Protects against CSRF attacks.
+- **`__Host-` prefix:**  Enforces HTTPS and host-specific restrictions.
 
 These settings work together to maintain secure authentication states, even across multiple tabs.
 
@@ -95,7 +95,7 @@ The following sections break down the implementation into key components, explai
 Our implementation uses a popup window for authentication to keep the main page responsive. This approach:
 
 - Handles the auth flow in a separate window
-- Maintains login state using shared cookies
+- Maintains login state using shared cookies across the windows
 - Updates the main page automatically when complete
 
 The flow coordinates between four components: browser, server, Google, and session store. The session store manages login sessions and security tokens (CSRF and nonce).
@@ -115,7 +115,7 @@ sequenceDiagram
 
     Note over Browser,Google: 2. Google Auth
     Browser->>Google: Login & Grant Consent
-    Google->>Browser: i. 302 Redirect with code & state <br/> ii. 200 auto-submit form with code & state
+    Google->>Browser: i. 302 Redirect with code & state <br/> ii. 200 auto-submit JavaScript with code & state
 
     Note over Browser,Server: 3. Callback Processing
     Note over Session Store: i: query mode<br/>ii: form_post mode
@@ -126,6 +126,7 @@ sequenceDiagram
     Server-->>Browser: 303 Redirect response<br/>Set session id in cookie
     Server<<->>Browser: Obtain Popup closing javascript
     Browser<<->>Browser: Close popup window
+    Server<<->>Browser: Reload main window
 ```
 
 This diagram captures the flow of data and interactions at each step.
@@ -214,7 +215,7 @@ The state parameter combines:
 
 - CSRF token: Protects against cross-site request forgery.
 - Nonce ID: Validates the ID token’s authenticity.
-- Base64URL encoding: Ensures the state parameter is safe for inclusion in a URL.
+- Base64URL encoding: Embeds multiple parameters in a URL safe single parameter.
 
 ```rust
 fn encode_state(csrf_token: String, nonce_id: String) -> String {
@@ -223,13 +224,17 @@ fn encode_state(csrf_token: String, nonce_id: String) -> String {
 }
 ```
 
+Google preserves and returns this state parameter unchanged, enabling security validations in the callback.
+
 ### Handling OAuth2 Callback
+
+After the user authenticates with Google, the application must process the callback to complete the authentication process. This includes exchanging the authorization code for tokens and validating their authenticity.
 
 Google returns the user’s authentication data via the `/auth/authorized` endpoint. This endpoint supports two modes:
 
 #### Form Post Mode(Recommended)
 
-Google sends the authorization code and state in the POST body using the javascript returned to the browser:
+Google returns the authorization code and state to the browser. A Google-provided javascript sends them to the endpoint as POST body. They are processed by:
 
 ```rust
 async fn post_authorized(
@@ -243,7 +248,7 @@ async fn post_authorized(
 
 #### Query Mode
 
-Google sends the authorization code and state as query parameters:
+Google returns a redirect response with the authorization code and state as URL query parameters. They are processed by:
 
 ```rust
 async fn get_authorized(
@@ -261,6 +266,7 @@ Both callback modes eventually process the authentication response through the a
 ```rust
 async fn authorized(auth_response: &AuthResponse, state: AppState) -> Result<impl IntoResponse, AppError> {
     let (access_token, id_token) = exchange_code_for_token(...).await?;
+
     let user_data = user_from_verified_idtoken(id_token, &state, auth_response).await?;
 
     // Optional check for user data from userinfo endpoint
@@ -300,6 +306,8 @@ async fn protected(user: User) -> impl IntoResponse {
     format!("Welcome, {}!", user.name)
 }
 
+// The User extractor
+// Extract cookie from the request, and retrieve user data from the session store
 #[async_trait]
 impl<S> FromRequestParts<S> for User
 where
@@ -325,7 +333,7 @@ The nonce mechanism is crucial for verifying that the ID token we'll use for aut
 
 Nonce validation confirms the ID token’s authenticity by comparing two values:
 
-1. **Nonce in the ID token:**  Included by Google in the signed token.
+1. **Nonce in the ID token:**  Embedded by Google in the signed token.
 1. **Nonce from the session store:**  Retrieved using the `nonce_id` from the state parameter.
 
 This prevents replay attacks and ensures the token is tied to the current authentication request.
@@ -342,7 +350,7 @@ sequenceDiagram
     Server->>Browser: Redirect with nonce and state(nonce_id)
     Browser->>Google: Request with nonce and state(nonce_id)
     Google->>Browser: Return code & state(nonce_id)
-    Google-->>Google: Include nonce in ID token
+    Google-->>Google: Embed nonce in ID token
     Browser->>Server: GET or POST code & state(nonce_id)
     Server->>Google: Get request with code
     Google->>Server: Return ID token and access token
@@ -353,10 +361,13 @@ sequenceDiagram
 
 ### CSRF Protection
 
-CSRF protection varies by response mode, with different mechanisms ensuring request authenticity.
+Cross-Site Request Forgery (CSRF) protection ensures that authentication callbacks come from legitimate auth flows initiated by our application. Without it, malicious sites could trick authenticated users into unwanted auth requests.
+
+The security mechanism differs between response modes due to how browsers handle redirects versus direct POST requests:
 
 **Query Mode Flow:**
-This mode uses cookie-based CSRF validation to verify the request origin.
+
+This mode requires cookie-based CSRF validation because the callback comes as a browser redirect, which could originate from any site. The CSRF token ensures the request chain started with our application:
 
 ```mermaid
 sequenceDiagram
@@ -376,13 +387,18 @@ sequenceDiagram
 ```
 
 **Form Post Mode:**
-Browser security handles CSRF protection differently here:
 
-- Google sends the callback as a POST request from its domain.
-- The browser blocks the `__Host-CsrfId` cookie in cross-origin POST requests.
-- Security relies on:
-  - **Origin validation:**  Verifies the request originates from Google.
-  - **Nonce verification:**  Confirms token authenticity.
+In this mode, we can't use CSRF cookie validation because:
+
+- The callback comes as a cross-origin POST request from Google's domain
+- Browser security blocks our `__Host-CsrfId` cookie from being sent with such requests
+
+Instead, we rely on two security measures:
+
+- **Nonce validation:** Confirms the ID token was issued for our specific auth request
+- **Origin validation:** Ensures the POST request comes from Google's domain
+
+This combination ensures that only Google can respond to our original authentication request, preventing any malicious sites from initiating or hijacking the authentication flow.
 
 ### Cookie Security
 
@@ -392,10 +408,10 @@ All cookies use comprehensive security settings:
 "{name}={value}; SameSite=Lax; Secure; HttpOnly; Path=/; Max-Age={max_age}"
 ```
 
-- **`__Host-` prefix:**  Enforces HTTPS and domain-specific restrictions.
 - **`HttpOnly:`**  Prevents JavaScript access to cookies.
 - **`Secure:`**  Ensures transmission occurs only over HTTPS.
 - **`SameSite=Lax:`**  Guards against CSRF while allowing same-origin navigation.
+- **`__Host-` prefix:**  Enforces HTTPS and host-specific restrictions.
 
 These settings ensure cookies are protected from common attack vectors.
 
@@ -412,38 +428,30 @@ These settings ensure cookies are protected from common attack vectors.
 - Authorization code is visible in the URL, making it easier to debug but more prone to exposure (e.g., logs, bookmarks).
 - Offers full CSRF protection but carries a higher risk of leakage in environments where URLs are recorded.
 
-Here's a suggested revision that better explains the security implications and optional userinfo check:
+### Authentication with Authorization Code Flow
 
-### Advantages of the Authorization Code Flow
+The authorization code flow (`response_type=code`) offers key security advantages:
 
-We use authorization code flow instead of implicit flow (response_type=id_token) because it offers:
+- **Secure Token Exchange:** Tokens are obtained through secure server-to-server communication
+- **Security Best Practice:** Recommended approach for production applications
 
-- Secure token delivery via back-channel server-to-server communication
-- Support for token refresh without new authentication
-- Better compatibility across OAuth2 providers
-- Industry best practice for security
+### ID Token Validation
 
-While we only use the ID token for authentication, the code flow's security benefits justify the additional complexity.
+The ID token, a cryptographically signed JWT, provides secure authentication through its claims:
 
-### ID token claims validation and userinfo endpoint
+- `aud`: Ensures token was issued for our application
+- `iss`: Verifies Google as the token issuer
+- `exp` and `iat`: Prevent token reuse and replay attacks
+- `nonce`: Binds token to our specific auth request
 
-The ID token contains cryptographically signed claims that provide secure authentication:
+While Google's userinfo endpoint provides similar data, we rely on ID token validation because:
 
-- `aud` claim ensures the token was issued for our application
-- `iss` claim verifies Google as the token issuer
-- `exp` and `iat` claims prevent token reuse and replay attacks
-- `nonce` claim binds the token to our specific auth request
-- All claims are protected by Google's digital signature
-
-While the userinfo endpoint provides similar data, checking it is optional because:
-
-- ID token claims are cryptographically secure and sufficient for authentication
-- Userinfo data lacks the security guarantees of signed claims
-- Cross-checking adds latency without improving security
-- Userinfo endpoint is better suited for getting additional user attributes when needed
-
-We rely on ID token validation for secure authentication and use the userinfo endpoint only when additional profile data is required.
+- Claims are cryptographically secured by Google's signature
+- Validation is faster than additional userinfo requests
+- Userinfo endpoint is better suited for fetching optional profile data
 
 ## Conclusion
 
-This implementation combines robust security practices, seamless user experience, and the flexibility of Axum to create a functional OAuth2/OIDC authentication system. The complete implementation can be found in the [GitHub repository](https://github.com/ktaka-ccmp/axum-google-oauth2). Feel free to explore it and share any feedback or improvements!
+In this implementation, I've walked through building a secure OAuth2/OIDC authentication system with Axum. While implementing auth can be complex, breaking it down into manageable components helped create a system that's both secure and maintainable. The code demonstrates practical patterns for token validation, CSRF protection, and session management that you might find useful in your own projects.
+
+I've posted the complete implementation on [GitHub](https://github.com/ktaka-ccmp/axum-google-oauth2). Take a look if you're interested in the implementation details - I'm particularly curious about your thoughts on the security measures and session handling approach. If you spot any potential improvements or have questions about specific design choices, I'd love to hear your feedback!

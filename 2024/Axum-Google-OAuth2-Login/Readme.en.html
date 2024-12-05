@@ -71,7 +71,7 @@ authentication:</p>
 <p><a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/Axum-Google-OAuth2-Login/image/fig-1.png"
     target="_blank">
     <img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/Axum-Google-OAuth2-Login/image/fig-1.png"
-    width="80%" alt="Sign-in Animation" title="Sign-in Animation"> </a></p>
+    width="80%" alt="basic-authentication-flow" title="basic-authentication-flow"> </a></p>
 <p>The process begins when a user clicks the login button, which opens a
 popup and redirects to Google’s authentication page. After a successful
 login, Google returns an authorization code that the server exchanges
@@ -130,7 +130,7 @@ security tokens (CSRF and nonce).</p>
 <p><a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/Axum-Google-OAuth2-Login/image/fig-2.png"
     target="_blank">
     <img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/Axum-Google-OAuth2-Login/image/fig-2.png"
-    width="80%" alt="Sign-in Animation" title="Sign-in Animation"> </a></p>
+    width="80%" alt="authentication-flow" title="authentication-flow"> </a></p>
 <p>This diagram captures the flow of data and interactions at each
 step.</p>
 <h3 id="route-structure">Route Structure</h3>
@@ -330,7 +330,7 @@ current authentication request.</p>
 <p><a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/Axum-Google-OAuth2-Login/image/fig-3.png"
     target="_blank">
     <img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/Axum-Google-OAuth2-Login/image/fig-3.png"
-    width="80%" alt="Sign-in Animation" title="Sign-in Animation"> </a></p>
+    width="80%" alt="nonce-validation" title="nonce-validation"> </a></p>
 <h3 id="csrf-protection">CSRF Protection</h3>
 <p>Cross-Site Request Forgery (CSRF) protection ensures that
 authentication callbacks come from legitimate auth flows initiated by
@@ -345,7 +345,7 @@ CSRF token ensures the request chain started with our application:</p>
 <p><a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/Axum-Google-OAuth2-Login/image/fig-4.png"
     target="_blank">
     <img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/Axum-Google-OAuth2-Login/image/fig-4.png"
-    width="80%" alt="Sign-in Animation" title="Sign-in Animation"> </a></p>
+    width="80%" alt="csrf-protection" title="csrf-protection"> </a></p>
 <p><strong>Form Post Mode:</strong></p>
 <p>In this mode, we can’t use CSRF cookie validation because:</p>
 <ul>

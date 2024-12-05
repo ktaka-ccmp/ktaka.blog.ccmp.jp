@@ -26,6 +26,8 @@ RustとAxumを使って、Google OAuth2でのログイン機能を実装しま�
 
 ソースコードは[GitHubリポジトリ](https://github.com/ktaka-ccmp/axum-google-oauth2)で公開しています。記事中のコードは理解のために簡略化していますので、完全な実装はリポジトリをご覧ください。
 
+<video width="400" height="400" src="https://github.com/ktaka-ccmp/ktaka.blog.ccmp.jp/raw/refs/heads/master/2024/Axum-Google-OAuth2-Login/image/blog-20241206-02.mp4" controls="true" autoplay loop></video>
+
 ## 概要
 
 ### OAuth2とOpenID Connectとは

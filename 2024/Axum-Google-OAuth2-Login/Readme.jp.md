@@ -1,4 +1,5 @@
 <!-- AxumでGoogle OAuth2/OIDC認証を実装する -->
+この記事は[Rust Advent Calendar 2024](https://qiita.com/advent-calendar/2024/rust) シリーズ2の6日目の記事です。
 
 - [はじめに](#はじめに)
 - [概要](#概要)

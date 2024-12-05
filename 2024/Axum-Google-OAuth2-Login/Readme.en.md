@@ -26,7 +26,7 @@ Modern web applications often rely on OAuth2/OIDC for secure user authentication
 
 To keep things concise, I’ve included simplified code snippets for key components. The full implementation is available in my [GitHub repository](https://github.com/ktaka-ccmp/axum-google-oauth2).
 
-<video src="https://github.com/ktaka-ccmp/ktaka.blog.ccmp.jp/raw/refs/heads/master/2024/Axum-Google-OAuth2-Login/image/blog-20241206-01.mp4" controls="true"></video>
+<video width="400" height="400" src="https://github.com/ktaka-ccmp/ktaka.blog.ccmp.jp/raw/refs/heads/master/2024/Axum-Google-OAuth2-Login/image/blog-20241206-01.mp4" controls="true" autoplay loop></video>
 
 ## Overview
 

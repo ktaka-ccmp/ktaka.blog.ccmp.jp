@@ -1,4 +1,4 @@
-<!-- AxumでGoogle OAuth2/OIDCを実装する -->
+<!-- AxumでGoogle OAuth2/OIDC認証を実装する -->
 
 - [はじめに](#はじめに)
 - [概要](#概要)
@@ -25,6 +25,7 @@
 RustとAxumを使って、Google OAuth2でのログイン機能を実装しました。OAuth2とOIDCを使った認証は現代のWebアプリケーションでは一般的な方法です。この記事では、安全な認証システムを作るために必要な基礎知識と、具体的な実装方法を説明します。
 
 ソースコードは[GitHubリポジトリ](https://github.com/ktaka-ccmp/axum-google-oauth2)で公開しています。記事中のコードは理解のために簡略化していますので、完全な実装はリポジトリをご覧ください。
+(本稿は[英語版](https://ktaka.blog.ccmp.jp/2024/12/axum-google-oauth2oidc-implementation.html)からの翻訳記事です。)
 
 <video width="600" height="600" src="https://github.com/ktaka-ccmp/ktaka.blog.ccmp.jp/raw/refs/heads/master/2024/Axum-Google-OAuth2-Login/image/blog-20241206-02.mp4" controls="true" autoplay loop></video>
 

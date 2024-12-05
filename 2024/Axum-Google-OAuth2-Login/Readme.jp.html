@@ -1,0 +1,384 @@
+<!-- AxumでGoogle OAuth2/OIDCを実装する -->
+<ul>
+<li><a href="#はじめに">はじめに</a></li>
+<li><a href="#概要">概要</a>
+<ul>
+<li><a href="#oauth2とopenid-connectとは">OAuth2とOpenID
+Connectとは</a></li>
+<li><a href="#認証の仕組み">認証の仕組み</a></li>
+</ul></li>
+<li><a href="#実装の詳細">実装の詳細</a>
+<ul>
+<li><a href="#認証フローの実装">認証フローの実装</a></li>
+<li><a href="#アプリケーションの構造">アプリケーションの構造</a></li>
+<li><a href="#メインページの実装">メインページの実装</a></li>
+<li><a href="#認証フローの開始">認証フローの開始</a></li>
+<li><a href="#コールバック処理">コールバック処理</a></li>
+<li><a href="#セッション管理">セッション管理</a></li>
+</ul></li>
+<li><a href="#セキュリティ対策の詳細">セキュリティ対策の詳細</a>
+<ul>
+<li><a href="#nonceによる検証">Nonceによる検証</a></li>
+<li><a href="#csrf保護">CSRF保護</a></li>
+<li><a href="#cookieのセキュリティ">Cookieのセキュリティ</a></li>
+<li><a
+href="#レスポンスモードのセキュリティ">レスポンスモードのセキュリティ</a></li>
+<li><a
+href="#認可コードフローによる認証">認可コードフローによる認証</a></li>
+<li><a href="#idトークンの検証">IDトークンの検証</a></li>
+</ul></li>
+<li><a href="#おわりに">おわりに</a></li>
+</ul>
+<h2 id="はじめに">はじめに</h2>
+<p>RustとAxumを使って、Google
+OAuth2でのログイン機能を実装しました。OAuth2とOIDCを使った認証は現代のWebアプリケーションでは一般的な方法です。この記事では、安全な認証システムを作るために必要な基礎知識と、具体的な実装方法を説明します。</p>
+<p>ソースコードは<a
+href="https://github.com/ktaka-ccmp/axum-google-oauth2">GitHubリポジトリ</a>で公開しています。記事中のコードは理解のために簡略化していますので、完全な実装はリポジトリをご覧ください。</p>
+<h2 id="概要">概要</h2>
+<h3 id="oauth2とopenid-connectとは">OAuth2とOpenID Connectとは</h3>
+<p>OAuth2とOpenID
+Connect（OIDC）は、現代のWebアプリケーションの認証を支える重要な技術です。</p>
+<p>OAuth2は認証の基盤となる技術で、ユーザーが自分の認証情報を直接渡すことなく、アプリケーションに特定の機能へのアクセス権を与えることができます。アプリケーションはアクセストークン（access
+token）を使ってこれらの機能を利用します。この実装では、広く使われている安全な方法である認可コードフロー（authorization
+code flow）を使って、ユーザー情報を取得しています。</p>
+<p>OpenID
+Connect（OIDC）は、OAuth2を拡張して標準的な認証の仕組みを追加したものです。OAuth2が「アプリケーションに何を許可するか」を扱うのに対し、OIDCは「このユーザーは誰か」を確認することを主な目的としています。OIDCでは、ユーザー情報をJSON
+Web Token（JWT）形式のIDトークン（ID
+token）として提供します。これにより、ユーザーの認証とアクセス権限の管理を一度に行えます。</p>
+<p>つまり、OIDCを使うことで、OAuth2をより安全に使えるようになります。</p>
+<h3 id="認証の仕組み">認証の仕組み</h3>
+<h4 id="基本的な認証フロー">基本的な認証フロー</h4>
+<p>この実装での認証は、以下のような手順で行われます：</p>
+
+<p><a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/Axum-Google-OAuth2-Login/image/fig-1.png"
+    target="_blank">
+    <img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/Axum-Google-OAuth2-Login/image/fig-1.png"
+    width="80%" alt="basic-authentication-flow" title="basic-authentication-flow"> </a></p>
+
+    <p>認証の流れを詳しく説明します：</p>
+<ol type="1">
+<li>ユーザーがログインボタンを押すと、ポップアップウィンドウが開きます</li>
+<li>ポップアップウィンドウがGoogleの認証ページに移動します</li>
+<li>ユーザーがGoogleアカウントでログインし、アプリケーションへの権限を承認します</li>
+<li>Googleが認可コード（authorization code）を返します</li>
+<li>この認可コードを使って、サーバーがトークンを取得します</li>
+<li>サーバーがIDトークンを検証し、ユーザーセッションを作成します</li>
+<li>セッションCookieをブラウザに設定して認証を完了します</li>
+</ol>
+<p>以降、ユーザーはこのセッションCookieを使って認証済みユーザーとして識別されます。</p>
+<h4 id="セッションcookieの仕組み">セッションCookieの仕組み</h4>
+<p>セッションCookieはユーザーの認証状態を維持するために使われます。ログイン時にサーバーが設定したCookieは、その後のすべてのリクエストに自動的に含まれます。セキュリティを確保するため、以下の設定を使用しています：</p>
+<ul>
+<li><strong>HttpOnly</strong>:
+JavaScriptからCookieを読み取れないようにし、XSS攻撃から保護します</li>
+<li><strong>Secure</strong>:
+HTTPS接続でのみCookieを送信し、通信の安全性を確保します</li>
+<li><strong>SameSite</strong>:
+同じサイトからのリクエストのみCookieを送信可能にし、CSRF攻撃を防ぎます</li>
+<li><strong><code>__Host-</code>プレフィックス</strong>:
+CookieをHTTPSと特定のホストに限定し、セキュリティを強化します</li>
+</ul>
+<h4 id="oauth2の設定">OAuth2の設定</h4>
+<p>認証プロセスでは、以下のパラメータを使用します：</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode rust"><code class="sourceCode rust"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">static</span> OAUTH2_QUERY_STRING<span class="op">:</span> <span class="op">&amp;</span><span class="dt">str</span> <span class="op">=</span> <span class="st">&quot;response_type=code</span><span class="sc">\</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="st">&amp;scope=openid+email+profile</span><span class="sc">\</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="st">&amp;response_mode=form_post</span><span class="sc">\</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="st">&amp;access_type=online</span><span class="sc">\</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="st">&amp;prompt=consent&quot;</span><span class="op">;</span></span></code></pre></div>
+<p>これらのパラメータの役割は：</p>
+<ul>
+<li><strong><code>response_type=code</code></strong>:
+認可コードを使用した安全な認証方式を指定します</li>
+<li><strong><code>scope=openid email profile</code></strong>:
+アプリケーションが必要とするユーザー情報の範囲を指定します</li>
+<li><strong><code>response_mode=form_post</code></strong>:
+認証情報をURLに露出せず、POSTリクエストで送信します</li>
+</ul>
+<h2 id="実装の詳細">実装の詳細</h2>
+<p>ここからは、OAuth2認証フローの具体的な実装方法について説明します。認証フロー、セッション管理、セキュリティ機能がどのように連携しているかを見ていきましょう。</p>
+<h3 id="認証フローの実装">認証フローの実装</h3>
+<p>この実装では、ユーザー体験を向上させるため、ポップアップウィンドウで認証を行います：</p>
+<ul>
+<li>メインページは操作可能なまま、別ウィンドウで認証処理を実行</li>
+<li>Cookieを使ってウィンドウ間で認証状態を共有</li>
+<li>認証完了後、自動的にメインページを更新</li>
+</ul>
+<p>システムは以下の4つのコンポーネントで構成されています：</p>
+<ul>
+<li>ブラウザ: ユーザーインターフェースを提供</li>
+<li>サーバー: 認証フローを制御</li>
+<li>Google: 認証サービスを提供</li>
+<li>セッションストア: セッションとセキュリティトークンを管理</li>
+</ul>
+
+<p><a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/Axum-Google-OAuth2-Login/image/fig-2.png"
+    target="_blank">
+    <img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/Axum-Google-OAuth2-Login/image/fig-2.png"
+    width="80%" alt="authentication-flow" title="authentication-flow"> </a></p>
+
+    <h3 id="アプリケーションの構造">アプリケーションの構造</h3>
+<p>認証フローの各段階を処理するため、以下のようなルート構造を実装しています：</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode rust"><code class="sourceCode rust"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> app <span class="op">=</span> <span class="pp">Router::</span>new()</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span>route(<span class="st">&quot;/&quot;</span><span class="op">,</span> get(index))                    <span class="co">// メインページ</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span>route(<span class="st">&quot;/auth/google&quot;</span><span class="op">,</span> get(google_auth))   <span class="co">// Google認証の開始</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span>route(<span class="st">&quot;/auth/authorized&quot;</span><span class="op">,</span> get(get_authorized)<span class="op">.</span>post(post_authorized))  <span class="co">// 認証後のコールバック</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span>route(<span class="st">&quot;/popup_close&quot;</span><span class="op">,</span> get(popup_close))   <span class="co">// ポップアップの終了</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span>route(<span class="st">&quot;/logout&quot;</span><span class="op">,</span> get(logout))             <span class="co">// ログアウト</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    <span class="op">.</span>route(<span class="st">&quot;/protected&quot;</span><span class="op">,</span> get(protected))<span class="op">;</span>      <span class="co">// 認証必須ページ</span></span></code></pre></div>
+<h3 id="メインページの実装">メインページの実装</h3>
+<p>メインページは、ユーザーの認証状態に応じて表示を切り替えます：</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode rust"><code class="sourceCode rust"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">async</span> <span class="kw">fn</span> index(user<span class="op">:</span> <span class="dt">Option</span><span class="op">&lt;</span>User<span class="op">&gt;</span>) <span class="op">-&gt;</span> <span class="kw">impl</span> IntoResponse <span class="op">{</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">match</span> user <span class="op">{</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 認証済みの場合</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>        <span class="cn">Some</span>(u) <span class="op">=&gt;</span> <span class="op">{</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>            <span class="kw">let</span> message <span class="op">=</span> <span class="pp">format!</span>(<span class="st">&quot;ようこそ、{}さん！&quot;</span><span class="op">,</span> u<span class="op">.</span>name)<span class="op">;</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>            <span class="kw">let</span> template <span class="op">=</span> IndexTemplateUser <span class="op">{</span> message<span class="op">:</span> <span class="op">&amp;</span>message <span class="op">};</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>            (<span class="pp">StatusCode::</span>OK<span class="op">,</span> Html(template<span class="op">.</span>render()<span class="op">.</span>unwrap()))<span class="op">.</span>into_response()</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>        <span class="co">// 未認証の場合</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>        <span class="cn">None</span> <span class="op">=&gt;</span> <span class="op">{</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>            <span class="kw">let</span> message <span class="op">=</span> <span class="st">&quot;ログインボタンをクリックしてください。&quot;</span><span class="op">;</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>            <span class="kw">let</span> template <span class="op">=</span> IndexTemplateAnon <span class="op">{</span> message<span class="op">:</span> <span class="op">&amp;</span>message <span class="op">};</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>            (<span class="pp">StatusCode::</span>OK<span class="op">,</span> Html(template<span class="op">.</span>render()<span class="op">.</span>unwrap()))<span class="op">.</span>into_response()</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="認証フローの開始">認証フローの開始</h3>
+<p><code>/auth/google</code>エンドポイントでは、以下の3つの処理を行います：</p>
+<ol type="1">
+<li>セキュリティトークンの生成</li>
+<li>セッションへの保存</li>
+<li>Google認証ページへのリダイレクト</li>
+</ol>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode rust"><code class="sourceCode rust"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">async</span> <span class="kw">fn</span> google_auth(</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    State(params)<span class="op">:</span> State<span class="op">&lt;</span>OAuth2Params<span class="op">&gt;,</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    State(store)<span class="op">:</span> State<span class="op">&lt;</span>MemoryStore<span class="op">&gt;,</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    headers<span class="op">:</span> HeaderMap<span class="op">,</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>) <span class="op">-&gt;</span> <span class="dt">Result</span><span class="op">&lt;</span><span class="kw">impl</span> IntoResponse<span class="op">,</span> AppError<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// セキュリティトークンを生成</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> (csrf_token<span class="op">,</span> csrf_id) <span class="op">=</span> generate_store_token(</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;csrf_session&quot;</span><span class="op">,</span> </span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>        expires_at<span class="op">,</span> </span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>        <span class="cn">Some</span>(user_agent)</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    )<span class="op">;</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> (nonce_token<span class="op">,</span> nonce_id) <span class="op">=</span> generate_store_token(</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;nonce_session&quot;</span><span class="op">,</span> </span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>        expires_at<span class="op">,</span> </span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>        <span class="cn">None</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>    )<span class="op">;</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Google認証URLの生成</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> encoded_state <span class="op">=</span> encode_state(csrf_token<span class="op">,</span> nonce_id)<span class="op">;</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> auth_url <span class="op">=</span> <span class="pp">format!</span>(</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;{}?{}&amp;client_id={}&amp;redirect_uri={}&amp;state={}&amp;nonce={}&quot;</span><span class="op">,</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>        OAUTH2_AUTH_URL<span class="op">,</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>        OAUTH2_QUERY_STRING<span class="op">,</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>        params<span class="op">.</span>client_id<span class="op">,</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>        params<span class="op">.</span>redirect_uri<span class="op">,</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>        encoded_state<span class="op">,</span></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>        nonce_token</span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>    )<span class="op">;</span></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>    <span class="co">// CSRFトークンをCookieに設定してリダイレクト</span></span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> <span class="kw">mut</span> headers <span class="op">=</span> <span class="pp">HeaderMap::</span>new()<span class="op">;</span></span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>    header_set_cookie(<span class="op">&amp;</span><span class="kw">mut</span> headers<span class="op">,</span> CSRF_COOKIE_NAME<span class="op">,</span> csrf_id<span class="op">,</span> expires_at)<span class="op">?;</span></span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a>    <span class="cn">Ok</span>((headers<span class="op">,</span> <span class="pp">Redirect::</span>to(<span class="op">&amp;</span>auth_url)))</span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="コールバック処理">コールバック処理</h3>
+<p>Googleからの認証データは、2つの方法で受け取ることができます：</p>
+<h4 id="フォームポストモード推奨">フォームポストモード（推奨）</h4>
+<p>Google提供のJavaScriptがPOSTリクエストで認証データを送信します：</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode rust"><code class="sourceCode rust"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">async</span> <span class="kw">fn</span> post_authorized(</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    State(state)<span class="op">:</span> State<span class="op">&lt;</span>AppState<span class="op">&gt;,</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    Form(form)<span class="op">:</span> Form<span class="op">&lt;</span>AuthResponse<span class="op">&gt;,</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>) <span class="op">-&gt;</span> <span class="dt">Result</span><span class="op">&lt;</span><span class="kw">impl</span> IntoResponse<span class="op">,</span> AppError<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// リクエスト元の確認</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    validate_origin(<span class="op">&amp;</span>headers<span class="op">,</span> <span class="op">&amp;</span>state<span class="op">.</span>oauth2_params<span class="op">.</span>auth_url)<span class="op">.</span><span class="kw">await</span><span class="op">?;</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 認証データの処理</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    authorized(<span class="op">&amp;</span>form<span class="op">,</span> state)<span class="op">.</span><span class="kw">await</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h4 id="クエリモード">クエリモード</h4>
+<p>認証データがURLパラメータとして送信されます：</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode rust"><code class="sourceCode rust"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">async</span> <span class="kw">fn</span> get_authorized(</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    Query(query)<span class="op">:</span> Query<span class="op">&lt;</span>AuthResponse<span class="op">&gt;,</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    State(state)<span class="op">:</span> State<span class="op">&lt;</span>AppState<span class="op">&gt;,</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    TypedHeader(cookies)<span class="op">:</span> TypedHeader<span class="op">&lt;</span><span class="pp">headers::</span>Cookie<span class="op">&gt;,</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>) <span class="op">-&gt;</span> <span class="dt">Result</span><span class="op">&lt;</span><span class="kw">impl</span> IntoResponse<span class="op">,</span> AppError<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// CSRFトークンの検証</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    csrf_checks(cookies<span class="op">.</span>clone()<span class="op">,</span> <span class="op">&amp;</span>state<span class="op">.</span>store<span class="op">,</span> <span class="op">&amp;</span>query<span class="op">,</span> headers)<span class="op">.</span><span class="kw">await</span><span class="op">?;</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 認証データの処理</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    authorized(<span class="op">&amp;</span>query<span class="op">,</span> state)<span class="op">.</span><span class="kw">await</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>どちらのモードでも、最終的に<code>authorized</code>関数で認証処理を完了します：</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode rust"><code class="sourceCode rust"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">async</span> <span class="kw">fn</span> authorized(</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    auth_response<span class="op">:</span> <span class="op">&amp;</span>AuthResponse<span class="op">,</span> </span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    state<span class="op">:</span> AppState</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>) <span class="op">-&gt;</span> <span class="dt">Result</span><span class="op">&lt;</span><span class="kw">impl</span> IntoResponse<span class="op">,</span> AppError<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// 認可コードをトークンに交換</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> (access_token<span class="op">,</span> id_token) <span class="op">=</span> exchange_code_for_token(<span class="op">...</span>)<span class="op">.</span><span class="kw">await</span><span class="op">?;</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// IDトークンを検証してユーザー情報を取得</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> user_data <span class="op">=</span> user_from_verified_idtoken(</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>        id_token<span class="op">,</span> </span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>        <span class="op">&amp;</span>state<span class="op">,</span> </span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>        auth_response</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>    )<span class="op">.</span><span class="kw">await</span><span class="op">?;</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">// ユーザー情報の追加確認（オプション）</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> user_data_userinfo <span class="op">=</span> fetch_user_data_from_google(access_token)<span class="op">.</span><span class="kw">await</span><span class="op">?;</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> user_data<span class="op">.</span>id <span class="op">!=</span> user_data_userinfo<span class="op">.</span>id <span class="op">{</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="cn">Err</span>(<span class="pp">anyhow::anyhow!</span>(<span class="st">&quot;IDが一致しません&quot;</span>)<span class="op">.</span>into())<span class="op">;</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>    <span class="co">// セッションの作成</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> session_id <span class="op">=</span> create_and_store_session(user_data<span class="op">,</span> <span class="op">...</span>)<span class="op">.</span><span class="kw">await</span><span class="op">?;</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>    <span class="cn">Ok</span>((</span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>        set_cookie_header(session_id)<span class="op">,</span> </span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>        <span class="pp">Redirect::</span>to(<span class="st">&quot;/popup_close&quot;</span>)</span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>    ))</span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h3 id="セッション管理">セッション管理</h3>
+<p>認証後のユーザー情報は、セッションに保存して管理します：</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode rust"><code class="sourceCode rust"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">async</span> <span class="kw">fn</span> create_and_store_session(</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    user_data<span class="op">:</span> User<span class="op">,</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    store<span class="op">:</span> <span class="op">&amp;</span>MemoryStore<span class="op">,</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    expires_at<span class="op">:</span> DateTime<span class="op">&lt;</span>Utc<span class="op">&gt;,</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>) <span class="op">-&gt;</span> <span class="dt">Result</span><span class="op">&lt;</span><span class="dt">String</span><span class="op">,</span> AppError<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> <span class="kw">mut</span> session <span class="op">=</span> <span class="pp">Session::</span>new()<span class="op">;</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    session<span class="op">.</span>insert(<span class="st">&quot;user&quot;</span><span class="op">,</span> <span class="op">&amp;</span>user_data)<span class="op">?;</span>      <span class="co">// ユーザー情報を保存</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    session<span class="op">.</span>set_expiry(expires_at)<span class="op">;</span>           <span class="co">// セッション有効期限を設定</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> session_id <span class="op">=</span> store<span class="op">.</span>store_session(session)<span class="op">.</span><span class="kw">await</span><span class="op">?;</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    <span class="cn">Ok</span>(session_id)</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>認証が必要なページは、<code>User</code>エクストラクタを使って保護します：</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode rust"><code class="sourceCode rust"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">// 認証が必要なページの例</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="kw">async</span> <span class="kw">fn</span> protected(user<span class="op">:</span> User) <span class="op">-&gt;</span> <span class="kw">impl</span> IntoResponse <span class="op">{</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="pp">format!</span>(<span class="st">&quot;ようこそ、{}さん！&quot;</span><span class="op">,</span> user<span class="op">.</span>name)</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="co">// Userエクストラクタの実装</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="at">#[</span>async_trait<span class="at">]</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="kw">impl</span><span class="op">&lt;</span>S<span class="op">&gt;</span> FromRequestParts<span class="op">&lt;</span>S<span class="op">&gt;</span> <span class="cf">for</span> User</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="kw">where</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>    MemoryStore<span class="op">:</span> FromRef<span class="op">&lt;</span>S<span class="op">&gt;,</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    S<span class="op">:</span> <span class="bu">Send</span> <span class="op">+</span> <span class="bu">Sync</span><span class="op">,</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>    <span class="kw">async</span> <span class="kw">fn</span> from_request_parts(parts<span class="op">:</span> <span class="op">&amp;</span><span class="kw">mut</span> Parts<span class="op">,</span> state<span class="op">:</span> <span class="op">&amp;</span>S) <span class="op">-&gt;</span> <span class="dt">Result</span><span class="op">&lt;</span><span class="dt">Self</span><span class="op">,</span> <span class="dt">Self</span><span class="pp">::</span>Rejection<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>        <span class="kw">let</span> store <span class="op">=</span> <span class="pp">MemoryStore::</span>from_ref(state)<span class="op">;</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>        <span class="kw">let</span> session_cookie <span class="op">=</span> get_session_cookie(parts)<span class="op">?;</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>        <span class="kw">let</span> user <span class="op">=</span> load_user_from_session(store<span class="op">,</span> session_cookie)<span class="op">.</span><span class="kw">await</span><span class="op">?;</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>        <span class="cn">Ok</span>(user)</span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<h2 id="セキュリティ対策の詳細">セキュリティ対策の詳細</h2>
+<p>この実装では、複数のセキュリティメカニズムを組み合わせて認証の安全性を確保しています。IDトークンを用いた認証では、これらのメカニズムが認証プロセスの保護とトークンの正当性の検証に重要な役割を果たします。</p>
+<h3 id="nonceによる検証">Nonceによる検証</h3>
+<p>nonceメカニズムは、IDトークンが特定のリクエストのために発行されたものであることを検証するために重要です。</p>
+<p>Nonce検証は以下の2つの値を比較することでIDトークンの真正性を確認します：</p>
+<ol type="1">
+<li><strong>IDトークン内のnonce:</strong>
+Googleによって署名されたトークンに埋め込まれます</li>
+<li><strong>セッションストアからのnonce:</strong>
+stateパラメータの<code>nonce_id</code>を使用して取得します</li>
+</ol>
+<p>これによりリプレイ攻撃を防ぎ、トークンが現在の認証リクエストに紐付けられていることを確認します。</p>
+
+<p><a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/Axum-Google-OAuth2-Login/image/fig-3.png"
+    target="_blank">
+    <img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/Axum-Google-OAuth2-Login/image/fig-3.png"
+    width="80%" alt="nonce-validation" title="nonce-validation"> </a></p>
+
+    <h3 id="csrf保護">CSRF保護</h3>
+<p>クロスサイトリクエストフォージェリ（CSRF）保護は、認証コールバックが我々のアプリケーションから開始された正当な認証フローからのものであることを確保します。これがないと、悪意のあるサイトが認証済みユーザーを望まない認証リクエストに誘導する可能性があります。</p>
+<p>セキュリティメカニズムは、ブラウザがリダイレクトと直接のPOSTリクエストをどのように扱うかの違いにより、レスポンスモードによって異なります：</p>
+<p><strong>クエリモードフロー：</strong></p>
+<p>このモードではCookieベースのCSRF検証が必要です。コールバックはブラウザのリダイレクトとして来るため、任意のサイトから発生する可能性があるためです。CSRFトークンは、リクエストチェーンが我々のアプリケーションから開始されたことを確認します：</p>
+
+<p><a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/Axum-Google-OAuth2-Login/image/fig-4.png"
+    target="_blank">
+    <img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/Axum-Google-OAuth2-Login/image/fig-4.png"
+    width="80%" alt="csrf-protection" title="csrf-protection"> </a></p>
+
+    <p><strong>フォームポストモード：</strong></p>
+<p>このモードではCSRF Cookie検証を使用できません。理由は：</p>
+<ul>
+<li>コールバックはGoogleのドメインからのクロスオリジンPOSTリクエストとして来る</li>
+<li>ブラウザのセキュリティにより、そのようなリクエストで<code>__Host-CsrfId</code>
+Cookieが送信されることがブロックされる</li>
+</ul>
+<p>代わりに、以下の2つのセキュリティ対策に依存します：</p>
+<ul>
+<li><strong>Nonce検証：</strong>
+IDトークンが我々の特定の認証リクエストのために発行されたことを確認</li>
+<li><strong>Origin検証：</strong>
+POSTリクエストがGoogleのドメインから来ることを確認</li>
+</ul>
+<p>この組み合わせにより、Googleのみが我々の元の認証リクエストに応答できることを確保し、悪意のあるサイトが認証フローを開始または乗っ取ることを防ぎます。</p>
+<h3 id="cookieのセキュリティ">Cookieのセキュリティ</h3>
+<p>すべてのCookieは包括的なセキュリティ設定を使用します：</p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode rust"><code class="sourceCode rust"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;{name}={value}; SameSite=Lax; Secure; HttpOnly; Path=/; Max-Age={max_age}&quot;</span></span></code></pre></div>
+<ul>
+<li><strong><code>HttpOnly:</code></strong>
+JavaScriptからのCookieへのアクセスを防止</li>
+<li><strong><code>Secure:</code></strong>
+HTTPS経由でのみ送信されることを確保</li>
+<li><strong><code>SameSite=Lax:</code></strong>
+同一オリジンのナビゲーションを許可しながらCSRFを防止</li>
+<li><strong><code>__Host-</code>プレフィックス:</strong>
+HTTPSとホスト固有の制限を強制</li>
+</ul>
+<p>これらの設定により、Cookieが一般的な攻撃ベクトルから保護されます。</p>
+<h3
+id="レスポンスモードのセキュリティ">レスポンスモードのセキュリティ</h3>
+<p><strong>フォームポストモード（推奨）</strong></p>
+<ul>
+<li>認可コードがPOSTボディに含まれ、URLやログから隠される</li>
+<li>セキュリティは<strong>オリジン検証</strong>と<strong>nonce検証</strong>に依存</li>
+<li>本番環境での使用に最も安全なオプション</li>
+</ul>
+<p><strong>クエリモード</strong></p>
+<ul>
+<li>認可コードがURLに表示され、デバッグは容易だが露出のリスクが高い（ログ、ブックマークなど）</li>
+<li>完全なCSRF保護を提供するが、URLが記録される環境では漏洩のリスクが高い</li>
+</ul>
+<h3 id="認可コードフローによる認証">認可コードフローによる認証</h3>
+<p>認可コードフロー（<code>response_type=code</code>）は重要なセキュリティ上の利点を提供します：</p>
+<ul>
+<li><strong>セキュアなトークン交換：</strong>
+トークンはセキュアなサーバー間通信を通じて取得</li>
+<li><strong>セキュリティのベストプラクティス：</strong>
+本番アプリケーションに推奨されるアプローチ</li>
+</ul>
+<h3 id="idトークンの検証">IDトークンの検証</h3>
+<p>IDトークンは暗号的に署名されたJWTで、そのクレームを通じてセキュアな認証を提供します：</p>
+<ul>
+<li><code>aud</code>:
+トークンが我々のアプリケーションのために発行されたことを確認</li>
+<li><code>iss</code>: Googleをトークン発行者として検証</li>
+<li><code>exp</code>と<code>iat</code>:
+トークンの再利用とリプレイ攻撃を防止</li>
+<li><code>nonce</code>:
+トークンを我々の特定の認証リクエストに紐付け</li>
+</ul>
+<p>Googleのuserinfoエンドポイントでも同様のデータが提供されますが、IDトークン検証を採用する理由は：</p>
+<ul>
+<li>クレームがGoogleの署名により暗号的に保護されている</li>
+<li>userinfoリクエストよりも検証が高速</li>
+<li>userinfoエンドポイントはオプションのプロフィールデータの取得に適している</li>
+</ul>
+<h2 id="おわりに">おわりに</h2>
+<p>本記事では、Axumを用いたセキュアなOAuth2/OIDC認証システムの構築方法について説明しました。認証の実装は複雑になりがちですが、機能を管理可能なコンポーネントに分割することで、セキュアで保守性の高いシステムを実現することができました。この実装は、トークンの検証、CSRF保護、セッション管理といった実践的なパターンを示しており、ご自身のプロジェクトに応用できるでしょう。</p>
+<p>完全な実装コードは<a
+href="https://github.com/ktaka-ccmp/axum-google-oauth2">GitHub</a>で公開しています。詳細に興味のある方はぜひご覧ください。特に、セキュリティ対策やセッション管理の設計に関するご意見をお聞かせいただければ幸いです。さらに改善の余地や特定の設計選択についての質問があれば、ぜひフィードバックをお寄せください！</p>

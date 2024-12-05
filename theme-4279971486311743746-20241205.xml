@@ -132,10 +132,10 @@
       default="rgba(0, 0, 0, 0.54)"  value="rgba(0, 0, 0, 0.54)"/>
   <Variable name="blockquote.font" description="Blockquote font"
       type="font"
-      default="$(robotoLightItalic15)"  value="normal normal 15px Roboto, sans-serif"/>
+      default="$(robotoLightItalic15)"  value="normal normal Roboto, sans-serif"/>
   <Variable name="blockquote.color" description="Blockquote color"
       type="color"
-      default="#444"  value="#444444"/>
+      default="#444"  value="#047474"/>
   <Variable name="posts.icons.color"
       description="Post icons color"
       type="color"
@@ -1459,7 +1459,7 @@ color:$(body.link.hover.color)
 blockquote{
 color:$(blockquote.color);
 font:$(blockquote.font);
-font-size:x-large;
+font-style: italic;
 text-align:left
 }
 .pill-button{

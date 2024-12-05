@@ -15,3 +15,4 @@
 1. md->html: pandoc Readme.md -o Readme.html
 1. or: pandoc -s -c ../../github-markdown.css Readme.en.md -o Readme.en.html --metadata title="....."
 1. blogger記事にコピペ
+

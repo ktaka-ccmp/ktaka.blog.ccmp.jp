@@ -3,16 +3,14 @@
 - [はじめに](#はじめに)
 - [概要](#概要)
   - [OAuth2とOpenID Connectとは](#oauth2とopenid-connectとは)
-  - [認証の仕組み：主要な概念](#認証の仕組み主要な概念)
-- [実装の詳細](#実装の詳細)
-  - [認証フロー](#認証フロー)
-  - [ルート構造](#ルート構造)
-  - [メインページの動作](#メインページの動作)
-  - [OAuth2フローの開始](#oauth2フローの開始)
-  - [OAuth2コールバックの処理](#oauth2コールバックの処理)
-  - [ユーザーセッションの管理](#ユーザーセッションの管理)
-- [セキュリティに関する考慮事項](#セキュリティに関する考慮事項)
-  - [Nonceの検証](#nonceの検証)
+  - [認証の仕組み](#認証の仕組み)
+  - [アプリケーションの構造](#アプリケーションの構造)
+  - [メインページの実装](#メインページの実装)
+  - [認証フローの開始](#認証フローの開始)
+  - [コールバック処理](#コールバック処理)
+  - [セッション管理](#セッション管理)
+- [セキュリティ対策の詳細](#セキュリティ対策の詳細)
+  - [Nonceによる検証](#nonceによる検証)
   - [CSRF保護](#csrf保護)
   - [Cookieのセキュリティ](#cookieのセキュリティ)
   - [レスポンスモードのセキュリティ](#レスポンスモードのセキュリティ)
@@ -22,27 +20,27 @@
 
 ## はじめに
 
-現代のWebアプリケーションでは、セキュアなユーザー認証にOAuth2/OIDCを利用することが一般的です。最近、RustとAxumを探求する過程で、Google OAuth2を統合したログインシステムを実装しました。この記事では、セキュアな認証システムを構築する際の理論的な側面と実践的なステップの両方をカバーしながら、実装の詳細について説明していきます。
+RustとAxumを使って、Google OAuth2でのログイン機能を実装しました。OAuth2とOIDCを使った認証は現代のWebアプリケーションでは一般的な方法です。この記事では、安全な認証システムを作るために必要な基礎知識と、具体的な実装方法を説明します。
 
-簡潔さを保つため、主要なコンポーネントについては簡略化したコードスニペットを掲載しています。完全な実装は[GitHubリポジトリ](https://github.com/ktaka-ccmp/axum-google-oauth2)で確認できます。
+ソースコードは[GitHubリポジトリ](https://github.com/ktaka-ccmp/axum-google-oauth2)で公開しています。記事中のコードは理解のために簡略化していますので、完全な実装はリポジトリをご覧ください。
 
 ## 概要
 
 ### OAuth2とOpenID Connectとは
 
-OAuth2とOpenID Connect（OIDC）は現代の認証システムの鍵となる技術で、これらの関係を理解することで、セキュアな認証の実装がより容易になります。
+OAuth2とOpenID Connect（OIDC）は、現代のWebアプリケーションの認証を支える重要な技術です。
 
-OAuth2は基盤として機能し、ユーザーが認証情報を共有することなく、アプリケーションにリソースへのアクセスを許可することを可能にします。アプリケーションはアクセストークン（access token）を通じてこれらのリソースと対話します。この実装では、アイデンティティプロバイダからユーザー情報を取得するために、セキュアで広く採用されているアプローチである認可コードフロー（authorization code flow）を使用しました。
+OAuth2は認証の基盤となる技術で、ユーザーが自分の認証情報を直接渡すことなく、アプリケーションに特定の機能へのアクセス権を与えることができます。アプリケーションはアクセストークン（access token）を使ってこれらの機能を利用します。この実装では、広く使われている安全な方法である認可コードフロー（authorization code flow）を使って、ユーザー情報を取得しています。
 
-OpenID Connect（OIDC）はOAuth2を拡張し、認証のための標準化された層を追加します。OAuth2が「このアプリは何にアクセスできるか？」に焦点を当てているのに対し、OIDCは「このユーザーは誰か？」という問いに答えます。OIDCは検証済みのユーザー識別情報を含むJSON Web Token（JWT）であるIDトークン（ID token）を導入します。これにより、単一の統合されたフローでユーザーを認証しながらアクセス権限を管理することが可能になります。
+OpenID Connect（OIDC）は、OAuth2を拡張して標準的な認証の仕組みを追加したものです。OAuth2が「アプリケーションに何を許可するか」を扱うのに対し、OIDCは「このユーザーは誰か」を確認することを主な目的としています。OIDCでは、ユーザー情報をJSON Web Token（JWT）形式のIDトークン（ID token）として提供します。これにより、ユーザーの認証とアクセス権限の管理を一度に行えます。
 
-簡単に言えば、OAuth2はOIDC標準の下でIDトークンを使用することでより安全になります。
+つまり、OIDCを使うことで、OAuth2をより安全に使えるようになります。
 
-### 認証の仕組み：主要な概念
+### 認証の仕組み
 
 #### 基本的な認証フロー
 
-この実装は、以下のような明確に定義された認証シーケンスに従います：
+この実装での認証は、以下のような手順で行われます：
 
 ```mermaid
 sequenceDiagram
@@ -50,115 +48,89 @@ sequenceDiagram
     participant Server
     participant Google
 
-    Browser->>Server: 1. Click "Login" button
-    Note over Browser: Opens popup window
-    Server-->>Browser: 2. Redirect to Google
-    Browser->>Google: 3. Login & consent
-    Google-->>Browser: 4. Return auth code
-    Browser->>Server: 5. Send code
-    Server<<->>Google: 6. Exchange code for tokens
-    Server->>Server: 7. Create session
-    Server->>Browser: 8. Set session cookie
-    Note over Browser: Popup closes automatically
-    Browser->>Server: 9. Main window reloads
+    Browser->>Server: 1. ログインボタンをクリック
+    Note over Browser: ポップアップウィンドウを開く
+    Server-->>Browser: 2. Googleの認証ページへリダイレクト
+    Browser->>Google: 3. Googleでログインと権限承認
+    Google-->>Browser: 4. 認可コードを返す
+    Browser->>Server: 5. 認可コードを送信
+    Server<<->>Google: 6. 認可コードをトークンと交換
+    Server->>Server: 7. セッションを作成
+    Server->>Browser: 8. セッションCookieを設定
+    Note over Browser: ポップアップが自動的に閉じる
 ```
 
-このプロセスは、ユーザーがログインボタンをクリックすることから始まり、ポップアップを開いてGoogleの認証ページにリダイレクトします。ログインが成功すると、Googleは認可コード（authorization code）を返し、サーバーはこれをトークンと交換します。サーバーはIDトークンを検証し、ユーザーセッションを作成して、ブラウザへのレスポンスでセッションCookieを設定し、認証フローを完了します。その後、ユーザーはこのCookieによって後続のリクエストで識別されます。
+認証の流れを詳しく説明します：
+
+1. ユーザーがログインボタンを押すと、ポップアップウィンドウが開きます
+2. ポップアップウィンドウがGoogleの認証ページに移動します
+3. ユーザーがGoogleアカウントでログインし、アプリケーションへの権限を承認します
+4. Googleが認可コード（authorization code）を返します
+5. この認可コードを使って、サーバーがトークンを取得します
+6. サーバーがIDトークンを検証し、ユーザーセッションを作成します
+7. セッションCookieをブラウザに設定して認証を完了します
+
+以降、ユーザーはこのセッションCookieを使って認証済みユーザーとして識別されます。
 
 #### セッションCookieの仕組み
 
-セッションCookieは認証済みアクセスの維持に中心的な役割を果たします。サーバーがログイン時にセッションCookieを設定すると、それは後続のブラウザリクエストに自動的に含まれます。セキュアなセッション管理を確保するため、以下の対策を使用しました：
+セッションCookieはユーザーの認証状態を維持するために使われます。ログイン時にサーバーが設定したCookieは、その後のすべてのリクエストに自動的に含まれます。セキュリティを確保するため、以下の設定を使用しています：
 
-- **HttpOnlyフラグ**: クライアントサイドスクリプトからのCookieへのアクセスを防止
-- **Secureフラグ**: CookieがHTTPS経由でのみ送信されることを保証
-- **SameSite設定**: CSRF攻撃から保護
-- **`__Host-`プレフィックス**: HTTPSとホスト固有の制限を強制
+- **HttpOnly**: JavaScriptからCookieを読み取れないようにし、XSS攻撃から保護します
+- **Secure**: HTTPS接続でのみCookieを送信し、通信の安全性を確保します
+- **SameSite**: 同じサイトからのリクエストのみCookieを送信可能にし、CSRF攻撃を防ぎます
+- **`__Host-`プレフィックス**: CookieをHTTPSと特定のホストに限定し、セキュリティを強化します
 
-これらの設定が連携して、複数のタブにまたがっても安全な認証状態を維持します。
+#### OAuth2の設定
 
-#### OAuth2パラメータ
+認証プロセスでは、以下のパラメータを使用します：
 
-OAuth2とOIDCは認証プロセスに不可欠な複数のパラメータを定義しています。主要なパラメータの設定アプローチは以下の通りです：
-
-- **`response_type`**: 認可コードを安全に配信するため`code`に設定
-- **`response_mode`**: 機密データをURLに含めないよう`form_post`を使用してセキュリティを強化
-- **`scope`**: ユーザーのアイデンティティと基本情報のために`openid`、`email`、`profile`を要求
-
-これらのパラメータは認証フローの制御とセキュリティの確保に不可欠です。
-
-## 実装の詳細
-
-以下のセクションでは、実装を主要なコンポーネントに分解し、OAuth2認証フローがセッション管理とセキュリティメカニズムとどのように統合されているかを説明します。
-
-### 認証フロー
-
-この実装では、メインページのレスポンス性を保つため、認証にポップアップウィンドウを使用します。このアプローチでは：
-
-- 認証フローを別ウィンドウで処理
-- ウィンドウ間で共有されるCookieを使用してログイン状態を維持
-- 完了時に自動的にメインページを更新
-
-このフローは、ブラウザ、サーバー、Google、セッションストアの4つのコンポーネント間で連携します。セッションストアは、ログインセッションとセキュリティトークン（CSRFとnonce）を管理します。
-
-```mermaid
-sequenceDiagram
-    participant Browser
-    participant Server
-    participant Session Store
-    participant Google
-
-    Note over Browser,Server: 1. Initial Request
-    Browser->>Browser: Click Login button -> Open popup window
-    Browser->>Server: GET /auth/google
-    Server->>Session Store: Store CSRF & Nonce data
-    Server->>Browser: 303 Redirect to Google OAuth URL<br/>Set-Cookie: __Host-CsrfId=xxxxx
-
-    Note over Browser,Google: 2. Google Auth
-    Browser->>Google: Login & Grant Consent
-    Google->>Browser: i. 302 Redirect with code & state <br/> ii. 200 auto-submit JavaScript with code & state
-
-    Note over Browser,Server: 3. Callback Processing
-    Note over Session Store: i: query mode<br/>ii: form_post mode
-    Browser->>Server: i. GET /auth/authorized?code=xxx...<br/>ii. POST /auth/authorized {code=xxxx...}
-    Server<<->>Google: Exchange code for tokens
-    Server<<->>Session Store: Validate tokens
-    Server->>Session Store: Create user session
-    Server-->>Browser: 303 Redirect response<br/>Set session id in cookie
-    Server<<->>Browser: Obtain Popup closing javascript
-    Browser<<->>Browser: Close popup window
-    Server<<->>Browser: Reload main window
+```rust
+static OAUTH2_QUERY_STRING: &str = "response_type=code\
+&scope=openid+email+profile\
+&response_mode=form_post\
+&access_type=online\
+&prompt=consent";
 ```
 
-このダイアグラムは、各ステップでのデータとインタラクションのフローを表しています。
+これらのパラメータの役割は：
 
-### ルート構造
+- **`response_type=code`**: 認可コードを使用した安全な認証方式を指定します
+- **`scope=openid email profile`**: アプリケーションが必要とするユーザー情報の範囲を指定します
+- **`response_mode=form_post`**: 認証情報をURLに露出せず、POSTリクエストで送信します
 
-アプリケーションは、認証とセッションフローの各ステップを管理するためのルートを定義します：
+[## 実装の詳細
+
+### アプリケーションの構造
+
+認証フローの各段階を処理するため、以下のようなルート構造を実装しています：
 
 ```rust
 let app = Router::new()
-    .route("/", get(index))
-    .route("/auth/google", get(google_auth))
-    .route("/auth/authorized", get(get_authorized).post(post_authorized))
-    .route("/popup_close", get(popup_close))
-    .route("/logout", get(logout))
-    .route("/protected", get(protected));
+    .route("/", get(index))                    // メインページ
+    .route("/auth/google", get(google_auth))   // Google認証の開始
+    .route("/auth/authorized", get(get_authorized).post(post_authorized))  // 認証後のコールバック
+    .route("/popup_close", get(popup_close))   // ポップアップの終了
+    .route("/logout", get(logout))             // ログアウト
+    .route("/protected", get(protected));      // 認証必須ページ
 ```
 
-### メインページの動作
+### メインページの実装
 
-メインページは、ユーザーの認証状態に基づいて動的にコンテンツを調整します：
+メインページは、ユーザーの認証状態に応じて表示を切り替えます：
 
 ```rust
 async fn index(user: Option<User>) -> impl IntoResponse {
     match user {
+        // 認証済みの場合
         Some(u) => {
-            let message = format!("Hey {}! You're logged in!", u.name);
+            let message = format!("ようこそ、{}さん！", u.name);
             let template = IndexTemplateUser { message: &message };
             (StatusCode::OK, Html(template.render().unwrap())).into_response()
         }
+        // 未認証の場合
         None => {
-            let message = "You're not logged in.\nClick the Login button below.".to_string();
+            let message = "ログインボタンをクリックしてください。";
             let template = IndexTemplateAnon { message: &message };
             (StatusCode::OK, Html(template.render().unwrap())).into_response()
         }
@@ -166,16 +138,13 @@ async fn index(user: Option<User>) -> impl IntoResponse {
 }
 ```
 
-- 認証済みユーザー：パーソナライズされた挨拶を表示
-- 未認証ユーザー：ポップアップベースの認証フローを開始するログインボタンを表示
+### 認証フローの開始
 
-### OAuth2フローの開始
+`/auth/google`エンドポイントでは、以下の3つの処理を行います：
 
-`/auth/google`エンドポイントはOAuth2フローを開始します：
-
-1. セキュリティトークン（CSRFとnonce）を生成
-2. これらのトークンをセッションに保存
-3. ブラウザをGoogleの認証ページにリダイレクト
+1. セキュリティトークンの生成
+2. セッションへの保存
+3. Google認証ページへのリダイレクト
 
 ```rust
 async fn google_auth(
@@ -183,25 +152,31 @@ async fn google_auth(
     State(store): State<MemoryStore>,
     headers: HeaderMap,
 ) -> Result<impl IntoResponse, AppError> {
-    // セキュリティトークンの生成と保存
-    let (csrf_token, csrf_id) = generate_store_token("csrf_session", expires_at, Some(user_agent));
-    let (nonce_token, nonce_id) = generate_store_token("nonce_session", expires_at, None);
+    // セキュリティトークンを生成
+    let (csrf_token, csrf_id) = generate_store_token(
+        "csrf_session", 
+        expires_at, 
+        Some(user_agent)
+    );
+    let (nonce_token, nonce_id) = generate_store_token(
+        "nonce_session", 
+        expires_at, 
+        None
+    );
 
-    // トークンをstateパラメータに結合
+    // Google認証URLの生成
     let encoded_state = encode_state(csrf_token, nonce_id);
-
-    // 必要なパラメータを含むGoogle OAuth2 URLの構築
     let auth_url = format!(
         "{}?{}&client_id={}&redirect_uri={}&state={}&nonce={}",
-        OAUTH2_AUTH_URL,         // e.g., https://accounts.google.com/o/oauth2/v2/auth
-        OAUTH2_QUERY_STRING,     // e.g., response_type=code&scope=openid+email+profile...
+        OAUTH2_AUTH_URL,
+        OAUTH2_QUERY_STRING,
         params.client_id,
         params.redirect_uri,
         encoded_state,
         nonce_token
     );
 
-    // セキュリティCookieを設定しリダイレクトレスポンスを準備
+    // CSRFトークンをCookieに設定してリダイレクト
     let mut headers = HeaderMap::new();
     header_set_cookie(&mut headers, CSRF_COOKIE_NAME, csrf_id, expires_at)?;
 
@@ -209,46 +184,29 @@ async fn google_auth(
 }
 ```
 
-#### Stateパラメータ
+### コールバック処理
 
-stateパラメータは以下を組み合わせます：
-
-- CSRFトークン：クロスサイトリクエストフォージェリーから保護
-- Nonce ID：IDトークンの真正性を検証
-- Base64URLエンコーディング：複数のパラメータを単一のURL安全なパラメータに埋め込み
-
-```rust
-fn encode_state(csrf_token: String, nonce_id: String) -> String {
-    let state_params = StateParams { csrf_token, nonce_id };
-    URL_SAFE.encode(serde_json::json!(state_params).to_string())
-}
-```
-
-Googleはこのstateパラメータを変更せずに返送し、コールバックでのセキュリティ検証を可能にします。
-
-### OAuth2コールバックの処理
-
-ユーザーがGoogleで認証した後、アプリケーションはコールバックを処理して認証プロセスを完了する必要があります。これには認可コードのトークンへの交換とその真正性の検証が含まれます。
-
-Googleは`/auth/authorized`エンドポイントを通じてユーザーの認証データを返します。このエンドポイントは2つのモードをサポートします：
+Googleからの認証データは、2つの方法で受け取ることができます：
 
 #### フォームポストモード（推奨）
 
-Googleは認可コードとstateをブラウザに返します。Google提供のJavaScriptがこれらをPOSTボディとしてエンドポイントに送信します。これらは以下のように処理されます：
+Google提供のJavaScriptがPOSTリクエストで認証データを送信します：
 
 ```rust
 async fn post_authorized(
     State(state): State<AppState>,
     Form(form): Form<AuthResponse>,
 ) -> Result<impl IntoResponse, AppError> {
+    // リクエスト元の確認
     validate_origin(&headers, &state.oauth2_params.auth_url).await?;
+    // 認証データの処理
     authorized(&form, state).await
 }
 ```
 
 #### クエリモード
 
-Googleは認可コードとstateをURLクエリパラメータとして含むリダイレクトレスポンスを返します。これらは以下のように処理されます：
+認証データがURLパラメータとして送信されます：
 
 ```rust
 async fn get_authorized(
@@ -256,33 +214,49 @@ async fn get_authorized(
     State(state): State<AppState>,
     TypedHeader(cookies): TypedHeader<headers::Cookie>,
 ) -> Result<impl IntoResponse, AppError> {
+    // CSRFトークンの検証
     csrf_checks(cookies.clone(), &state.store, &query, headers).await?;
+    // 認証データの処理
     authorized(&query, state).await
 }
 ```
 
-両方のコールバックモードは最終的に`authorized`関数を通じて認証レスポンスを処理します。この関数はコードをトークンと交換し、その真正性を検証し、ユーザーセッションを確立します：
+どちらのモードでも、最終的に`authorized`関数で認証処理を完了します：
 
 ```rust
-async fn authorized(auth_response: &AuthResponse, state: AppState) -> Result<impl IntoResponse, AppError> {
+async fn authorized(
+    auth_response: &AuthResponse, 
+    state: AppState
+) -> Result<impl IntoResponse, AppError> {
+    // 認可コードをトークンに交換
     let (access_token, id_token) = exchange_code_for_token(...).await?;
 
-    let user_data = user_from_verified_idtoken(id_token, &state, auth_response).await?;
+    // IDトークンを検証してユーザー情報を取得
+    let user_data = user_from_verified_idtoken(
+        id_token, 
+        &state, 
+        auth_response
+    ).await?;
 
-    // userinfoエンドポイントからのユーザーデータの任意チェック
+    // ユーザー情報の追加確認（オプション）
     let user_data_userinfo = fetch_user_data_from_google(access_token).await?;
     if user_data.id != user_data_userinfo.id {
-        return Err(anyhow::anyhow!("ID mismatch").into());
+        return Err(anyhow::anyhow!("IDが一致しません").into());
     }
 
+    // セッションの作成
     let session_id = create_and_store_session(user_data, ...).await?;
-    Ok((set_cookie_header(session_id), Redirect::to("/popup_close")))
+    
+    Ok((
+        set_cookie_header(session_id), 
+        Redirect::to("/popup_close")
+    ))
 }
 ```
 
-### ユーザーセッションの管理
+### セッション管理
 
-セッションはリクエスト間で安全で一貫した認証を確保します。ログイン成功時に、セッションが作成され安全に保存されます：
+認証後のユーザー情報は、セッションに保存して管理します：
 
 ```rust
 async fn create_and_store_session(
@@ -291,23 +265,22 @@ async fn create_and_store_session(
     expires_at: DateTime<Utc>,
 ) -> Result<String, AppError> {
     let mut session = Session::new();
-    session.insert("user", &user_data)?;
-    session.set_expiry(expires_at);
+    session.insert("user", &user_data)?;      // ユーザー情報を保存
+    session.set_expiry(expires_at);           // セッション有効期限を設定
     let session_id = store.store_session(session).await?;
     Ok(session_id)
 }
 ```
 
-機密性の高いルートを保護するため、関数引数に`user: User`を含めます。`User`エクストラクタは自動的にセッションCookieを検証し、後続のリクエストのためにユーザーデータを取得します：
+認証が必要なページは、`User`エクストラクタを使って保護します：
 
 ```rust
-// "user: User"引数は認証済みユーザーデータへのアクセスを確保
+// 認証が必要なページの例
 async fn protected(user: User) -> impl IntoResponse {
-    format!("Welcome, {}!", user.name)
+    format!("ようこそ、{}さん！", user.name)
 }
 
-// Userエクストラクタ
-// リクエストからCookieを抽出し、セッションストアからユーザーデータを取得
+// Userエクストラクタの実装
 #[async_trait]
 impl<S> FromRequestParts<S> for User
 where
@@ -323,27 +296,27 @@ where
 }
 ```
 
-## セキュリティに関する考慮事項
+## セキュリティ対策の詳細
 
-認証の実装は、複数のセキュリティメカニズムが連携して機能することに依存しています。IDトークンのクレームを認証に使用するため、これらのメカニズムは認証プロセスの保護とトークンの真正性の検証に焦点を当てています。
+この実装では、複数のセキュリティメカニズムを組み合わせて認証の安全性を確保しています。IDトークンを用いた認証では、これらのメカニズムが認証プロセスの保護とトークンの正当性の検証に重要な役割を果たします。
 
-### Nonceの検証
+### Nonceによる検証
 
-nonceメカニズムは、認証に使用するIDトークンが特定のリクエストのために発行されたものであることを検証する上で重要です。
+nonceメカニズムは、IDトークンが特定のリクエストのために発行されたものであることを検証するために重要です。
 
-Nonce検証は、以下の2つの値を比較することでIDトークンの真正性を確認します：
+Nonce検証は以下の2つの値を比較することでIDトークンの真正性を確認します：
 
-1. **IDトークン内のnonce:** Googleによって署名されたトークンに埋め込まれる
-2. **セッションストアからのnonce:** stateパラメータのnonce_idを使用して取得
+1. **IDトークン内のnonce:** Googleによって署名されたトークンに埋め込まれます
+2. **セッションストアからのnonce:** stateパラメータの`nonce_id`を使用して取得します
 
 これによりリプレイ攻撃を防ぎ、トークンが現在の認証リクエストに紐付けられていることを確認します。
 
 ```mermaid
 sequenceDiagram
-    participant Browser
-    participant Server
-    participant Session Store
-    participant Google
+    participant Browser as ブラウザ
+    participant Server as サーバー
+    participant Session Store as セッションストア
+    participant Google as Google認証
 
     Browser->>Server: 初期リクエスト
     Server-->>Session Store: {nonce_id, nonce}を保存
@@ -371,17 +344,17 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant Browser
-    participant Server
-    participant Session Store
-    participant Google
+    participant Browser as ブラウザ
+    participant Server as サーバー
+    participant Session Store as セッションストア
+    participant Google as Google認証
 
     Browser->>Server: 初期リクエスト
     Server-->>Session Store: {csrf_id, csrf_token}を保存
-    Server->>Browser: state(csrf_token)を含めてリダイレクト <br/>Set-cookie: __Host-CsrfId=csrf_id
+    Server->>Browser: state(csrf_token)を含めてリダイレクト <br>Set-cookie: __Host-CsrfId=csrf_id
     Browser->>Google: state(csrf_token)を含むリクエスト
     Google->>Browser: codeとstate(csrf_token)を含むリダイレクトレスポンス
-    Browser->>Server: GETでcode, state(csrf_token) <br/>Cookie: __Host-CsrfId=csrf_id
+    Browser->>Server: GETでcode, state(csrf_token) <br>Cookie: __Host-CsrfId=csrf_id
     Session Store-->>Server: csrf_idを使用してcsrf_tokenを取得
     Server-->>Server: stateとセッション内のcsrf_tokenを比較
 ```
@@ -452,6 +425,6 @@ Googleのuserinfoエンドポイントでも同様のデータが提供されま
 
 ## おわりに
 
-この実装では、AxumでのセキュアなOAuth2/OIDC認証システムの構築について説明しました。認証の実装は複雑になり得ますが、管理可能なコンポーネントに分解することで、セキュアで保守可能なシステムを作成することができました。このコードは、トークン検証、CSRF保護、セッション管理のための実践的なパターンを示しており、あなた自身のプロジェクトでも役立つかもしれません。
+本記事では、Axumを用いたセキュアなOAuth2/OIDC認証システムの構築方法について説明しました。認証の実装は複雑になりがちですが、機能を管理可能なコンポーネントに分割することで、セキュアで保守性の高いシステムを実現することができました。この実装は、トークンの検証、CSRF保護、セッション管理といった実践的なパターンを示しており、ご自身のプロジェクトに応用できるでしょう。
 
-完全な実装は[GitHub](https://github.com/ktaka-ccmp/axum-google-oauth2)に投稿しています。実装の詳細に興味がある方はぜひご覧ください。特にセキュリティ対策とセッション管理のアプローチについてのご意見をお聞かせいただければ幸いです。改善の可能性や特定の設計選択についての質問があれば、ぜひフィードバックをお寄せください！
+完全な実装コードは[GitHub](https://github.com/ktaka-ccmp/axum-google-oauth2)で公開しています。詳細に興味のある方はぜひご覧ください。特に、セキュリティ対策やセッション管理の設計に関するご意見をお聞かせいただければ幸いです。さらに改善の余地や特定の設計選択についての質問があれば、ぜひフィードバックをお寄せください！

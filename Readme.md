@@ -15,10 +15,31 @@
 1. md->html: pandoc Readme.md -o Readme.html
 1. blogger記事にコピペ
 
+## 画像
 
+GitHUBのmasterブランチにアップロード下画像を参照する。
 
+```html
+<p><a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/Axum-Google-OAuth2-Login/image/fig-1.png"
+    target="_blank">
+    <img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/Axum-Google-OAuth2-Login/image/fig-1.png"
+    width="80%" alt="Sign-in Animation" title="Sign-in Animation"> </a></p>
+```
 
+### mermaid diagramをpngに変換
 
+```bash
+mkdir image
+mmdc -i Readme.en.md -o ./image/fig.png
+```
 
+マークダウンの中からmeraid diagramを抽出し、番号をつけて保存してくれる👍
 
-
+```bash
+$ tree image/
+image/
+├── fig-1.png
+├── fig-2.png
+├── fig-3.png
+└── fig-4.png
+```

@@ -81,12 +81,14 @@ These settings work together to maintain secure authentication states, even acro
 
 #### OAuth2 Parameters
 
-OAuth2 and OIDC define several parameters critical to the authentication process. Here’s how I approached configuring some of the key parameters:
+OAuth2 and OIDC define several parameters critical to the authentication process. Here's how I approached configuring some of the key parameters:
 
 - **`response_type`**: Set to `code`, as it securely delivers an authorization code.
 - **`response_mode`**: Used `form_post` for better security by avoiding sensitive data in URLs.
 - **`scope`**: Requested `openid`, `email`, and `profile` for user identity and basic information.
+- **`state`**: Contains encoded security tokens (CSRF token, nonce ID, and PKCE ID) to prevent CSRF attacks and maintain session state.
 - **`code_challenge`** and **`code_challenge_method`**: Implements PKCE for secure code exchange.
+- **`nonce`**: Uniquely identifies the authentication request and prevents replay attacks.
 
 These parameters are essential for controlling the authentication flow and ensuring security.
 

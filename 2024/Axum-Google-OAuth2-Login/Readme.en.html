@@ -113,9 +113,14 @@ URLs.</li>
 <li><strong><code>scope</code></strong>: Requested <code>openid</code>,
 <code>email</code>, and <code>profile</code> for user identity and basic
 information.</li>
+<li><strong><code>state</code></strong>: Contains encoded security
+tokens (CSRF token, nonce ID, and PKCE ID) to prevent CSRF attacks and
+maintain session state.</li>
 <li><strong><code>code_challenge</code></strong> and
 <strong><code>code_challenge_method</code></strong>: Implements PKCE for
 secure code exchange.</li>
+<li><strong><code>nonce</code></strong>: Uniquely identifies the
+authentication request and prevents replay attacks.</li>
 </ul>
 <p>These parameters are essential for controlling the authentication
 flow and ensuring security.</p>
@@ -133,7 +138,7 @@ main page responsive. This approach:</p>
 </ul>
 <p>The flow coordinates between four components: browser, server,
 Google, and session store. The session store manages login sessions and
-security tokens (CSRF and nonce).</p>
+security tokens (CSRF, nonce, PKCE verifier).</p>
 <p><a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/Axum-Google-OAuth2-Login/image/fig-2.png"
     target="_blank">
     <img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/Axum-Google-OAuth2-Login/image/fig-2.png"

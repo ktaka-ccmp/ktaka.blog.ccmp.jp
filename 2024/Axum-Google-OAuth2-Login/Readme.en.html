@@ -23,6 +23,7 @@ Callback</a></li>
 <ul>
 <li><a href="#nonce-validation">Nonce Validation</a></li>
 <li><a href="#csrf-protection">CSRF Protection</a></li>
+<li><a href="#pkce-validation">PKCE Validation</a></li>
 <li><a href="#cookie-security">Cookie Security</a></li>
 <li><a href="#response-mode-security">Response Mode Security</a></li>
 <li><a
@@ -112,6 +113,9 @@ URLs.</li>
 <li><strong><code>scope</code></strong>: Requested <code>openid</code>,
 <code>email</code>, and <code>profile</code> for user identity and basic
 information.</li>
+<li><strong><code>code_challenge</code></strong> and
+<strong><code>code_challenge_method</code></strong>: Implements PKCE for
+secure code exchange.</li>
 </ul>
 <p>These parameters are essential for controlling the authentication
 flow and ensuring security.</p>
@@ -184,42 +188,57 @@ class="sourceCode rust"><code class="sourceCode rust"><span id="cb5-1"><a href="
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    headers<span class="op">:</span> HeaderMap<span class="op">,</span></span>
 <span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>) <span class="op">-&gt;</span> <span class="dt">Result</span><span class="op">&lt;</span><span class="kw">impl</span> IntoResponse<span class="op">,</span> AppError<span class="op">&gt;</span> <span class="op">{</span></span>
 <span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Generate and store security tokens</span></span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> (csrf_token<span class="op">,</span> csrf_id) <span class="op">=</span> generate_store_token(<span class="st">&quot;csrf_session&quot;</span><span class="op">,</span> expires_at<span class="op">,</span> <span class="cn">Some</span>(user_agent))<span class="op">;</span></span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> (nonce_token<span class="op">,</span> nonce_id) <span class="op">=</span> generate_store_token(<span class="st">&quot;nonce_session&quot;</span><span class="op">,</span> expires_at<span class="op">,</span> <span class="cn">None</span>)<span class="op">;</span></span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Combine tokens into a state parameter</span></span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> encoded_state <span class="op">=</span> encode_state(csrf_token<span class="op">,</span> nonce_id)<span class="op">;</span></span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Construct the Google OAuth2 URL with required parameters</span></span>
-<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> auth_url <span class="op">=</span> <span class="pp">format!</span>(</span>
-<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;{}?{}&amp;client_id={}&amp;redirect_uri={}&amp;state={}&amp;nonce={}&quot;</span><span class="op">,</span></span>
-<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>        OAUTH2_AUTH_URL<span class="op">,</span>         <span class="co">// e.g., https://accounts.google.com/o/oauth2/v2/auth</span></span>
-<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>        OAUTH2_QUERY_STRING<span class="op">,</span>     <span class="co">// e.g., response_type=code&amp;scope=openid+email+profile...</span></span>
-<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>        params<span class="op">.</span>client_id<span class="op">,</span></span>
-<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>        params<span class="op">.</span>redirect_uri<span class="op">,</span></span>
-<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>        encoded_state<span class="op">,</span></span>
-<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>        nonce_token</span>
-<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>    )<span class="op">;</span></span>
-<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Set security cookie and prepare the redirect response</span></span>
-<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> <span class="kw">mut</span> headers <span class="op">=</span> <span class="pp">HeaderMap::</span>new()<span class="op">;</span></span>
-<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>    header_set_cookie(<span class="op">&amp;</span><span class="kw">mut</span> headers<span class="op">,</span> CSRF_COOKIE_NAME<span class="op">,</span> csrf_id<span class="op">,</span> expires_at)<span class="op">?;</span></span>
-<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>    <span class="cn">Ok</span>((headers<span class="op">,</span> <span class="pp">Redirect::</span>to(<span class="op">&amp;</span>auth_url)))</span>
-<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> (csrf_token<span class="op">,</span> csrf_id) <span class="op">=</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>        generate_store_token(<span class="st">&quot;csrf_session&quot;</span><span class="op">,</span> expires_at<span class="op">,</span> <span class="cn">Some</span>(user_agent)<span class="op">,</span> <span class="op">&amp;</span>store)<span class="op">.</span><span class="kw">await</span><span class="op">?;</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> (nonce_token<span class="op">,</span> nonce_id) <span class="op">=</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>        generate_store_token(<span class="st">&quot;nonce_session&quot;</span><span class="op">,</span> expires_at<span class="op">,</span> <span class="cn">None</span><span class="op">,</span> <span class="op">&amp;</span>store)<span class="op">.</span><span class="kw">await</span><span class="op">?;</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> (pkce_token<span class="op">,</span> pkce_id) <span class="op">=</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>        generate_store_token(<span class="st">&quot;pkce_session&quot;</span><span class="op">,</span> expires_at<span class="op">,</span> <span class="cn">None</span><span class="op">,</span> <span class="op">&amp;</span>store)<span class="op">.</span><span class="kw">await</span><span class="op">?;</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Generate PKCE challenge</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> pkce_challenge <span class="op">=</span> URL_SAFE_NO_PAD<span class="op">.</span>encode(</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>        <span class="pp">Sha256::</span>digest(pkce_token<span class="op">.</span>as_bytes())</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    )<span class="op">;</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Combine tokens into a state parameter</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> encoded_state <span class="op">=</span> encode_state(csrf_token<span class="op">,</span> nonce_id<span class="op">,</span> pkce_id)<span class="op">;</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Construct the Google OAuth2 URL with required parameters</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> auth_url <span class="op">=</span> <span class="pp">format!</span>(</span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;{}?{}&amp;client_id={}&amp;redirect_uri={}&amp;state={}&amp;nonce={}&amp;code_challenge={}&amp;code_challenge_method=S256&quot;</span><span class="op">,</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>        OAUTH2_AUTH_URL<span class="op">,</span>         <span class="co">// e.g., https://accounts.google.com/o/oauth2/v2/auth</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>        OAUTH2_QUERY_STRING<span class="op">,</span>     <span class="co">// e.g., response_type=code&amp;scope=openid+email+profile...</span></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>        params<span class="op">.</span>client_id<span class="op">,</span></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>        params<span class="op">.</span>redirect_uri<span class="op">,</span></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>        encoded_state<span class="op">,</span></span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>        nonce_token<span class="op">,</span></span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>        pkce_challenge<span class="op">,</span></span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>    )<span class="op">;</span></span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Set security cookie and prepare the redirect response</span></span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> <span class="kw">mut</span> headers <span class="op">=</span> <span class="pp">HeaderMap::</span>new()<span class="op">;</span></span>
+<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a>    header_set_cookie(<span class="op">&amp;</span><span class="kw">mut</span> headers<span class="op">,</span> CSRF_COOKIE_NAME<span class="op">,</span> csrf_id<span class="op">,</span> expires_at)<span class="op">?;</span></span>
+<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a>    <span class="cn">Ok</span>((headers<span class="op">,</span> <span class="pp">Redirect::</span>to(<span class="op">&amp;</span>auth_url)))</span>
+<span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <h4 id="state-parameter">State Parameter</h4>
 <p>The state parameter combines:</p>
 <ul>
 <li>CSRF token: Protects against cross-site request forgery.</li>
 <li>Nonce ID: Validates the ID token’s authenticity.</li>
+<li>PKCE ID: Identifies the PKCE verifier of the request</li>
 <li>Base64URL encoding: Embeds multiple parameters in a URL safe single
 parameter.</li>
 </ul>
 <div class="sourceCode" id="cb6"><pre
-class="sourceCode rust"><code class="sourceCode rust"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">fn</span> encode_state(csrf_token<span class="op">:</span> <span class="dt">String</span><span class="op">,</span> nonce_id<span class="op">:</span> <span class="dt">String</span>) <span class="op">-&gt;</span> <span class="dt">String</span> <span class="op">{</span></span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> state_params <span class="op">=</span> StateParams <span class="op">{</span> csrf_token<span class="op">,</span> nonce_id <span class="op">};</span></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    URL_SAFE<span class="op">.</span>encode(<span class="pp">serde_json::json!</span>(state_params)<span class="op">.</span>to_string())</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+class="sourceCode rust"><code class="sourceCode rust"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">fn</span> encode_state(csrf_token<span class="op">:</span> <span class="dt">String</span><span class="op">,</span> nonce_id<span class="op">:</span> <span class="dt">String</span><span class="op">,</span> pkce_id<span class="op">:</span> <span class="dt">String</span>) <span class="op">-&gt;</span> <span class="dt">String</span> <span class="op">{</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> state_params <span class="op">=</span> StateParams <span class="op">{</span> </span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>        csrf_token<span class="op">,</span> </span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>        nonce_id<span class="op">,</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>        pkce_id </span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">};</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    URL_SAFE<span class="op">.</span>encode(<span class="pp">serde_json::json!</span>(state_params)<span class="op">.</span>to_string())</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
 <p>Google preserves and returns this state parameter unchanged, enabling
 security validations in the callback.</p>
 <h3 id="handling-oauth2-callback">Handling OAuth2 Callback</h3>
@@ -312,6 +331,8 @@ class="sourceCode rust"><code class="sourceCode rust"><span id="cb11-1"><a href=
 <span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>        <span class="cn">Ok</span>(user)</span>
 <span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
 <span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>Having covered the implementation details, let’s examine the security
+mechanisms that protect our authentication flow.</p>
 <h2 id="security-considerations">Security Considerations</h2>
 <p>Our authentication implementation relies on several security
 mechanisms working together. Since we use ID token claims for
@@ -367,10 +388,48 @@ from Google’s domain</li>
 <p>This combination ensures that only Google can respond to our original
 authentication request, preventing any malicious sites from initiating
 or hijacking the authentication flow.</p>
+<h3 id="pkce-validation">PKCE Validation</h3>
+<p>PKCE (Proof Key for Code Exchange) is a security extension to OAuth
+2.0 that protects authorization codes from being intercepted or
+injected. Unlike CSRF and nonce validation which protect the
+authentication flow, PKCE specifically secures the code exchange
+process.</p>
+<p>PKCE ensures that only the client that initiated the authentication
+flow can exchange the authorization code for tokens:</p>
+<p><a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/Axum-Google-OAuth2-Login/image/fig-5.png"
+    target="_blank">
+    <img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2024/Axum-Google-OAuth2-Login/image/fig-5.png"
+    width="80%" alt="basic-authentication-flow" title="basic-authentication-flow"> </a></p>
+<p>The implementation generates a random verifier and creates a
+challenge using SHA-256:</p>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode rust"><code class="sourceCode rust"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> (pkce_token<span class="op">,</span> pkce_id) <span class="op">=</span> generate_store_token(<span class="st">&quot;pkce_session&quot;</span><span class="op">,</span> expires_at<span class="op">,</span> <span class="cn">None</span><span class="op">,</span> <span class="op">&amp;</span>store)<span class="op">.</span><span class="kw">await</span><span class="op">?;</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="kw">let</span> pkce_challenge <span class="op">=</span> URL_SAFE_NO_PAD<span class="op">.</span>encode(<span class="pp">Sha256::</span>digest(pkce_token<span class="op">.</span>as_bytes()))<span class="op">;</span></span></code></pre></div>
+<p>When exchanging the code for tokens, we include the original
+verifier:</p>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode rust"><code class="sourceCode rust"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">async</span> <span class="kw">fn</span> exchange_code_for_token(</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    params<span class="op">:</span> OAuth2Params<span class="op">,</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    code<span class="op">:</span> <span class="dt">String</span><span class="op">,</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    code_verifier<span class="op">:</span> <span class="dt">String</span><span class="op">,</span>  <span class="co">// Original PKCE verifier</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>) <span class="op">-&gt;</span> <span class="dt">Result</span><span class="op">&lt;</span>(<span class="dt">String</span><span class="op">,</span> <span class="dt">String</span>)<span class="op">,</span> AppError<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> response <span class="op">=</span> <span class="pp">reqwest::Client::</span>new()</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span>post(params<span class="op">.</span>token_url)</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span>form(<span class="op">&amp;</span>[</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>            <span class="co">// Other parameters...</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>            (<span class="st">&quot;code_verifier&quot;</span><span class="op">,</span> code_verifier)<span class="op">,</span></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>        ])</span></code></pre></div>
+<p>This mechanism prevents:</p>
+<ul>
+<li>Authorization code interception</li>
+<li>Code injection attempts</li>
+<li>Replay attacks</li>
+<li>Man-in-the-middle attacks during code exchange</li>
+</ul>
 <h3 id="cookie-security">Cookie Security</h3>
 <p>All cookies use comprehensive security settings:</p>
-<div class="sourceCode" id="cb14"><pre
-class="sourceCode rust"><code class="sourceCode rust"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;{name}={value}; SameSite=Lax; Secure; HttpOnly; Path=/; Max-Age={max_age}&quot;</span></span></code></pre></div>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode rust"><code class="sourceCode rust"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;{name}={value}; SameSite=Lax; Secure; HttpOnly; Path=/; Max-Age={max_age}&quot;</span></span></code></pre></div>
 <ul>
 <li><strong><code>HttpOnly:</code></strong> Prevents JavaScript access
 to cookies.</li>
@@ -432,8 +491,13 @@ data</li>
 OAuth2/OIDC authentication system with Axum. While implementing auth can
 be complex, breaking it down into manageable components helped create a
 system that’s both secure and maintainable. The code demonstrates
-practical patterns for token validation, CSRF protection, and session
-management that you might find useful in your own projects.</p>
+practical patterns that you might find useful in your own projects
+for:</p>
+<ul>
+<li>Token validation and CSRF protection</li>
+<li>PKCE implementation for code exchange security</li>
+<li>Comprehensive session management</li>
+</ul>
 <p>I’ve posted the complete implementation on <a
 href="https://github.com/ktaka-ccmp/axum-google-oauth2">GitHub</a>. Take
 a look if you’re interested in the implementation details - I’m

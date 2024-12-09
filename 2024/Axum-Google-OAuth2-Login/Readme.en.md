@@ -14,6 +14,7 @@
 - [Security Considerations](#security-considerations)
   - [Nonce Validation](#nonce-validation)
   - [CSRF Protection](#csrf-protection)
+  - [PKCE Validation](#pkce-validation)
   - [Cookie Security](#cookie-security)
   - [Response Mode Security](#response-mode-security)
   - [Authentication with Authorization Code Flow](#authentication-with-authorization-code-flow)
@@ -85,6 +86,7 @@ OAuth2 and OIDC define several parameters critical to the authentication process
 - **`response_type`**: Set to `code`, as it securely delivers an authorization code.
 - **`response_mode`**: Used `form_post` for better security by avoiding sensitive data in URLs.
 - **`scope`**: Requested `openid`, `email`, and `profile` for user identity and basic information.
+- **`code_challenge`** and **`code_challenge_method`**: Implements PKCE for secure code exchange.
 
 These parameters are essential for controlling the authentication flow and ensuring security.
 
@@ -100,7 +102,7 @@ Our implementation uses a popup window for authentication to keep the main page 
 - Maintains login state using shared cookies across the windows
 - Updates the main page automatically when complete
 
-The flow coordinates between four components: browser, server, Google, and session store. The session store manages login sessions and security tokens (CSRF and nonce).
+The flow coordinates between four components: browser, server, Google, and session store. The session store manages login sessions and security tokens (CSRF, nonce, PKCE verifier).
 
 ```mermaid
 sequenceDiagram
@@ -112,8 +114,11 @@ sequenceDiagram
     Note over Browser,Server: 1. Initial Request
     Browser->>Browser: Click Login button -> Open popup window
     Browser->>Server: GET /auth/google
-    Server->>Session Store: Store CSRF & Nonce data
-    Server->>Browser: 303 Redirect to Google OAuth URL<br/>Set-Cookie: __Host-CsrfId=xxxxx
+    Server->>Server: Generate tokens:<br/>CSRF token, Nonce, PKCE verifier
+    Server->>Server: Create PKCE challenge<br/>(SHA256 of verifier)
+
+    Server->>Session Store: Store CSRF, Nonce & PKCE verifier
+    Server->>Browser: 303 Redirect to Google OAuth URL<br/>Set-Cookie: __Host-CsrfId=csrf_id<br/>with state={csrf_token,nonce_id,pkce_id}
 
     Note over Browser,Google: 2. Google Auth
     Browser->>Google: Login & Grant Consent
@@ -122,7 +127,8 @@ sequenceDiagram
     Note over Browser,Server: 3. Callback Processing
     Note over Session Store: i: query mode<br/>ii: form_post mode
     Browser->>Server: i. GET /auth/authorized?code=xxx...<br/>ii. POST /auth/authorized {code=xxxx...}
-    Server<<->>Google: Exchange code for tokens
+    Server<<->>Session Store: Retrieve PKCE verifier
+    Server<<->>Google: Exchange code+verifier for tokens
     Server<<->>Session Store: Validate tokens
     Server->>Session Store: Create user session
     Server-->>Browser: 303 Redirect response<br/>Set session id in cookie
@@ -186,21 +192,31 @@ async fn google_auth(
     headers: HeaderMap,
 ) -> Result<impl IntoResponse, AppError> {
     // Generate and store security tokens
-    let (csrf_token, csrf_id) = generate_store_token("csrf_session", expires_at, Some(user_agent));
-    let (nonce_token, nonce_id) = generate_store_token("nonce_session", expires_at, None);
+    let (csrf_token, csrf_id) =
+        generate_store_token("csrf_session", expires_at, Some(user_agent), &store).await?;
+    let (nonce_token, nonce_id) =
+        generate_store_token("nonce_session", expires_at, None, &store).await?;
+    let (pkce_token, pkce_id) =
+        generate_store_token("pkce_session", expires_at, None, &store).await?;
+
+    // Generate PKCE challenge
+    let pkce_challenge = URL_SAFE_NO_PAD.encode(
+        Sha256::digest(pkce_token.as_bytes())
+    );
 
     // Combine tokens into a state parameter
-    let encoded_state = encode_state(csrf_token, nonce_id);
+    let encoded_state = encode_state(csrf_token, nonce_id, pkce_id);
 
     // Construct the Google OAuth2 URL with required parameters
     let auth_url = format!(
-        "{}?{}&client_id={}&redirect_uri={}&state={}&nonce={}",
+        "{}?{}&client_id={}&redirect_uri={}&state={}&nonce={}&code_challenge={}&code_challenge_method=S256",
         OAUTH2_AUTH_URL,         // e.g., https://accounts.google.com/o/oauth2/v2/auth
         OAUTH2_QUERY_STRING,     // e.g., response_type=code&scope=openid+email+profile...
         params.client_id,
         params.redirect_uri,
         encoded_state,
-        nonce_token
+        nonce_token,
+        pkce_challenge,
     );
 
     // Set security cookie and prepare the redirect response
@@ -217,11 +233,16 @@ The state parameter combines:
 
 - CSRF token: Protects against cross-site request forgery.
 - Nonce ID: Validates the ID token’s authenticity.
+- PKCE ID: Identifies the PKCE verifier of the request
 - Base64URL encoding: Embeds multiple parameters in a URL safe single parameter.
 
 ```rust
-fn encode_state(csrf_token: String, nonce_id: String) -> String {
-    let state_params = StateParams { csrf_token, nonce_id };
+fn encode_state(csrf_token: String, nonce_id: String, pkce_id: String) -> String {
+    let state_params = StateParams { 
+        csrf_token, 
+        nonce_id,
+        pkce_id 
+    };
     URL_SAFE.encode(serde_json::json!(state_params).to_string())
 }
 ```
@@ -325,6 +346,8 @@ where
 }
 ```
 
+Having covered the implementation details, let's examine the security mechanisms that protect our authentication flow.
+
 ## Security Considerations
 
 Our authentication implementation relies on several security mechanisms working together. Since we use ID token claims for authentication, these mechanisms focus on protecting the authentication process and verifying token authenticity.
@@ -402,6 +425,64 @@ Instead, we rely on two security measures:
 
 This combination ensures that only Google can respond to our original authentication request, preventing any malicious sites from initiating or hijacking the authentication flow.
 
+### PKCE Validation
+
+PKCE (Proof Key for Code Exchange) is a security extension to OAuth 2.0 that protects authorization codes from being intercepted or injected. Unlike CSRF and nonce validation which protect the authentication flow, PKCE specifically secures the code exchange process.
+
+PKCE ensures that only the client that initiated the authentication flow can exchange the authorization code for tokens:
+
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant Server
+    participant Session Store
+    participant Google
+
+    Browser->>Server: Initial Request
+    Server->>Server: Generate PKCE verifier
+    Server->>Server: challenge = SHA256(verifier)
+    Server->>Session Store: Store {pkce_id: verifier}
+    Server->>Google: Auth request with:<br/>code_challenge=challenge<br/>code_challenge_method=S256
+    
+    Note over Google: Stores challenge
+    Google->>Browser: Return auth code
+    Browser->>Server: Send code + state(with pkce_id)
+    Server->>Session Store: Get verifier by pkce_id
+    Server->>Google: Exchange:<br/>code + code_verifier
+    Note over Google: Verify:<br/>SHA256(verifier) = challenge
+    Google->>Server: Return tokens if valid
+```
+
+The implementation generates a random verifier and creates a challenge using SHA-256:
+
+```rust
+let (pkce_token, pkce_id) = generate_store_token("pkce_session", expires_at, None, &store).await?;
+let pkce_challenge = URL_SAFE_NO_PAD.encode(Sha256::digest(pkce_token.as_bytes()));
+```
+
+When exchanging the code for tokens, we include the original verifier:
+
+```rust
+async fn exchange_code_for_token(
+    params: OAuth2Params,
+    code: String,
+    code_verifier: String,  // Original PKCE verifier
+) -> Result<(String, String), AppError> {
+    let response = reqwest::Client::new()
+        .post(params.token_url)
+        .form(&[
+            // Other parameters...
+            ("code_verifier", code_verifier),
+        ])
+```
+
+This mechanism prevents:
+
+- Authorization code interception
+- Code injection attempts
+- Replay attacks
+- Man-in-the-middle attacks during code exchange
+
 ### Cookie Security
 
 All cookies use comprehensive security settings:
@@ -454,6 +535,10 @@ While Google's userinfo endpoint provides similar data, we rely on ID token vali
 
 ## Conclusion
 
-In this implementation, I've walked through building a secure OAuth2/OIDC authentication system with Axum. While implementing auth can be complex, breaking it down into manageable components helped create a system that's both secure and maintainable. The code demonstrates practical patterns for token validation, CSRF protection, and session management that you might find useful in your own projects.
+In this implementation, I've walked through building a secure OAuth2/OIDC authentication system with Axum. While implementing auth can be complex, breaking it down into manageable components helped create a system that's both secure and maintainable. The code demonstrates practical patterns that you might find useful in your own projects for:
+
+- Token validation and CSRF protection
+- PKCE implementation for code exchange security
+- Comprehensive session management
 
 I've posted the complete implementation on [GitHub](https://github.com/ktaka-ccmp/axum-google-oauth2). Take a look if you're interested in the implementation details - I'm particularly curious about your thoughts on the security measures and session handling approach. If you spot any potential improvements or have questions about specific design choices, I'd love to hear your feedback!

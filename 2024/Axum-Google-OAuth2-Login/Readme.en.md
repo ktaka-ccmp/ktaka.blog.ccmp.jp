@@ -211,7 +211,8 @@ async fn google_auth(
 
     // Construct the Google OAuth2 URL with required parameters
     let auth_url = format!(
-        "{}?{}&client_id={}&redirect_uri={}&state={}&nonce={}&code_challenge={}&code_challenge_method=S256",
+        "{}?{}&client_id={}&redirect_uri={}&state={}&nonce={}\
+        &code_challenge={}&code_challenge_method=S256",
         OAUTH2_AUTH_URL,         // e.g., https://accounts.google.com/o/oauth2/v2/auth
         OAUTH2_QUERY_STRING,     // e.g., response_type=code&scope=openid+email+profile...
         params.client_id,

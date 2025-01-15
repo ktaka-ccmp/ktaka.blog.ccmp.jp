@@ -9,24 +9,25 @@ Passkeys are a modern authentication standard based on WebAuthn that replaces tr
 - **No passwords to remember**: Users authenticate using their device's biometrics or PIN
 - **Phishing-resistant**: Credentials are bound to specific origins
 - **Better security**: Uses public key cryptography instead of shared secrets
-- **Cross-platform**: Works across devices through platform authenticators (e.g., Google Password Manager)
+- **Cross-platform**: Works across devices through platform authenticators (e.g., Google Password Manager or Apple key chain)
 
 ## General Concept
 
 WebAuthn Passkey authentication consists of two main phases: registration and authentication. Let's look at how each phase works at a high level.
 
 ### Registration Phase
-
 During registration, the system:
-1. Creates a new key pair in the authenticator
+
+1. Server generate a challenge and options and return them to the client
+1. The client creates a new key pair in the authenticator
 2. Sends the public key to the server with attestation information
 3. Server verifies the attestation and stores the public key
 
 ```mermaid
 sequenceDiagram
     participant C as Client
-    participant S as Server
     participant A as Authenticator
+    participant S as Server
 
     C->>S: POST /register/start (username)
     Note over S: Generate challenge
@@ -50,15 +51,16 @@ sequenceDiagram
 ### Authentication Phase
 
 During authentication, the system:
-1. Server sends a challenge to the client
+
+1. Server generates and sends a challenge to the client
 2. Authenticator signs the challenge using the private key
 3. Server verifies the signature using the stored public key
 
 ```mermaid
 sequenceDiagram
     participant C as Client
-    participant S as Server
     participant A as Authenticator
+    participant S as Server
 
     C->>S: POST /auth/start
     Note over S: Generate challenge
@@ -77,7 +79,183 @@ sequenceDiagram
     S->>C: Authentication success
 ```
 
-## Implementation Details
+## Client-Side Implementation
+
+### Registration Phase Implementation
+
+First, let's look at how to interact with the WebAuthn API for registration:
+
+1. Start registration: fetch options(including challenge) from the server
+2. Create credentials using the options: creates a new key pair in the authenticator
+3. Sends the public key to the server with attestation information
+
+```javascript
+// 1. Start registration
+const response = await fetch('/register/start', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(username)
+});
+const options = await response.json();
+
+// 2. Create credentials using the options
+const credential = await navigator.credentials.create({
+    publicKey: {
+        challenge: base64URLToBuffer(options.challenge),
+        rp: {
+            name: options.rp.name,
+            id: options.rp_id
+        },
+        user: {
+            id: base64URLToBuffer(options.user.id),
+            name: options.user.name,
+            displayName: options.user.displayName
+        },
+        pubKeyCredParams: options.pub_key_cred_params,
+        authenticatorSelection: options.authenticator_selection,
+        timeout: options.timeout
+    }
+});
+
+// 3. Send credential to server
+await fetch('/register/finish', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+        id: credential.id,
+        rawId: bufferToBase64URL(credential.rawId),
+        response: {
+            clientDataJSON: bufferToBase64URL(credential.response.clientDataJSON),
+            attestationObject: bufferToBase64URL(credential.response.attestationObject)
+        },
+        type: credential.type
+        user_handle: userHandle,
+    })
+});
+```
+
+The server provides registration options in this format:
+
+```json
+{
+    "challenge": "base64url-encoded-random-bytes",
+    "rp_id": "example.com",
+    "rp": {
+        "name": "Example Service",
+        "id": "example.com"
+    },
+    "user": {
+        "id": "user-uuid",
+        "name": "username",
+        "displayName": "display name"
+    },
+    "pubKeyCredParams": [
+        { "type": "public-key", "alg": -7 },  // ES256
+        { "type": "public-key", "alg": -257 } // RS256
+    ],
+    "authenticatorSelection": {
+        "authenticatorAttachment": "platform",
+        "residentKey": "required",
+        "userVerification": "discouraged"
+    },
+    "timeout": 60000
+}
+```
+
+### Authentication Phase Implementation
+
+The authentication process uses similar WebAuthn APIs:
+
+1. Start authentication: fetch options(including challenge) from the server
+2. Get assertion from authenticator: let authenticator sign the challenge using the private key and obtain the result as assertion
+3. Send assertion to server
+
+```javascript
+// 1. Start authentication
+const response = await fetch('/auth/start', {
+    method: 'POST'
+});
+const options = await response.json();
+
+// 2. Get assertion from authenticator
+const assertion = await navigator.credentials.get({
+    publicKey: {
+        challenge: base64URLToBuffer(options.challenge),
+        rpId: options.rp_id,
+        allowCredentials: options.allow_credentials.map(cred => ({
+            id: base64URLToBuffer(cred.id),
+            type: cred.type
+        })),
+        userVerification: options.user_verification,
+        timeout: options.timeout
+    }
+});
+
+// 3. Send assertion to server
+await fetch('/auth/verify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+        id: assertion.id,
+        rawId: bufferToBase64URL(assertion.rawId),
+        response: {
+            authenticatorData: bufferToBase64URL(assertion.response.authenticatorData),
+            clientDataJSON: bufferToBase64URL(assertion.response.clientDataJSON),
+            signature: bufferToBase64URL(assertion.response.signature),
+            userHandle: bufferToBase64URL(assertion.response.userHandle)
+        },
+        type: assertion.type
+    })
+});
+```
+
+The server provides authentication options in this format:
+```json
+{
+    "challenge": "base64url-encoded-random-bytes",
+    "timeout": 60000,
+    "rp_id": "example.com",
+    "allow_credentials": [
+        {
+            "type": "public-key",
+            "id": "base64url-encoded-credential-id"
+        }
+    ],
+    "user_verification": "discouraged",
+    "auth_id": "unique-auth-session-id"
+}
+```
+
+### Helper Functions
+
+Here are the necessary helper functions for handling base64URL encoding:
+
+```javascript
+function base64URLToBuffer(base64URL) {
+    const base64 = base64URL.replace(/-/g, '+').replace(/_/g, '/');
+    const padLen = (4 - base64.length % 4) % 4;
+    const padded = base64 + '='.repeat(padLen);
+    const binary = atob(padded);
+    const buffer = new ArrayBuffer(binary.length);
+    const bytes = new Uint8Array(buffer);
+    for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+    return buffer;
+}
+
+function bufferToBase64URL(buffer) {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    const base64 = btoa(binary);
+    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+```
+
+## Server Implementation
 
 ### Project Structure
 
@@ -121,9 +299,15 @@ struct AppConfig {
 }
 ```
 
+This design provides:
+- Thread-safe access to the authentication store using `Arc<Mutex<>>`
+- Secure random number generation for challenges
+- Configuration management through `AppConfig`
+- Storage for active challenges and registered credentials
+
 ### Registration Implementation
 
-The registration process is implemented in `register.rs`. Here's a key example:
+The server-side registration process is implemented in `register.rs`. Here's a key example:
 
 ```rust
 async fn start_registration(
@@ -181,7 +365,7 @@ The implementation supports two attestation formats:
 
 ### Authentication Implementation
 
-The authentication process verifies the user's possession of the private key:
+The server-side authentication process verifies the user's possession of the private key:
 
 ```rust
 async fn verify_authentication(
@@ -203,9 +387,7 @@ async fn verify_authentication(
 }
 ```
 
-## Miscellaneous
-
-### Configuration and Security Considerations
+## Security Considerations
 
 The implementation includes several security-related configurations:
 
@@ -224,21 +406,12 @@ let authenticator_selection = AuthenticatorSelection {
 ```
 
 Key security features:
-
 1. Origin checking prevents phishing attacks
 2. Cryptographically random, single-use challenges
 3. Comprehensive attestation verification
 4. Secure cryptographic operations via the `ring` crate
 
-### Lessons Learned
-
-Building this from scratch provided valuable insights:
-
-1. **WebAuthn Complexity**: The standard is intricate, with many moving parts
-2. **CBOR Handling**: Working with CBOR data structures required careful parsing
-3. **Cryptographic Operations**: Understanding challenges, signatures, and key formats was crucial
-
-### Future Work
+## Future Work
 
 The next step is to integrate with OAuth2/OIDC:
 
@@ -247,9 +420,21 @@ The next step is to integrate with OAuth2/OIDC:
 3. Add session management
 4. Enhance error handling
 
+Some potential improvements include:
+1. Adding a proper database backend
+2. Implementing credential backup states
+3. Enhancing user verification requirements
+4. Adding comprehensive test coverage
+
 ## Conclusion
 
 While this implementation is educational rather than production-ready, it demonstrates the core concepts of WebAuthn Passkeys. The code shows how to handle registration, attestation, and authentication flows using Rust and Axum.
+
+Building this from scratch provided valuable insights about:
+1. WebAuthn protocol complexity
+2. CBOR data handling
+3. Cryptographic operations
+4. Rust's type system and ownership model
 
 For production systems, I recommend using established WebAuthn libraries that have undergone security audits. However, building from scratch has provided valuable insights into WebAuthn internals and security considerations.
 

@@ -16,6 +16,7 @@ Passkeys are a modern authentication standard based on WebAuthn that replaces tr
 WebAuthn Passkey authentication consists of two main phases: registration and authentication. Let's look at how each phase works at a high level.
 
 ### Registration Phase
+
 During registration, the system:
 
 1. Server generate a challenge and options and return them to the client
@@ -81,13 +82,13 @@ sequenceDiagram
 
 ## Client-Side Implementation
 
-### Registration Phase Implementation
+Client side behaviour is controled by the JavaScript on the client browser provided by the server.
+
+### JavaScript for Registration
 
 First, let's look at how to interact with the WebAuthn API for registration:
 
 1. Start registration: fetch options(including challenge) from the server
-2. Create credentials using the options: creates a new key pair in the authenticator
-3. Sends the public key to the server with attestation information
 
 ```javascript
 // 1. Start registration
@@ -97,44 +98,14 @@ const response = await fetch('/register/start', {
     body: JSON.stringify(username)
 });
 const options = await response.json();
-
-// 2. Create credentials using the options
-const credential = await navigator.credentials.create({
-    publicKey: {
-        challenge: base64URLToBuffer(options.challenge),
-        rp: {
-            name: options.rp.name,
-            id: options.rp_id
-        },
-        user: {
-            id: base64URLToBuffer(options.user.id),
-            name: options.user.name,
-            displayName: options.user.displayName
-        },
-        pubKeyCredParams: options.pub_key_cred_params,
-        authenticatorSelection: options.authenticator_selection,
-        timeout: options.timeout
-    }
-});
-
-// 3. Send credential to server
-await fetch('/register/finish', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-        id: credential.id,
-        rawId: bufferToBase64URL(credential.rawId),
-        response: {
-            clientDataJSON: bufferToBase64URL(credential.response.clientDataJSON),
-            attestationObject: bufferToBase64URL(credential.response.attestationObject)
-        },
-        type: credential.type
-        user_handle: userHandle,
-    })
-});
 ```
 
 The server provides registration options in this format:
+
+- (todo: explain what for a challenge exists)
+- (todo: explain the importance of rp_id)
+- (todo: explain the importance of user.id)
+- (todo: briefly explain authenticatorSelection and refer it to lator section)
 
 ```json
 {
@@ -162,13 +133,61 @@ The server provides registration options in this format:
 }
 ```
 
-### Authentication Phase Implementation
+Create credentials using the options in the authenticator:
+
+- creates a new key pair and receive public key as credential
+- secret key never leaves authenticator
+
+```javascript
+// 2. Create credentials using the options
+const credential = await navigator.credentials.create({
+    publicKey: {
+        challenge: base64URLToBuffer(options.challenge),
+        rp: {
+            name: options.rp.name,
+            id: options.rp_id
+        },
+        user: {
+            id: base64URLToBuffer(options.user.id),
+            name: options.user.name,
+            displayName: options.user.displayName
+        },
+        pubKeyCredParams: options.pub_key_cred_params,
+        authenticatorSelection: options.authenticator_selection,
+        timeout: options.timeout
+    }
+});
+```
+
+Sends the public key to the server with attestation information
+
+- options.user.id is explicitly included as user_handle, since credential does not have any information that relates to the user who initiated the registration(todo: confirm if this is correct).
+
+```javascript
+// 3. Send credential to server
+await fetch('/register/finish', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+        id: credential.id,
+        rawId: bufferToBase64URL(credential.rawId),
+        response: {
+            clientDataJSON: bufferToBase64URL(credential.response.clientDataJSON),
+            attestationObject: bufferToBase64URL(credential.response.attestationObject)
+        },
+        type: credential.type
+        user_handle: options.user.id,
+    })
+});
+```
+
+### JavaScript for Authentication
 
 The authentication process uses similar WebAuthn APIs:
 
-1. Start authentication: fetch options(including challenge) from the server
-2. Get assertion from authenticator: let authenticator sign the challenge using the private key and obtain the result as assertion
-3. Send assertion to server
+Start authentication:
+
+- Fetch options(including challenge) from the server
 
 ```javascript
 // 1. Start authentication
@@ -176,7 +195,31 @@ const response = await fetch('/auth/start', {
     method: 'POST'
 });
 const options = await response.json();
+```
 
+The server returns authentication options in this format:
+
+```json
+{
+    "challenge": "base64url-encoded-random-bytes",
+    "timeout": 60000,
+    "rp_id": "example.com",
+    "allow_credentials": [
+        {
+            "type": "public-key",
+            "id": "base64url-encoded-credential-id"
+        }
+    ],
+    "user_verification": "discouraged",
+    "auth_id": "unique-auth-session-id"
+}
+```
+
+Get assertion from authenticator:
+
+- let authenticator sign the challenge using the private key and obtain the result as assertion
+
+```javascript
 // 2. Get assertion from authenticator
 const assertion = await navigator.credentials.get({
     publicKey: {
@@ -190,7 +233,11 @@ const assertion = await navigator.credentials.get({
         timeout: options.timeout
     }
 });
+```
 
+Send assertion to the server:
+
+```javascript
 // 3. Send assertion to server
 await fetch('/auth/verify', {
     method: 'POST',
@@ -209,53 +256,9 @@ await fetch('/auth/verify', {
 });
 ```
 
-The server provides authentication options in this format:
-```json
-{
-    "challenge": "base64url-encoded-random-bytes",
-    "timeout": 60000,
-    "rp_id": "example.com",
-    "allow_credentials": [
-        {
-            "type": "public-key",
-            "id": "base64url-encoded-credential-id"
-        }
-    ],
-    "user_verification": "discouraged",
-    "auth_id": "unique-auth-session-id"
-}
-```
-
-### Helper Functions
-
-Here are the necessary helper functions for handling base64URL encoding:
-
-```javascript
-function base64URLToBuffer(base64URL) {
-    const base64 = base64URL.replace(/-/g, '+').replace(/_/g, '/');
-    const padLen = (4 - base64.length % 4) % 4;
-    const padded = base64 + '='.repeat(padLen);
-    const binary = atob(padded);
-    const buffer = new ArrayBuffer(binary.length);
-    const bytes = new Uint8Array(buffer);
-    for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i);
-    }
-    return buffer;
-}
-
-function bufferToBase64URL(buffer) {
-    const bytes = new Uint8Array(buffer);
-    let binary = '';
-    for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i]);
-    }
-    const base64 = btoa(binary);
-    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-}
-```
-
 ## Server Implementation
+
+The server-side is implemented in Rust with Axum web framework.
 
 ### Project Structure
 
@@ -263,19 +266,22 @@ The project is organized into several modules:
 
 ```
 src/
-├── main.rs               # Server setup and routing
-├── passkey.rs           # Core types and utilities
+├── main.rs              # Server setup and routing
+├── passkey.rs           # module definitions in the passkey directory 
 └── passkey/
     ├── attestation.rs   # Attestation verification
     ├── auth.rs          # Authentication handling
     └── register.rs      # Registration handling
 ```
 
-### Core Components
+### State Management
 
-#### State Management
+In this implementation I chose to use HashMap for storing temporal data like challenges, as well as user credentials(public keys and user names) which is permanent.
+For production key-value storages and SQL databases should be used for these respectively.
 
-The application maintains state through several key structures:
+The AppState is the structure shared across the functions in this Axum application.
+For HashMaps, the AuthStore, which is a member of AppState, is prepared.
+So is the AppConfig, which include parameters referenced throughout this application.
 
 ```rust
 #[derive(Clone)]
@@ -299,15 +305,12 @@ struct AppConfig {
 }
 ```
 
-This design provides:
-- Thread-safe access to the authentication store using `Arc<Mutex<>>`
-- Secure random number generation for challenges
-- Configuration management through `AppConfig`
-- Storage for active challenges and registered credentials
-
 ### Registration Implementation
 
 The server-side registration process is implemented in `register.rs`. Here's a key example:
+
+The start_registration function generate uuid for user and challenge, and then store them in AuthStore(in AppState).
+It will return options in Json body of HTTP response.
 
 ```rust
 async fn start_registration(
@@ -331,12 +334,19 @@ async fn start_registration(
         timestamp: SystemTime::now()...
     };
     
+    let mut store = state.store.lock().await;
+    store
+        .challenges
+        .insert(user_info.id.clone(), stored_challenge);
+
     // Return registration options to client
     let options = RegistrationOptions {
         challenge: URL_SAFE.encode(&challenge),
         rp_id: state.config.rp_id.clone(),
         // ...other options
     };
+
+    Json(options)
 }
 ```
 
@@ -406,6 +416,7 @@ let authenticator_selection = AuthenticatorSelection {
 ```
 
 Key security features:
+
 1. Origin checking prevents phishing attacks
 2. Cryptographically random, single-use challenges
 3. Comprehensive attestation verification

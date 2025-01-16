@@ -1,5 +1,4 @@
-# Implementing WebAuthn Passkeys in Rust with Axum: A Learning Journey
-
+# Implementing WebAuthn Passkeys in Rust with Axum
 As a developer learning web programming and authentication in Rust, I recently undertook the challenge of implementing WebAuthn Passkeys using the Axum web framework. In this post, I'll share my experience building a basic Passkey authentication system from scratch, without relying on full-featured WebAuthn library crates.
 
 ## What are Passkeys?
@@ -11,13 +10,15 @@ Passkeys are a modern authentication standard based on WebAuthn that replaces tr
 - **Better security**: Uses public key cryptography instead of shared secrets
 - **Cross-platform**: Works across devices through platform authenticators (e.g., Google Password Manager or Apple key chain)
 
+Todo: explain the relationship between the terms, webauthn and passkey.
+
 ## General Concept
 
 WebAuthn Passkey authentication consists of two main phases: registration and authentication. Let's look at how each phase works at a high level.
 
 ### Registration Phase
 
-During registration, the system:
+During registration:
 
 1. Server generate a challenge and options and return them to the client
 1. The client creates a new key pair in the authenticator
@@ -51,7 +52,7 @@ sequenceDiagram
 
 ### Authentication Phase
 
-During authentication, the system:
+During authentication:
 
 1. Server generates and sends a challenge to the client
 2. Authenticator signs the challenge using the private key
@@ -82,7 +83,7 @@ sequenceDiagram
 
 ## Client-Side Implementation
 
-Client side behaviour is controled by the JavaScript on the client browser provided by the server.
+Client side behavior is controlled by the JavaScript on the client browser provided by the server.
 
 ### JavaScript for Registration
 
@@ -310,7 +311,7 @@ struct AppConfig {
 The server-side registration process is implemented in `register.rs`. Here's a key example:
 
 The start_registration function generate uuid for user and challenge, and then store them in AuthStore(in AppState).
-It will return options in Json body of HTTP response.
+It will return options as a Json body of HTTP response.
 
 ```rust
 async fn start_registration(
@@ -350,6 +351,10 @@ async fn start_registration(
 }
 ```
 
+Todo: Add explanation for contents of the data posted by the client.
+
+Todo: Add code snippet for finish_registration and its explanation.
+
 #### Attestation Verification
 
 The implementation supports two attestation formats:
@@ -376,6 +381,12 @@ The implementation supports two attestation formats:
 ### Authentication Implementation
 
 The server-side authentication process verifies the user's possession of the private key:
+
+Todo: Add code snippet for start_authentication and its explanation.
+
+Todo: Add explanation for contents of the data posted by the client.
+
+Todo: Add explanation for verify_authentication.
 
 ```rust
 async fn verify_authentication(

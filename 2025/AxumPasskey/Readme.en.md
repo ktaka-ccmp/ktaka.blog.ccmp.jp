@@ -1,4 +1,5 @@
-# Implementing WebAuthn Passkeys in Rust with Axum
+# Implementing WebAuthn Passkeys in Rust with Axum: A Learning Journey
+
 As a developer learning web programming and authentication in Rust, I recently undertook the challenge of implementing WebAuthn Passkeys using the Axum web framework. In this post, I'll share my experience building a basic Passkey authentication system from scratch, without relying on full-featured WebAuthn library crates.
 
 ## What are Passkeys?
@@ -10,7 +11,7 @@ Passkeys are a modern authentication standard based on WebAuthn that replaces tr
 - **Better security**: Uses public key cryptography instead of shared secrets
 - **Cross-platform**: Works across devices through platform authenticators (e.g., Google Password Manager or Apple key chain)
 
-Todo: explain the relationship between the terms, webauthn and passkey.
+WebAuthn is the underlying web standard that enables passwordless authentication, while Passkeys are a consumer-friendly implementation of WebAuthn. Think of WebAuthn as the technical standard (like HTTP) and Passkeys as the user-friendly product built on top of it (like the web browser). Major platforms like Google, Apple, and Microsoft have collaborated to make Passkeys interoperable across their ecosystems.
 
 ## General Concept
 
@@ -20,10 +21,10 @@ WebAuthn Passkey authentication consists of two main phases: registration and au
 
 During registration:
 
-1. Server generate a challenge and options and return them to the client
-1. The client creates a new key pair in the authenticator
-2. Sends the public key to the server with attestation information
-3. Server verifies the attestation and stores the public key
+1. Server generates a challenge and options and returns them to the client
+2. The client creates a new key pair in the authenticator
+3. Sends the public key to the server with attestation information
+4. Server verifies the attestation and stores the public key
 
 ```mermaid
 sequenceDiagram
@@ -83,13 +84,13 @@ sequenceDiagram
 
 ## Client-Side Implementation
 
-Client side behavior is controlled by the JavaScript on the client browser provided by the server.
+Client-side behavior is controlled by the JavaScript on the client browser provided by the server.
 
 ### JavaScript for Registration
 
 First, let's look at how to interact with the WebAuthn API for registration:
 
-1. Start registration: fetch options(including challenge) from the server
+1. Start registration: fetch options (including challenge) from the server
 
 ```javascript
 // 1. Start registration
@@ -102,11 +103,6 @@ const options = await response.json();
 ```
 
 The server provides registration options in this format:
-
-- (todo: explain what for a challenge exists)
-- (todo: explain the importance of rp_id)
-- (todo: explain the importance of user.id)
-- (todo: briefly explain authenticatorSelection and refer it to lator section)
 
 ```json
 {
@@ -134,10 +130,22 @@ The server provides registration options in this format:
 }
 ```
 
-Create credentials using the options in the authenticator:
+Key components of the registration options:
 
-- creates a new key pair and receive public key as credential
-- secret key never leaves authenticator
+- **Challenge**: A cryptographically random value generated for each registration attempt. It prevents replay attacks by ensuring the authenticator's response is fresh and was generated specifically for this registration.
+
+- **rp_id**: The Relying Party ID (usually the domain name) is crucial for security. It binds the credential to your domain, preventing phishing attacks - the credential can only be used on the specified domain.
+
+- **user.id**: A unique identifier for the user that remains constant across registrations. Unlike username, which might change, this ID provides a stable way to link credentials to users. It's particularly important for discoverable credentials (resident keys).
+
+- **authenticatorSelection**: Controls the behavior of the authenticator:
+  - `authenticatorAttachment`: Specifies whether to use platform authenticators (like TouchID) or cross-platform ones (like security keys)
+  - `residentKey`: Determines if the credential should be discoverable without the server providing the credential ID
+  - `userVerification`: Controls whether the user must verify their identity (via biometrics/PIN) when using the credential
+
+Create credentials using the options in the authenticator:
+- Creates a new key pair and receives public key as credential
+- Secret key never leaves authenticator
 
 ```javascript
 // 2. Create credentials using the options
@@ -160,9 +168,7 @@ const credential = await navigator.credentials.create({
 });
 ```
 
-Sends the public key to the server with attestation information
-
-- options.user.id is explicitly included as user_handle, since credential does not have any information that relates to the user who initiated the registration(todo: confirm if this is correct).
+Send the public key to the server with attestation information:
 
 ```javascript
 // 3. Send credential to server
@@ -176,19 +182,19 @@ await fetch('/register/finish', {
             clientDataJSON: bufferToBase64URL(credential.response.clientDataJSON),
             attestationObject: bufferToBase64URL(credential.response.attestationObject)
         },
-        type: credential.type
+        type: credential.type,
         user_handle: options.user.id,
     })
 });
 ```
 
+The user_handle is included explicitly because the attestation doesn't inherently contain user identification. While the credential itself is linked to the authenticator, the user_handle provides the necessary connection between the credential and the user account in your system.
+
 ### JavaScript for Authentication
 
-The authentication process uses similar WebAuthn APIs:
+The authentication process uses similar WebAuthn APIs. Let's look at each step:
 
-Start authentication:
-
-- Fetch options(including challenge) from the server
+Start authentication by fetching options (including challenge) from the server:
 
 ```javascript
 // 1. Start authentication
@@ -216,9 +222,7 @@ The server returns authentication options in this format:
 }
 ```
 
-Get assertion from authenticator:
-
-- let authenticator sign the challenge using the private key and obtain the result as assertion
+Get assertion from authenticator by letting it sign the challenge using the private key:
 
 ```javascript
 // 2. Get assertion from authenticator
@@ -236,7 +240,7 @@ const assertion = await navigator.credentials.get({
 });
 ```
 
-Send assertion to the server:
+Send assertion to the server for verification:
 
 ```javascript
 // 3. Send assertion to server
@@ -259,7 +263,7 @@ await fetch('/auth/verify', {
 
 ## Server Implementation
 
-The server-side is implemented in Rust with Axum web framework.
+The server-side is implemented in Rust with the Axum web framework.
 
 ### Project Structure
 
@@ -268,7 +272,7 @@ The project is organized into several modules:
 ```
 src/
 ├── main.rs              # Server setup and routing
-├── passkey.rs           # module definitions in the passkey directory 
+├── passkey.rs           # Module definitions in the passkey directory 
 └── passkey/
     ├── attestation.rs   # Attestation verification
     ├── auth.rs          # Authentication handling
@@ -277,12 +281,12 @@ src/
 
 ### State Management
 
-In this implementation I chose to use HashMap for storing temporal data like challenges, as well as user credentials(public keys and user names) which is permanent.
-For production key-value storages and SQL databases should be used for these respectively.
+In this implementation, I chose to use HashMap for storing temporary data like challenges, as well as user credentials (public keys and user names) which are permanent.
+For production, key-value storages and SQL databases should be used for these respectively.
 
 The AppState is the structure shared across the functions in this Axum application.
 For HashMaps, the AuthStore, which is a member of AppState, is prepared.
-So is the AppConfig, which include parameters referenced throughout this application.
+So is the AppConfig, which includes parameters referenced throughout this application.
 
 ```rust
 #[derive(Clone)]
@@ -308,10 +312,9 @@ struct AppConfig {
 
 ### Registration Implementation
 
-The server-side registration process is implemented in `register.rs`. Here's a key example:
+The registration process consists of two main functions: start_registration and finish_registration.
 
-The start_registration function generate uuid for user and challenge, and then store them in AuthStore(in AppState).
-It will return options as a Json body of HTTP response.
+The start_registration function generates UUID for user and challenge, and then stores them in AuthStore:
 
 ```rust
 async fn start_registration(
@@ -351,9 +354,57 @@ async fn start_registration(
 }
 ```
 
-Todo: Add explanation for contents of the data posted by the client.
+The finish_registration function verifies the attestation from the authenticator and stores the credential. Here are the key steps:
 
-Todo: Add code snippet for finish_registration and its explanation.
+1. Verify that the client data matches what we expect:
+   - Challenge matches the one we generated
+   - Origin matches our service
+   - Operation type is "webauthn.create"
+
+2. Extract and verify the public key:
+   - Parse the attestation object
+   - Verify the attestation format and signature
+   - Extract the public key coordinates
+
+3. Store the credential with user information:
+   - Use the credential ID as a lookup key
+   - Store both the public key and user information
+   - Remove the used challenge to prevent replay attacks
+
+```rust
+async fn finish_registration(
+    State(state): State<AppState>,
+    Json(reg_data): Json<RegisterCredential>,
+) -> Result<&'static str, (StatusCode, String)> {
+    let mut store = state.store.lock().await;
+
+    // 1. Verify the challenge and other client data
+    verify_client_data(&state, &reg_data, &store).await?;
+
+    // 2. Extract the public key from attestation
+    let public_key = extract_credential_public_key(&reg_data, &state)?;
+
+    // 3. Decode credential ID and store with user info
+    let credential_id = base64url_decode(&reg_data.raw_id)?;
+    let stored_user = store.challenges.get(&reg_data.user_handle)?.user.clone();
+
+    // 4. Store using credential ID as the key
+    store.credentials.insert(
+        reg_data.raw_id.clone(),
+        StoredCredential {
+            credential_id,
+            public_key,
+            counter: 0,
+            user: stored_user,
+        },
+    );
+
+    // 5. Remove used challenge
+    store.challenges.remove(&reg_data.user_handle);
+
+    Ok("Registration successful")
+}
+```
 
 #### Attestation Verification
 
@@ -380,13 +431,70 @@ The implementation supports two attestation formats:
 
 ### Authentication Implementation
 
-The server-side authentication process verifies the user's possession of the private key:
+The start_authentication function initiates the authentication process. The key steps are:
 
-Todo: Add code snippet for start_authentication and its explanation.
+1. Generate a new cryptographic challenge:
+   - This ensures each authentication attempt is unique
+   - Prevents replay attacks
 
-Todo: Add explanation for contents of the data posted by the client.
+2. Create a unique authentication session:
+   - Generate a UUID to track this authentication attempt
+   - Useful for handling concurrent authentication requests
 
-Todo: Add explanation for verify_authentication.
+3. Store the challenge for later verification:
+   - Keep track of active authentication sessions
+   - Map challenges to specific authentication attempts
+
+4. Return authentication options to the client:
+   - Include the challenge
+   - Specify which credentials are allowed (if any)
+   - Set timeout and verification preferences
+
+```rust
+async fn start_authentication(
+    State(state): State<AppState>
+) -> Json<AuthenticationOptions> {
+    // 1. Generate new challenge
+    let mut challenge = vec![0u8; 32];
+    state.rng.fill(&mut challenge).unwrap();
+
+    // 2. Create auth ID for this session
+    let auth_id = Uuid::new_v4().to_string();
+
+    // 3. Store challenge for verification
+    let stored_challenge = StoredChallenge {
+        challenge: challenge.clone(),
+        user: Default::default(), // Not needed for auth
+        timestamp: SystemTime::now()...
+    };
+
+    let mut store = state.store.lock().await;
+    store.challenges.insert(auth_id.clone(), stored_challenge);
+
+    // 4. Return auth options
+    Json(AuthenticationOptions {
+        challenge: URL_SAFE.encode(&challenge),
+        rp_id: state.config.rp_id.clone(),
+        // ... other options
+    })
+}
+```
+
+The verify_authentication function ensures that the authentication attempt is valid. Here's what it verifies:
+
+1. Client Data:
+   - Challenge matches our stored challenge
+   - Origin is correct
+   - Operation type is "webauthn.get"
+
+2. Authenticator Data:
+   - RP ID hash is correct
+   - User presence flag is set
+   - User verification status (if required)
+
+3. Signature:
+   - Retrieve the stored credential's public key
+   - Verify the signature on concatenated authenticator data and client data hash
 
 ```rust
 async fn verify_authentication(
@@ -428,35 +536,81 @@ let authenticator_selection = AuthenticatorSelection {
 
 Key security features:
 
-1. Origin checking prevents phishing attacks
-2. Cryptographically random, single-use challenges
-3. Comprehensive attestation verification
-4. Secure cryptographic operations via the `ring` crate
+1. Origin checking prevents phishing attacks:
+   - Each credential is bound to a specific origin
+   - Authenticator verifies the origin matches during authentication
+   - Prevents credential use on phishing sites
+
+2. Cryptographically random, single-use challenges:
+   - Each challenge is generated using cryptographically secure random numbers
+   - Challenges are single-use and time-limited
+   - Prevents replay attacks
+
+3. Comprehensive attestation verification:
+   - Verifies the authenticator's identity and security level
+   - Validates certificate chains for hardware authenticators
+   - Ensures authenticator compliance with security requirements
+
+4. Secure cryptographic operations:
+   - Uses the `ring` crate for cryptographic operations
+   - Implements standard cryptographic algorithms (ES256, RS256)
+   - Proper handling of keys and sensitive data
 
 ## Future Work
 
 The next step is to integrate with OAuth2/OIDC:
 
-1. Use Google as the identity provider for both Passkeys and OAuth2
-2. Implement account linking
-3. Add session management
-4. Enhance error handling
+1. Use Google as the identity provider for both Passkeys and OAuth2:
+   - Link Passkey credentials with Google accounts
+   - Unified authentication experience
+   - Single sign-on capabilities
+
+2. Implement account linking:
+   - Connect multiple authenticators to one account
+   - Support cross-device authentication
+   - Backup and recovery mechanisms
+
+3. Add session management:
+   - Implement proper session handling
+   - Token-based authentication
+   - Session expiry and renewal
+
+4. Enhance error handling:
+   - More detailed error messages
+   - Better error recovery
+   - User-friendly error presentation
 
 Some potential improvements include:
-1. Adding a proper database backend
-2. Implementing credential backup states
-3. Enhancing user verification requirements
-4. Adding comprehensive test coverage
+
+1. Adding a proper database backend:
+   - Replace in-memory storage with persistent storage
+   - Use SQL for user credentials
+   - Use Redis for temporary challenges
+
+2. Implementing credential backup states:
+   - Allow backup credentials
+   - Support credential recovery
+   - Implement credential rotation
+
+3. Enhancing user verification requirements:
+   - Configurable security levels
+   - Context-based verification requirements
+   - Progressive security enhancement
+
+4. Adding comprehensive test coverage:
+   - Unit tests for core functionality
+   - Integration tests for API endpoints
+   - Security testing for authentication flows
 
 ## Conclusion
 
 While this implementation is educational rather than production-ready, it demonstrates the core concepts of WebAuthn Passkeys. The code shows how to handle registration, attestation, and authentication flows using Rust and Axum.
 
 Building this from scratch provided valuable insights about:
-1. WebAuthn protocol complexity
-2. CBOR data handling
-3. Cryptographic operations
-4. Rust's type system and ownership model
+1. WebAuthn protocol complexity and security considerations
+2. CBOR data handling and attestation formats
+3. Cryptographic operations and key management
+4. Rust's type system and ownership model in a web service context
 
 For production systems, I recommend using established WebAuthn libraries that have undergone security audits. However, building from scratch has provided valuable insights into WebAuthn internals and security considerations.
 
@@ -465,6 +619,8 @@ For production systems, I recommend using established WebAuthn libraries that ha
 - [WebAuthn Specification](https://www.w3.org/TR/webauthn-2/)
 - [Axum Documentation](https://docs.rs/axum)
 - [Ring Cryptography](https://briansmith.org/rustdoc/ring/)
+- [WebAuthn Guide](https://webauthn.guide/)
+- [Passkeys.dev](https://passkeys.dev/)
 
 ---
 

@@ -413,51 +413,83 @@ If these verifications are successful, a session can be created and the user is 
 
 # WebAuthn Data Structures and API Formats
 
-Having seen both the client and server implementations, it's important to understand how they communicate with each other. While the WebAuthn standard precisely defines how browsers interact with authenticators, it doesn't specify how WebAuthn data should be transmitted between clients and servers. This gives implementations flexibility in designing their API formats. Let's examine how our implementation maps the standard WebAuthn interfaces to our API payload formats, and understand the reasoning behind our design choices.
+Having seen both the client and server implementations, it's important to understand how they communicate with each other. While the WebAuthn standard precisely defines how browsers interact with authenticators, it doesn't specify how WebAuthn data should be transmitted between clients and servers. This gives implementations flexibility in designing their API formats.
+
+The data flow between components involves several transformations:
+
+```mermaid
+flowchart LR
+    A[Authenticator\nBinary] --> |"WebAuthn API"| W[Browser JS\nArrayBuffer]
+    W --> |"base64url encode"| C[Client JS\nJSON] 
+    C --> |"HTTP"| S[Server API\nJSON]
+    S --> |"base64url decode"| R[Rust\nVec u8]
+```
+
+Let's examine how our implementation handles these transformations and why certain design choices were made.
 
 ## Registration Data Structures
 
 ### Standard WebAuthn Interfaces
 
-The browser's `navigator.credentials.create()` accepts `publicKeyCredentialCreationOptions`:
+During registration, the browser's WebAuthn API uses these interfaces:
+
+The `navigator.credentials.create()` accepts:
 
 ```javascript
 PublicKeyCredentialCreationOptions {
+    // Random bytes to prevent replay attacks
     challenge: BufferSource,
+    
+    // Service identity for phishing protection
     rp: {
-        id: string,
-        name: string
+        id: string,     // Domain name
+        name: string    // Display name
     },
+    
+    // User identity for credential binding
     user: {
-        id: BufferSource,
-        name: string,
-        displayName: string
+        id: BufferSource,     // Stable identifier
+        name: string,         // Username
+        displayName: string   // Display name
     },
+    
+    // Allowed key types and algorithms
     pubKeyCredParams: [{
         type: "public-key",
-        alg: number
+        alg: number          // e.g., -7 for ES256
     }],
+    
+    // Authenticator preferences
     authenticatorSelection?: {
+        // "platform" for built-in, "cross-platform" for security keys
         authenticatorAttachment?: "platform" | "cross-platform",
+        
+        // Whether credential should be discoverable
         residentKey?: "required" | "preferred" | "discouraged",
+        
+        // Whether user verification (biometric/PIN) is needed
         userVerification?: "required" | "preferred" | "discouraged"
     },
-    timeout?: number
+    
+    timeout?: number  // Operation timeout in milliseconds
 }
 ```
 
-And returns `AuthenticatorAttestationResponse`:
+And returns:
 
 ```javascript
 AuthenticatorAttestationResponse {
+    // JSON containing challenge, origin, and type
     clientDataJSON: ArrayBuffer,
+    
+    // CBOR-encoded credential data and attestation
     attestationObject: ArrayBuffer
 }
 ```
 
 ### Our Implementation's API Format
 
-Our server's `/register/start` endpoint returns:
+Our server endpoints use JSON with base64url-encoded binary data for transport. The `/register/start` endpoint returns:
 
 ```json
 {
@@ -474,7 +506,14 @@ Our server's `/register/start` endpoint returns:
 }
 ```
 
-And our `/register/finish` endpoint accepts:
+Key points about our registration options:
+
+- We use a domain name as `rp_id` to prevent phishing
+- We require platform authenticators for better UX
+- We require resident keys (discoverable credentials) for passwordless login
+- We omit optional fields to simplify the implementation
+
+The `/register/finish` endpoint accepts:
 
 ```json
 {
@@ -488,45 +527,61 @@ And our `/register/finish` endpoint accepts:
 }
 ```
 
-Key differences:
+The `attestationObject` contains:
 
-- We base64url-encode binary data for JSON transport
-- We simplify the options by omitting optional fields like timeout
-- We add a user_handle field to maintain the connection between credential and user
+- The new credential's public key
+- The credential ID
+- Authenticator data like counters and flags
+- Attestation format and statement
 
 ## Authentication Data Structures
 
 ### Standard WebAuthn Interfaces
 
-The browser's `navigator.credentials.get()` accepts `publicKeyCredentialRequestOptions`:
+For authentication, the browser's `navigator.credentials.get()` accepts:
 
 ```javascript
 PublicKeyCredentialRequestOptions {
+    // Random bytes to prevent replay attacks
     challenge: BufferSource,
+    
+    // Domain name for phishing protection
     rpId?: string,
+    
+    // Allowed credentials (optional for discoverable credentials)
     allowCredentials?: [{
         type: "public-key",
-        id: BufferSource
+        id: BufferSource    // Credential ID
     }],
+    
+    // Whether user verification is needed
     userVerification?: "required" | "preferred" | "discouraged",
+    
     timeout?: number
 }
 ```
 
-And returns `AuthenticatorAssertionResponse`:
+And returns:
 
 ```javascript
 AuthenticatorAssertionResponse {
+    // JSON containing challenge, origin, and type
     clientDataJSON: ArrayBuffer,
+    
+    // Authenticator data including counter
     authenticatorData: ArrayBuffer,
+    
+    // Signature over authenticatorData and clientDataHash
     signature: ArrayBuffer,
+    
+    // User identifier (required for discoverable credentials)
     userHandle?: ArrayBuffer
 }
 ```
 
 ### Our Implementation's API Format
 
-Our server's `/auth/start` endpoint returns:
+The `/auth/start` endpoint returns:
 
 ```json
 {
@@ -541,7 +596,9 @@ Our server's `/auth/start` endpoint returns:
 }
 ```
 
-And our `/auth/verify` endpoint accepts:
+The `challenge` is unique per authentication attempt to prevent replay attacks. The `allow_credentials` list is optional when using discoverable credentials.
+
+The `/auth/verify` endpoint accepts:
 
 ```json
 {
@@ -555,14 +612,14 @@ And our `/auth/verify` endpoint accepts:
 }
 ```
 
-Key differences:
+Design choices in our API:
 
-- We base64url-encode binary data for JSON transport
-- We use snake_case instead of camelCase for consistency with Rust naming conventions
-- We make user_handle a required field in our implementation
-- We omit optional fields like timeout to simplify the implementation
+- Binary data is base64url-encoded for safe JSON transport
+- We use snake_case to match Rust conventions
+- The user_handle field is required to simplify user lookup
+- Timeout and other optional fields are omitted
 
-This mapping between standard WebAuthn interfaces and our implementation's formats happens in the client-side JavaScript code, which converts between ArrayBuffer and base64url-encoded strings and restructures the data as needed.
+The client-side JavaScript handles all necessary transformations between the WebAuthn API's ArrayBuffer format and our API's JSON format. This includes base64url encoding/decoding and restructuring the data to match our API's expectations.
 
 # What's Next
 

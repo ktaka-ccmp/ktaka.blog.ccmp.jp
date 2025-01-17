@@ -72,11 +72,11 @@ sequenceDiagram
 
 ## Client-Side Implementation
 
-Let's examine how to implement the client-side WebAuthn interactions using JavaScript.
+The client-side implementation handles both registration and authentication flows using the WebAuthn browser APIs. Let's walk through each process step by step.
 
 ### Registration Implementation
 
-The registration process starts by requesting registration options from the server:
+The registration process begins by requesting options from the server. This establishes the parameters for creating a new credential:
 
 ```javascript
 const response = await fetch('/register/start', {
@@ -87,72 +87,41 @@ const response = await fetch('/register/start', {
 const options = await response.json();
 ```
 
-The server responds with registration options that include several crucial parameters:
+The server responds with registration options that specify how the credential should be created. Here are the key parameters:
 
 ```json
 {
     "challenge": "base64url-encoded-random-bytes",
     "rp_id": "example.com",
-    "rp": {
-        "name": "Example Service",
-        "id": "example.com"
-    },
     "user": {
         "id": "user-uuid",
-        "name": "username",
-        "displayName": "display name"
+        "name": "username"
     },
-    "pubKeyCredParams": [
-        { "type": "public-key", "alg": -7 },  // ES256
-        { "type": "public-key", "alg": -257 } // RS256
-    ],
     "authenticatorSelection": {
         "authenticatorAttachment": "platform",
-        "residentKey": "required",
-        "userVerification": "discouraged"
-    },
-    "timeout": 60000
+        "residentKey": "required"
+    }
 }
 ```
 
-The registration options contain several security-critical parameters:
+The challenge is a one-time cryptographic value that prevents replay attacks. The rp_id binds the credential to our domain for phishing protection, while the user.id provides a stable identifier for the credential. The authenticatorSelection parameters determine how the credential will be stored and used.
 
-The challenge is a cryptographically random value generated for each registration attempt. It prevents replay attacks by ensuring the authenticator's response is fresh and specifically generated for this registration.
-
-The rp_id (Relying Party ID) binds the credential to your domain, making the credential unusable on other domains and preventing phishing attacks.
-
-The user.id provides a stable identifier for linking credentials to users, particularly important for discoverable credentials (resident keys) that persist across sessions.
-
-The authenticatorSelection parameters control the authenticator's behavior:
-- authenticatorAttachment specifies whether to use platform or cross-platform authenticators
-- residentKey determines if the credential should be discoverable without server input
-- userVerification controls whether biometric/PIN verification is required
-
-Next, we create credentials using these options:
+With these options, we can create the credential using the WebAuthn API:
 
 ```javascript
 const credential = await navigator.credentials.create({
     publicKey: {
         challenge: base64URLToBuffer(options.challenge),
-        rp: {
-            name: options.rp.name,
-            id: options.rp_id
-        },
+        rp: { id: options.rp_id },
         user: {
             id: base64URLToBuffer(options.user.id),
-            name: options.user.name,
-            displayName: options.user.displayName
-        },
-        pubKeyCredParams: options.pub_key_cred_params,
-        authenticatorSelection: options.authenticator_selection,
-        timeout: options.timeout
+            name: options.user.name
+        }
     }
 });
 ```
 
-This code creates a new key pair in the authenticator and returns an attestation object containing the public key. The private key never leaves the authenticator, ensuring security.
-
-Finally, we send the attestation object and related data to the server:
+This code triggers the authenticator to generate a new key pair. The private key stays secure in the authenticator while the public key is included in the response. We then send this response back to the server:
 
 ```javascript
 await fetch('/register/finish', {
@@ -162,47 +131,40 @@ await fetch('/register/finish', {
         id: credential.id,
         rawId: bufferToBase64URL(credential.rawId),
         response: {
-            clientDataJSON: bufferToBase64URL(credential.response.clientDataJSON),
             attestationObject: bufferToBase64URL(credential.response.attestationObject)
         },
-        type: credential.type,
-        user_handle: options.user.id,
+        user_handle: options.user.id
     })
 });
 ```
 
-The user_handle is included explicitly to maintain the connection between the credential and the user account, as the attestation itself doesn't contain user identification.
+The server will verify this response and store the public key for future authentications.
 
-### Authentication Implementation
+### Authentication Implementation 
 
-The authentication process follows a similar pattern. First, we request authentication options:
+The authentication flow follows a similar pattern but focuses on proving possession of an existing credential. We start by requesting authentication options:
 
 ```javascript
-const response = await fetch('/auth/start', {
-    method: 'POST'
-});
+const response = await fetch('/auth/start', { method: 'POST' });
 const options = await response.json();
 ```
 
-The server provides authentication options:
+The server provides a challenge and information about accepted credentials:
 
 ```json
 {
     "challenge": "base64url-encoded-random-bytes",
-    "timeout": 60000,
     "rp_id": "example.com",
     "allow_credentials": [
         {
             "type": "public-key",
-            "id": "base64url-encoded-credential-id"
+            "id": "credential-id"
         }
-    ],
-    "user_verification": "discouraged",
-    "auth_id": "unique-auth-session-id"
+    ]
 }
 ```
 
-We then request the authenticator to sign the challenge:
+Using these options, we ask the authenticator to sign the challenge with the private key:
 
 ```javascript
 const assertion = await navigator.credentials.get({
@@ -212,16 +174,12 @@ const assertion = await navigator.credentials.get({
         allowCredentials: options.allow_credentials.map(cred => ({
             id: base64URLToBuffer(cred.id),
             type: cred.type
-        })),
-        userVerification: options.user_verification,
-        timeout: options.timeout
+        }))
     }
 });
 ```
 
-If allow_credentials is empty, the authenticator will prompt the user to choose from available discoverable keys.
-
-Finally, we send the signed assertion to the server:
+The authenticator will prompt the user for consent (and potentially biometric verification) before signing. We then send the signed assertion to the server:
 
 ```javascript
 await fetch('/auth/verify', {
@@ -229,17 +187,50 @@ await fetch('/auth/verify', {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
         id: assertion.id,
-        rawId: bufferToBase64URL(assertion.rawId),
         response: {
             authenticatorData: bufferToBase64URL(assertion.response.authenticatorData),
-            clientDataJSON: bufferToBase64URL(assertion.response.clientDataJSON),
-            signature: bufferToBase64URL(assertion.response.signature),
-            userHandle: bufferToBase64URL(assertion.response.userHandle)
-        },
-        type: assertion.type
+            signature: bufferToBase64URL(assertion.response.signature)
+        }
     })
 });
 ```
+
+## Server Implementation in Rust
+
+The server side of our WebAuthn implementation handles credential storage, challenge generation, and cryptographic verification. Our Axum-based implementation is organized into focused modules that handle different aspects of the authentication process:
+
+```
+src/
+├── main.rs              # Server setup and routing
+├── passkey.rs           # Module definitions
+└── passkey/
+    ├── attestation.rs   # Attestation verification
+    ├── auth.rs          # Authentication handling
+    └── register.rs      # Registration handling
+```
+
+The attestation module verifies new credentials during registration, the auth module handles login attempts, and the register module manages the credential creation process. This separation helps maintain clear boundaries between different authentication concerns.
+
+### State Management
+
+Before diving into the handlers, let's look at how we manage server-side state:
+
+```rust
+#[derive(Clone)]
+pub(crate) struct AppState {
+    store: Arc<Mutex<AuthStore>>,
+    rng: Arc<rand::SystemRandom>,
+    config: AppConfig,
+}
+```
+
+This structure provides thread-safe access to our storage and configuration. The AuthStore handles both temporary challenges and permanent credentials:
+
+```rust
+#[derive(Default)]
+struct AuthStore {
+    challenges: HashMap<String, StoredChallenge>,
+    credentials: HashMap<String, StoredCredential>,[Rest of the implementation sections continue as before...]
 
 ## Server Implementation in Rust
 
@@ -282,6 +273,11 @@ struct AppConfig {
 ```
 
 In a production environment, you would replace the HashMaps with proper database storage, using key-value stores for temporary data like challenges and SQL databases for permanent data like credentials.
+
+}
+```
+
+For a production environment, you'd replace these HashMaps with proper databases - perhaps Redis for challenges and PostgreSQL for credentials.
 
 ### Registration Handler Implementation
 
@@ -360,6 +356,7 @@ async fn finish_registration(
 ```
 
 This function performs several critical security checks:
+
 1. Verifies that the client data matches expectations (challenge, origin, operation type)
 2. Extracts and verifies the public key from the attestation object
 3. Stores the credential with associated user information

@@ -11,12 +11,13 @@
 - [Server Implementation in Rust](#server-implementation-in-rust)
   - [State Management](#state-management)
   - [Registration Handler Implementation](#registration-handler-implementation)
-    - [Authentication Handler Implementation](#authentication-handler-implementation)
+  - [Authentication Handler Implementation](#authentication-handler-implementation)
 - [What's Next](#whats-next)
   - [Session management](#session-management)
   - [OAuth2/OIDC integration](#oauth2oidc-integration)
   - [Storage](#storage)
 - [Conclusion](#conclusion)
+  - [Resources](#resources)
 
 # Introduction
 
@@ -50,7 +51,7 @@ sequenceDiagram
     
     C->>A: navigator.credentials.create()
     A->>A: Generate key pair
-    A->>A:  Create attestation object
+    A->>A: Create attestation object
     A->>C: Return attestation object + client data
     
     C->>S: POST /register/finish
@@ -173,7 +174,7 @@ The server provides a challenge and information about accepted credentials:
 {
     "challenge": "base64url-encoded-random-bytes",
     "rp_id": "example.com",
-    // Sending "allow_credentials" is optional for discoverable credenrials. 
+    // Sending "allow_credentials" is optional for discoverable credentials. 
     "allow_credentials": [
         {
             "type": "public-key",
@@ -338,7 +339,7 @@ This function performs several critical security checks:
 3. Stores the credential with associated user information
 4. Removes the used challenge to prevent replay attacks
 
-### Authentication Handler Implementation
+## Authentication Handler Implementation
 
 The authentication process also uses two main functions. The start_authentication function generates a new challenge for an authentication attempt:
 
@@ -424,3 +425,8 @@ The current in-memory storage would need to be replaced with proper databases - 
 Building a WebAuthn Passkey implementation from scratch was an enlightening experience that provided deep insights into both modern authentication and Rust web development. The experience showed how standards like WebAuthn and tools like Rust can make secure authentication more accessible to developers, while still demanding careful attention to security considerations.
 
 While implementing core functionality from scratch proved to be an invaluable learning experience, production systems should rely on established, well-tested WebAuthn libraries that have undergone security audits. The insights gained from this exercise, however, will prove valuable when working with these production libraries, as understanding WebAuthn's internals helps make better architectural decisions.
+
+## Resources
+
+[WebAuthn Guide](https://webauthn.guide/) - A practical guide to implementing WebAuthn authentication
+[Passkeys.dev](https://passkeys.dev/) - Resources and best practices for Passkey authentication

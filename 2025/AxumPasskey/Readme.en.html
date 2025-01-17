@@ -1,0 +1,634 @@
+<!-- # Implementing Passkeys Authentication in Rust with Axum -->
+
+<ul>
+<li><a href="#introduction">Introduction</a></li>
+<li><a href="#understanding-webauthn-and-passkeys">Understanding
+WebAuthn and Passkeys</a></li>
+<li><a href="#the-webauthn-flow">The WebAuthn Flow</a>
+<ul>
+<li><a href="#registration-flow">Registration Flow</a></li>
+<li><a href="#authentication-flow">Authentication Flow</a></li>
+</ul></li>
+<li><a href="#client-side-implementation">Client-Side Implementation</a>
+<ul>
+<li><a href="#registration-implementation">Registration
+Implementation</a></li>
+<li><a href="#authentication-implementation">Authentication
+Implementation</a></li>
+</ul></li>
+<li><a href="#server-implementation-in-rust">Server Implementation in
+Rust</a>
+<ul>
+<li><a href="#state-management">State Management</a></li>
+<li><a href="#registration-handler-implementation">Registration Handler
+Implementation</a></li>
+<li><a href="#authentication-handler-implementation">Authentication
+Handler Implementation</a></li>
+</ul></li>
+<li><a href="#webauthn-data-structures-and-api-formats">WebAuthn Data
+Structures and API Formats</a>
+<ul>
+<li><a href="#data-flow-and-transformations">Data Flow and
+Transformations</a></li>
+<li><a href="#registration-data-structures">Registration Data
+Structures</a>
+<ul>
+<li><a href="#standard-webauthn-interfaces">Standard WebAuthn
+Interfaces</a></li>
+<li><a href="#our-implementations-api-format">Our Implementation's API
+Format</a></li>
+</ul></li>
+<li><a href="#authentication-data-structures">Authentication Data
+Structures</a>
+<ul>
+<li><a href="#standard-webauthn-interfaces-1">Standard WebAuthn
+Interfaces</a></li>
+<li><a href="#our-implementations-api-format-1">Our Implementation's API
+Format</a></li>
+</ul></li>
+</ul></li>
+<li><a href="#whats-next">What's Next</a>
+<ul>
+<li><a href="#session-management">Session management</a></li>
+<li><a href="#oauth2oidc-integration">OAuth2/OIDC integration</a></li>
+<li><a href="#storage">Storage</a></li>
+</ul></li>
+<li><a href="#conclusion">Conclusion</a></li>
+<li><a href="#resources">Resources</a></li>
+</ul>
+<h1 id="introduction">Introduction</h1>
+<p>As a developer learning web programming and authentication in Rust, I
+recently undertook the challenge of implementing WebAuthn Passkeys using
+the Axum web framework. In this post, I'll share my experience building
+a basic Passkey authentication system from scratch, without relying on
+full-featured WebAuthn library crates.</p>
+<p>To keep things concise, I’ve included simplified code snippets for
+key components. The full implementation is available in my <a
+href="https://github.com/ktaka-ccmp/axum-passkey">GitHub
+repository</a>.</p>
+
+<p>
+    <video width="600" height="600" src="https://github.com/ktaka-ccmp/ktaka.blog.ccmp.jp/raw/refs/heads/master/2025/AxumPasskey/image/blog-20250117-01.mp4" controls="true" autoplay loop></video>
+</p>
+
+<h1 id="understanding-webauthn-and-passkeys">Understanding WebAuthn and
+Passkeys</h1>
+<p>WebAuthn is a W3C standard for passwordless authentication that uses
+public-key cryptography. The private keys are stored securely on user
+devices while public keys remain on servers. WebAuthn supports both
+platform authenticators (like Windows Hello or Touch ID) and roaming
+authenticators (like security keys).</p>
+<p>Passkeys extend WebAuthn by adding seamless account recovery through
+cloud-synced credentials. They integrate with platform authenticators
+like Google Password Manager or Apple Keychain, enabling users to
+authenticate using biometrics or PINs across their devices. This
+implementation is built on the FIDO2 protocol, which standardizes the
+authentication flow and user interface.</p>
+<h1 id="the-webauthn-flow">The WebAuthn Flow</h1>
+<p>WebAuthn authentication involves two main phases: registration and
+authentication. Let's examine how each phase works and then implement
+them.</p>
+<h2 id="registration-flow">Registration Flow</h2>
+<p>During registration, the server first generates a cryptographic
+challenge and sends it to the client along with registration options.
+The client then requests its authenticator to create a new key pair and
+generate an attestation object containing the public key. This
+attestation object is sent back to the server, which verifies it and
+stores the public key for future authentication.</p>
+
+<p>
+    <a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2025/AxumPasskey/image/fig-1.png"
+        target="_blank">
+        <img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2025/AxumPasskey/image/fig-1.png"
+            width="80%" alt="registration-flow" title="registration-flow"></a>
+</p>
+
+<p>The attestation object returned by the authenticator contains
+authenticator data (including the new public key) and an attestation
+statement that provides information about the authenticator itself. This
+allows the server to verify the authenticator's authenticity and
+securely obtain the user's public key.</p>
+<h2 id="authentication-flow">Authentication Flow</h2>
+<p>The authentication process begins with the server generating a new
+challenge. The authenticator then signs this challenge using the user's
+private key, and the server verifies the signature using the stored
+public key.</p>
+
+<p>
+    <a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2025/AxumPasskey/image/fig-2.png"
+        target="_blank">
+        <img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2025/AxumPasskey/image/fig-2.png"
+            width="80%" alt="authentication-flow" title="authentication-flow"></a>
+</p>
+
+<h1 id="client-side-implementation">Client-Side Implementation</h1>
+<p>The client-side implementation handles both registration and
+authentication flows using the WebAuthn browser APIs. Let's walk through
+each process step by step.</p>
+<h2 id="registration-implementation">Registration Implementation</h2>
+<p>The registration process begins by requesting options from the
+server. This establishes the parameters for creating a new
+credential:</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> response <span class="op">=</span> <span class="cf">await</span> <span class="fu">fetch</span>(<span class="st">&#39;/register/start&#39;</span><span class="op">,</span> {</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">method</span><span class="op">:</span> <span class="st">&#39;POST&#39;</span><span class="op">,</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">headers</span><span class="op">:</span> { <span class="st">&#39;Content-Type&#39;</span><span class="op">:</span> <span class="st">&#39;application/json&#39;</span> }<span class="op">,</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">body</span><span class="op">:</span> <span class="bu">JSON</span><span class="op">.</span><span class="fu">stringify</span>(username)</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>})<span class="op">;</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> options <span class="op">=</span> <span class="cf">await</span> response<span class="op">.</span><span class="fu">json</span>()<span class="op">;</span></span></code></pre></div>
+<p>The server responds with registration options that specify how the
+credential should be created. Here are the key parameters:</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;challenge&quot;</span><span class="fu">:</span> <span class="st">&quot;base64url-encoded-random-bytes&quot;</span><span class="fu">,</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;rp_id&quot;</span><span class="fu">:</span> <span class="st">&quot;example.com&quot;</span><span class="fu">,</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;user&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="st">&quot;user-uuid&quot;</span><span class="fu">,</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;username&quot;</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">},</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;authenticatorSelection&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;authenticatorAttachment&quot;</span><span class="fu">:</span> <span class="st">&quot;platform&quot;</span><span class="fu">,</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;residentKey&quot;</span><span class="fu">:</span> <span class="st">&quot;required&quot;</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>The challenge is a one-time cryptographic value that prevents replay
+attacks. The rp_id binds the credential to our domain for phishing
+protection, while the user.id provides a stable identifier for the
+credential. The authenticatorSelection parameters determine how the
+credential will be stored and used.</p>
+<p>With these options, we can create the credential using the WebAuthn
+API:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> credential <span class="op">=</span> <span class="cf">await</span> <span class="bu">navigator</span><span class="op">.</span><span class="at">credentials</span><span class="op">.</span><span class="fu">create</span>({</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">publicKey</span><span class="op">:</span> {</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>        <span class="dt">challenge</span><span class="op">:</span> <span class="fu">base64URLToBuffer</span>(options<span class="op">.</span><span class="at">challenge</span>)<span class="op">,</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>        <span class="dt">rp</span><span class="op">:</span> { <span class="dt">id</span><span class="op">:</span> options<span class="op">.</span><span class="at">rp_id</span> }<span class="op">,</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>        <span class="dt">user</span><span class="op">:</span> {</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>            <span class="dt">id</span><span class="op">:</span> <span class="fu">base64URLToBuffer</span>(options<span class="op">.</span><span class="at">user</span><span class="op">.</span><span class="at">id</span>)<span class="op">,</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>            <span class="dt">name</span><span class="op">:</span> options<span class="op">.</span><span class="at">user</span><span class="op">.</span><span class="at">name</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>        }</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>})<span class="op">;</span></span></code></pre></div>
+<p>This code triggers the authenticator to generate a new key pair. In
+principle, the private key never leaves the authenticator, while the
+public key is included in the response. We then send this response back
+to the server:</p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="cf">await</span> <span class="fu">fetch</span>(<span class="st">&#39;/register/finish&#39;</span><span class="op">,</span> {</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">method</span><span class="op">:</span> <span class="st">&#39;POST&#39;</span><span class="op">,</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">headers</span><span class="op">:</span> { <span class="st">&#39;Content-Type&#39;</span><span class="op">:</span> <span class="st">&#39;application/json&#39;</span> }<span class="op">,</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">body</span><span class="op">:</span> <span class="bu">JSON</span><span class="op">.</span><span class="fu">stringify</span>({</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>        <span class="dt">id</span><span class="op">:</span> credential<span class="op">.</span><span class="at">id</span><span class="op">,</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>        <span class="dt">rawId</span><span class="op">:</span> <span class="fu">bufferToBase64URL</span>(credential<span class="op">.</span><span class="at">rawId</span>)<span class="op">,</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>        <span class="dt">response</span><span class="op">:</span> {</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>            <span class="dt">attestationObject</span><span class="op">:</span> <span class="fu">bufferToBase64URL</span>(credential<span class="op">.</span><span class="at">response</span><span class="op">.</span><span class="at">attestationObject</span>)<span class="op">,</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>            <span class="dt">client_data_json</span><span class="op">:</span> <span class="fu">bufferToBase64URL</span>(credential<span class="op">.</span><span class="at">response</span><span class="op">.</span><span class="at">clientDataJSON</span>)</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>        }<span class="op">,</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>        <span class="dt">user_handle</span><span class="op">:</span> options<span class="op">.</span><span class="at">user</span><span class="op">.</span><span class="at">id</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    })</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>})<span class="op">;</span></span></code></pre></div>
+<p>The server will verify this response and store the public key for
+future authentications.</p>
+<h2 id="authentication-implementation">Authentication
+Implementation</h2>
+<p>The authentication flow follows a similar pattern but focuses on
+proving possession of an existing credential. We start by requesting
+authentication options:</p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> response <span class="op">=</span> <span class="cf">await</span> <span class="fu">fetch</span>(<span class="st">&#39;/auth/start&#39;</span><span class="op">,</span> { <span class="dt">method</span><span class="op">:</span> <span class="st">&#39;POST&#39;</span> })<span class="op">;</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> options <span class="op">=</span> <span class="cf">await</span> response<span class="op">.</span><span class="fu">json</span>()<span class="op">;</span></span></code></pre></div>
+<p>The server provides a challenge and information about accepted
+credentials:</p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;challenge&quot;</span><span class="fu">:</span> <span class="st">&quot;base64url-encoded-random-bytes&quot;</span><span class="fu">,</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;rp_id&quot;</span><span class="fu">:</span> <span class="st">&quot;example.com&quot;</span><span class="fu">,</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Sending</span> <span class="dt">&quot;allow_credentials&quot;</span> <span class="er">is</span> <span class="er">optional</span> <span class="er">for</span> <span class="er">discoverable</span> <span class="er">credentials.</span> </span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;allow_credentials&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;public-key&quot;</span><span class="fu">,</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="st">&quot;credential-id&quot;</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>        <span class="fu">}</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    <span class="ot">]</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>Using these options, we ask the authenticator to sign the challenge
+with the private key:</p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> assertion <span class="op">=</span> <span class="cf">await</span> <span class="bu">navigator</span><span class="op">.</span><span class="at">credentials</span><span class="op">.</span><span class="fu">get</span>({</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">publicKey</span><span class="op">:</span> {</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>        <span class="dt">challenge</span><span class="op">:</span> <span class="fu">base64URLToBuffer</span>(options<span class="op">.</span><span class="at">challenge</span>)<span class="op">,</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>        <span class="dt">rpId</span><span class="op">:</span> options<span class="op">.</span><span class="at">rp_id</span><span class="op">,</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>        <span class="dt">allowCredentials</span><span class="op">:</span> options<span class="op">.</span><span class="at">allow_credentials</span><span class="op">.</span><span class="fu">map</span>(cred <span class="kw">=&gt;</span> ({</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>            <span class="dt">id</span><span class="op">:</span> <span class="fu">base64URLToBuffer</span>(cred<span class="op">.</span><span class="at">id</span>)<span class="op">,</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>            <span class="dt">type</span><span class="op">:</span> cred<span class="op">.</span><span class="at">type</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>        }))</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>})<span class="op">;</span></span></code></pre></div>
+<p>The authenticator will prompt the user for consent (and potentially
+biometric verification) before signing. We then send the signed
+assertion to the server:</p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="cf">await</span> <span class="fu">fetch</span>(<span class="st">&#39;/auth/verify&#39;</span><span class="op">,</span> {</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">method</span><span class="op">:</span> <span class="st">&#39;POST&#39;</span><span class="op">,</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">headers</span><span class="op">:</span> { <span class="st">&#39;Content-Type&#39;</span><span class="op">:</span> <span class="st">&#39;application/json&#39;</span> }<span class="op">,</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">body</span><span class="op">:</span> <span class="bu">JSON</span><span class="op">.</span><span class="fu">stringify</span>({</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>        <span class="dt">id</span><span class="op">:</span> assertion<span class="op">.</span><span class="at">id</span><span class="op">,</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>        <span class="dt">response</span><span class="op">:</span> {</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>            <span class="dt">signature</span><span class="op">:</span> <span class="fu">bufferToBase64URL</span>(credential<span class="op">.</span><span class="at">response</span><span class="op">.</span><span class="at">signature</span>)<span class="op">,</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>            <span class="dt">authenticator_data</span><span class="op">:</span> <span class="fu">bufferToBase64URL</span>(credential<span class="op">.</span><span class="at">response</span><span class="op">.</span><span class="at">authenticatorData</span>)<span class="op">,</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>            <span class="dt">client_data_json</span><span class="op">:</span> <span class="fu">bufferToBase64URL</span>(credential<span class="op">.</span><span class="at">response</span><span class="op">.</span><span class="at">clientDataJSON</span>)<span class="op">,</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>            <span class="dt">user_handle</span><span class="op">:</span> <span class="fu">bufferToBase64URL</span>(credential<span class="op">.</span><span class="at">response</span><span class="op">.</span><span class="at">userHandle</span>)</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>        }</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>    })</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>})<span class="op">;</span></span></code></pre></div>
+<h1 id="server-implementation-in-rust">Server Implementation in
+Rust</h1>
+<p>The server side of our WebAuthn implementation handles credential
+storage, challenge generation, and cryptographic verification. Our
+Axum-based implementation is organized into focused modules that handle
+different aspects of the authentication process:</p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ex">src/</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="ex">├──</span> main.rs              <span class="co"># Server setup and routing</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="ex">├──</span> passkey.rs           <span class="co"># Module definitions</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="ex">└──</span> passkey/</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    <span class="ex">├──</span> attestation.rs   <span class="co"># Attestation verification</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    <span class="ex">├──</span> auth.rs          <span class="co"># Authentication handling</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    <span class="ex">└──</span> register.rs      <span class="co"># Registration handling</span></span></code></pre></div>
+<p>The attestation module verifies new credentials during registration,
+the auth module handles login attempts, and the register module manages
+the credential creation process.</p>
+<h2 id="state-management">State Management</h2>
+<p>Before diving into the handlers, let's look at how we manage
+server-side state:</p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode rust"><code class="sourceCode rust"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="at">#[</span>derive<span class="at">(</span><span class="bu">Clone</span><span class="at">)]</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct</span> AppState <span class="op">{</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    store<span class="op">:</span> Arc<span class="op">&lt;</span>Mutex<span class="op">&lt;</span>AuthStore<span class="op">&gt;&gt;,</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    config<span class="op">:</span> AppConfig<span class="op">,</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>This structure provides thread-safe access to our storage and
+configuration. The AuthStore handles both temporary challenges and
+permanent credentials:</p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode rust"><code class="sourceCode rust"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="at">#[</span>derive<span class="at">(</span><span class="bu">Default</span><span class="at">)]</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="kw">struct</span> AuthStore <span class="op">{</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    challenges<span class="op">:</span> HashMap<span class="op">&lt;</span><span class="dt">String</span><span class="op">,</span> StoredChallenge<span class="op">&gt;,</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    credentials<span class="op">:</span> HashMap<span class="op">&lt;</span><span class="dt">String</span><span class="op">,</span> StoredCredential<span class="op">&gt;,</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>For a production environment, you'd replace these HashMaps with
+proper databases - perhaps Redis for challenges and PostgreSQL for
+credentials.</p>
+<h2 id="registration-handler-implementation">Registration Handler
+Implementation</h2>
+<p>The registration process consists of two main functions. The
+start_registration function creates a new user identity and challenge,
+preparing the server side for credential creation:</p>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode rust"><code class="sourceCode rust"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">async</span> <span class="kw">fn</span> start_registration(</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    State(state)<span class="op">:</span> State<span class="op">&lt;</span>AppState<span class="op">&gt;,</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    Json(username)<span class="op">:</span> Json<span class="op">&lt;</span><span class="dt">String</span><span class="op">&gt;,</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>) <span class="op">-&gt;</span> Json<span class="op">&lt;</span>RegistrationOptions<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Generate challenge and create user info</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> challenge <span class="op">=</span> generate_challenge()<span class="op">;</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> user_info <span class="op">=</span> PublicKeyCredentialUserEntity <span class="op">{</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>        id<span class="op">:</span> <span class="pp">Uuid::</span>new_v4()<span class="op">.</span>to_string()<span class="op">,</span></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>        name<span class="op">:</span> username<span class="op">.</span>clone()<span class="op">,</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>        display_name<span class="op">:</span> username<span class="op">.</span>clone()<span class="op">,</span></span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>    <span class="op">};</span></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Store challenge for verification</span></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> stored_challenge <span class="op">=</span> StoredChallenge <span class="op">{</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>        challenge<span class="op">:</span> challenge<span class="op">.</span>clone()<span class="op">,</span></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>        user<span class="op">:</span> user_info<span class="op">.</span>clone()<span class="op">,</span></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>        timestamp<span class="op">:</span> <span class="pp">SystemTime::</span>now()<span class="op">...</span></span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>    <span class="op">};</span></span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> <span class="kw">mut</span> store <span class="op">=</span> state<span class="op">.</span>store<span class="op">.</span>lock()<span class="op">.</span><span class="kw">await</span><span class="op">;</span></span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>    store</span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span>challenges</span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a>        <span class="op">.</span>insert(user_info<span class="op">.</span>id<span class="op">.</span>clone()<span class="op">,</span> stored_challenge)<span class="op">;</span></span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Return registration options</span></span>
+<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a>    Json(RegistrationOptions <span class="op">{</span></span>
+<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a>        challenge<span class="op">:</span> URL_SAFE<span class="op">.</span>encode(<span class="op">&amp;</span>challenge)<span class="op">,</span></span>
+<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a>        rp_id<span class="op">:</span> state<span class="op">.</span>config<span class="op">.</span>rp_id<span class="op">.</span>clone()<span class="op">,</span></span>
+<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a>        <span class="co">// ...other options</span></span>
+<span id="cb14-31"><a href="#cb14-31" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span>)</span>
+<span id="cb14-32"><a href="#cb14-32" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The finish_registration function processes the authenticator's
+response, verifying the attestation and storing the new credential:</p>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode rust"><code class="sourceCode rust"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">async</span> <span class="kw">fn</span> finish_registration(</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    State(state)<span class="op">:</span> State<span class="op">&lt;</span>AppState<span class="op">&gt;,</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    Json(reg_data)<span class="op">:</span> Json<span class="op">&lt;</span>RegisterCredential<span class="op">&gt;,</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>) <span class="op">-&gt;</span> <span class="dt">Result</span><span class="op">&lt;&amp;</span><span class="ot">&#39;static</span> <span class="dt">str</span><span class="op">,</span> (StatusCode<span class="op">,</span> <span class="dt">String</span>)<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> <span class="kw">mut</span> store <span class="op">=</span> state<span class="op">.</span>store<span class="op">.</span>lock()<span class="op">.</span><span class="kw">await</span><span class="op">;</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Verify the challenge and client data</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    verify_client_data(<span class="op">&amp;</span>state<span class="op">,</span> <span class="op">&amp;</span>reg_data<span class="op">,</span> <span class="op">&amp;</span>store)<span class="op">.</span><span class="kw">await</span><span class="op">?;</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Extract the public key from attestation</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> public_key <span class="op">=</span> extract_credential_public_key(<span class="op">&amp;</span>reg_data<span class="op">,</span> <span class="op">&amp;</span>state)<span class="op">?;</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Store credential with user info</span></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> credential_id <span class="op">=</span> base64url_decode(<span class="op">&amp;</span>reg_data<span class="op">.</span>raw_id)<span class="op">?;</span></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> stored_user <span class="op">=</span> store<span class="op">.</span>challenges<span class="op">.</span>get(<span class="op">&amp;</span>reg_data<span class="op">.</span>user_handle)<span class="op">?.</span>user<span class="op">.</span>clone()<span class="op">;</span></span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>    store<span class="op">.</span>credentials<span class="op">.</span>insert(</span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>        reg_data<span class="op">.</span>raw_id<span class="op">.</span>clone()<span class="op">,</span></span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>        StoredCredential <span class="op">{</span></span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>            credential_id<span class="op">,</span></span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>            public_key<span class="op">,</span></span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>            counter<span class="op">:</span> <span class="dv">0</span><span class="op">,</span></span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a>            user<span class="op">:</span> stored_user<span class="op">,</span></span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a>        <span class="op">},</span></span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a>    )<span class="op">;</span></span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Remove used challenge</span></span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a>    store<span class="op">.</span>challenges<span class="op">.</span>remove(<span class="op">&amp;</span>reg_data<span class="op">.</span>user_handle)<span class="op">;</span></span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a>    <span class="cn">Ok</span>(<span class="st">&quot;Registration successful&quot;</span>)</span>
+<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>This function performs several critical security checks:</p>
+<ol type="1">
+<li>Verifies that the client data matches expectations (challenge,
+origin, operation type)</li>
+<li>Extracts and verifies the public key from the attestation
+object</li>
+<li>Stores the credential with associated user information</li>
+<li>Removes the used challenge to prevent replay attacks</li>
+</ol>
+<h2 id="authentication-handler-implementation">Authentication Handler
+Implementation</h2>
+<p>The authentication process also uses two main functions. The
+start_authentication function generates a new challenge for an
+authentication attempt:</p>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode rust"><code class="sourceCode rust"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">async</span> <span class="kw">fn</span> start_authentication(</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    State(state)<span class="op">:</span> State<span class="op">&lt;</span>AppState<span class="op">&gt;</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>) <span class="op">-&gt;</span> Json<span class="op">&lt;</span>AuthenticationOptions<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Generate new challenge</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> challenge <span class="op">=</span> generate_challenge()<span class="op">;</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Create auth ID for this session</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> auth_id <span class="op">=</span> <span class="pp">Uuid::</span>new_v4()<span class="op">.</span>to_string()<span class="op">;</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Store challenge for verification</span></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> stored_challenge <span class="op">=</span> StoredChallenge <span class="op">{</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>        challenge<span class="op">:</span> challenge<span class="op">.</span>clone()<span class="op">,</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>        user<span class="op">:</span> <span class="bu">Default</span><span class="pp">::</span><span class="kw">default</span>()<span class="op">,</span></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>        timestamp<span class="op">:</span> <span class="pp">SystemTime::</span>now()<span class="op">...</span></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>    <span class="op">};</span></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> <span class="kw">mut</span> store <span class="op">=</span> state<span class="op">.</span>store<span class="op">.</span>lock()<span class="op">.</span><span class="kw">await</span><span class="op">;</span></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>    store<span class="op">.</span>challenges<span class="op">.</span>insert(auth_id<span class="op">.</span>clone()<span class="op">,</span> stored_challenge)<span class="op">;</span></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Return auth options</span></span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>    Json(AuthenticationOptions <span class="op">{</span></span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>        challenge<span class="op">:</span> URL_SAFE<span class="op">.</span>encode(<span class="op">&amp;</span>challenge)<span class="op">,</span></span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>        rp_id<span class="op">:</span> state<span class="op">.</span>config<span class="op">.</span>rp_id<span class="op">.</span>clone()<span class="op">,</span></span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>        <span class="co">// ... other options</span></span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span>)</span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>The verify_authentication function processes the authenticator's
+signed assertion, verifying the signature and associated data:</p>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode rust"><code class="sourceCode rust"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">async</span> <span class="kw">fn</span> verify_authentication(</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    State(state)<span class="op">:</span> State<span class="op">&lt;</span>AppState<span class="op">&gt;,</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    Json(auth_response)<span class="op">:</span> Json<span class="op">&lt;</span>AuthenticatorResponse<span class="op">&gt;,</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>) <span class="op">-&gt;</span> <span class="dt">Result</span><span class="op">&lt;&amp;</span><span class="ot">&#39;static</span> <span class="dt">str</span><span class="op">,</span> (StatusCode<span class="op">,</span> <span class="dt">String</span>)<span class="op">&gt;</span> <span class="op">{</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Verify client data</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> client_data <span class="op">=</span> <span class="pp">ParsedClientData::</span>from_base64(<span class="op">&amp;</span>auth_response<span class="op">.</span>response<span class="op">.</span>client_data_json)<span class="op">?;</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    client_data<span class="op">.</span>verify(<span class="op">&amp;</span>state<span class="op">,</span> <span class="op">&amp;</span>stored_challenge<span class="op">.</span>challenge)<span class="op">?;</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Verify authenticator data</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> auth_data <span class="op">=</span> <span class="pp">AuthenticatorData::</span>from_base64(<span class="op">&amp;</span>auth_response<span class="op">.</span>response<span class="op">.</span>authenticator_data)<span class="op">?;</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>    auth_data<span class="op">.</span>verify(<span class="op">&amp;</span>state)<span class="op">?;</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Verify signature</span></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> credential <span class="op">=</span> store<span class="op">.</span>credentials<span class="op">.</span>get(<span class="op">&amp;</span>auth_response<span class="op">.</span>id)<span class="op">?;</span></span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> public_key <span class="op">=</span> <span class="pp">UnparsedPublicKey::</span>new(verification_algorithm<span class="op">,</span> <span class="op">&amp;</span>credential<span class="op">.</span>public_key)<span class="op">;</span></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>    public_key<span class="op">.</span>verify(<span class="op">&amp;</span>signed_data<span class="op">,</span> <span class="op">&amp;</span>signature)<span class="op">?;</span></span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>    <span class="cn">Ok</span>(<span class="st">&quot;Authentication successful&quot;</span>)</span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span></code></pre></div>
+<p>This function performs three main security checks:</p>
+<ol type="1">
+<li>Verifies the client data (challenge, origin, operation type)</li>
+<li>Validates the authenticator data (RP ID hash, user presence,
+verification status)</li>
+<li>Verifies the signature using the stored public key</li>
+</ol>
+<p>If these verifications are successful, a session can be created and
+the user is regarded as logged in.</p>
+<h1 id="webauthn-data-structures-and-api-formats">WebAuthn Data
+Structures and API Formats</h1>
+<p>Having seen both the client and server implementations, it's
+important to understand how they communicate with each other. While the
+WebAuthn standard precisely defines how browsers interact with
+authenticators, it doesn't specify how WebAuthn data should be
+transmitted between clients and servers. This gives implementations
+flexibility in designing their API formats.</p>
+<h2 id="data-flow-and-transformations">Data Flow and
+Transformations</h2>
+<p>The WebAuthn API deals with binary data in ArrayBuffer format, but
+this needs to be transformed for client-server communication:</p>
+
+<p>
+    <a href="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2025/AxumPasskey/image/fig-3.png"
+        target="_blank">
+        <img src="https://raw.githubusercontent.com/ktaka-ccmp/ktaka.blog.ccmp.jp/master/2025/AxumPasskey/image/fig-3.png"
+            width="80%" alt="data-conversion" title="data-conversion"></a>
+</p>
+
+<p>Our implementation makes several key design choices for data
+transport:</p>
+<ul>
+<li>Uses JSON format for easy parsing and debugging</li>
+<li>Base64url-encodes binary data for safe transport in JSON</li>
+<li>Renames fields to match language conventions (camelCase in JS,
+snake_case in Rust)</li>
+<li>Omits optional fields to simplify the implementation</li>
+<li>Makes some optional fields required where it helps our
+implementation</li>
+</ul>
+<h2 id="registration-data-structures">Registration Data Structures</h2>
+<h3 id="standard-webauthn-interfaces">Standard WebAuthn Interfaces</h3>
+<p>The browser's <code>navigator.credentials.create()</code> accepts
+<code>PublicKeyCredentialCreationOptions</code>:</p>
+<div class="sourceCode" id="cb19"><pre
+class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>PublicKeyCredentialCreationOptions {</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">challenge</span><span class="op">:</span> <span class="bu">BufferSource</span><span class="op">,</span>    <span class="co">// Random bytes to prevent replay attacks</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">rp</span><span class="op">:</span> {</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>        <span class="dt">id</span><span class="op">:</span> string<span class="op">,</span>      <span class="co">// Domain name for phishing protection</span></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>        <span class="dt">name</span><span class="op">:</span> string     <span class="co">// Display name for the service</span></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>    }<span class="op">,</span></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">user</span><span class="op">:</span> {</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>        <span class="dt">id</span><span class="op">:</span> <span class="bu">BufferSource</span><span class="op">,</span>     <span class="co">// Stable identifier for the user</span></span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>        <span class="dt">name</span><span class="op">:</span> string<span class="op">,</span>         <span class="co">// Username (can change)</span></span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>        <span class="dt">displayName</span><span class="op">:</span> string   <span class="co">// User&#39;s full name or display name</span></span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>    }<span class="op">,</span></span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Allowed public key parameters</span></span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>    <span class="dt">pubKeyCredParams</span><span class="op">:</span> [{</span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>        <span class="dt">type</span><span class="op">:</span> <span class="st">&quot;public-key&quot;</span><span class="op">,</span>   <span class="co">// Currently only &quot;public-key&quot; is supported</span></span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>        <span class="dt">alg</span><span class="op">:</span> number          <span class="co">// Cryptographic algorithm identifier</span></span>
+<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>    }]<span class="op">,</span></span>
+<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Optional authenticator preferences</span></span>
+<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>    authenticatorSelection<span class="op">?:</span> {</span>
+<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a>        authenticatorAttachment<span class="op">?:</span> <span class="st">&quot;platform&quot;</span> <span class="op">|</span> <span class="st">&quot;cross-platform&quot;</span><span class="op">,</span></span>
+<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a>        residentKey<span class="op">?:</span> <span class="st">&quot;required&quot;</span> <span class="op">|</span> <span class="st">&quot;preferred&quot;</span> <span class="op">|</span> <span class="st">&quot;discouraged&quot;</span><span class="op">,</span></span>
+<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a>        userVerification<span class="op">?:</span> <span class="st">&quot;required&quot;</span> <span class="op">|</span> <span class="st">&quot;preferred&quot;</span> <span class="op">|</span> <span class="st">&quot;discouraged&quot;</span></span>
+<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a>    }<span class="op">,</span></span>
+<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a>    timeout<span class="op">?:</span> number    <span class="co">// Operation timeout in milliseconds</span></span>
+<span id="cb19-24"><a href="#cb19-24" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p>And returns <code>AuthenticatorAttestationResponse</code>:</p>
+<div class="sourceCode" id="cb20"><pre
+class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>AuthenticatorAttestationResponse {</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">clientDataJSON</span><span class="op">:</span> <span class="bu">ArrayBuffer</span><span class="op">,</span>    <span class="co">// JSON containing challenge, origin, and type</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">attestationObject</span><span class="op">:</span> <span class="bu">ArrayBuffer</span>  <span class="co">// CBOR-encoded attestation data</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<h3 id="our-implementations-api-format">Our Implementation's API
+Format</h3>
+<p>Our server's <code>/register/start</code> endpoint returns:</p>
+<div class="sourceCode" id="cb21"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;challenge&quot;</span><span class="fu">:</span> <span class="st">&quot;base64url-encoded-random-bytes&quot;</span><span class="fu">,</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;rp_id&quot;</span><span class="fu">:</span> <span class="st">&quot;example.com&quot;</span><span class="fu">,</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;user&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="st">&quot;user-uuid&quot;</span><span class="fu">,</span>      <span class="er">//</span> <span class="er">String</span> <span class="er">UUID</span> <span class="er">for</span> <span class="er">easier</span> <span class="er">handling</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;username&quot;</span></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">},</span></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;authenticatorSelection&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;authenticatorAttachment&quot;</span><span class="fu">:</span> <span class="st">&quot;platform&quot;</span><span class="fu">,</span>  <span class="er">//</span> <span class="er">Prefer</span> <span class="er">platform</span> <span class="er">authenticators</span></span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;residentKey&quot;</span><span class="fu">:</span> <span class="st">&quot;required&quot;</span>               <span class="er">//</span> <span class="er">Require</span> <span class="er">discoverable</span> <span class="er">credentials</span></span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>And our <code>/register/finish</code> endpoint accepts:</p>
+<div class="sourceCode" id="cb22"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="st">&quot;credential-id&quot;</span><span class="fu">,</span>      <span class="er">//</span> <span class="er">Base64url</span> <span class="er">credential</span> <span class="er">identifier</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;rawId&quot;</span><span class="fu">:</span> <span class="st">&quot;base64url-encoded-credential-id&quot;</span><span class="fu">,</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;response&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;attestationObject&quot;</span><span class="fu">:</span> <span class="st">&quot;base64url-encoded-attestation-object&quot;</span><span class="fu">,</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;client_data_json&quot;</span><span class="fu">:</span> <span class="st">&quot;base64url-encoded-client-data&quot;</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">},</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;user_handle&quot;</span><span class="fu">:</span> <span class="st">&quot;user-uuid&quot;</span>  <span class="er">//</span> <span class="er">Links</span> <span class="er">credential</span> <span class="er">to</span> <span class="er">user</span> <span class="er">account</span></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>Design choices for registration:</p>
+<ul>
+<li>Base64url-encode all binary data (challenge, credential ID,
+attestation object)</li>
+<li>Use string UUID for user.id instead of binary format</li>
+<li>Require platform authenticators and resident keys for better UX</li>
+<li>Add explicit user_handle to maintain credential-user connection</li>
+<li>Omit timeout and other optional fields for simplicity</li>
+</ul>
+<h2 id="authentication-data-structures">Authentication Data
+Structures</h2>
+<h3 id="standard-webauthn-interfaces-1">Standard WebAuthn
+Interfaces</h3>
+<p>The browser's <code>navigator.credentials.get()</code> accepts
+<code>PublicKeyCredentialRequestOptions</code>:</p>
+<div class="sourceCode" id="cb23"><pre
+class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>PublicKeyCredentialRequestOptions {</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">challenge</span><span class="op">:</span> <span class="bu">BufferSource</span><span class="op">,</span>    <span class="co">// Random bytes to prevent replay attacks</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    rpId<span class="op">?:</span> string<span class="op">,</span>          <span class="co">// Optional domain name restriction</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>    allowCredentials<span class="op">?:</span> [{   <span class="co">// Optional list of allowed credentials</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>        <span class="dt">type</span><span class="op">:</span> <span class="st">&quot;public-key&quot;</span><span class="op">,</span></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>        <span class="dt">id</span><span class="op">:</span> <span class="bu">BufferSource</span>    <span class="co">// Credential identifier</span></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>    }]<span class="op">,</span></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">// Optional user verification requirement</span></span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>    userVerification<span class="op">?:</span> <span class="st">&quot;required&quot;</span> <span class="op">|</span> <span class="st">&quot;preferred&quot;</span> <span class="op">|</span> <span class="st">&quot;discouraged&quot;</span><span class="op">,</span></span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>    timeout<span class="op">?:</span> number    <span class="co">// Operation timeout in milliseconds</span></span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p>And returns <code>AuthenticatorAssertionResponse</code>:</p>
+<div class="sourceCode" id="cb24"><pre
+class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>AuthenticatorAssertionResponse {</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">clientDataJSON</span><span class="op">:</span> <span class="bu">ArrayBuffer</span><span class="op">,</span>    <span class="co">// JSON containing challenge, origin, and type</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">authenticatorData</span><span class="op">:</span> <span class="bu">ArrayBuffer</span><span class="op">,</span> <span class="co">// CBOR-encoded authenticator data</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">signature</span><span class="op">:</span> <span class="bu">ArrayBuffer</span><span class="op">,</span>         <span class="co">// Cryptographic signature</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    userHandle<span class="op">?:</span> <span class="bu">ArrayBuffer</span>        <span class="co">// Optional user identifier</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<h3 id="our-implementations-api-format-1">Our Implementation's API
+Format</h3>
+<p>Our server's <code>/auth/start</code> endpoint returns:</p>
+<div class="sourceCode" id="cb25"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;challenge&quot;</span><span class="fu">:</span> <span class="st">&quot;base64url-encoded-random-bytes&quot;</span><span class="fu">,</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;rp_id&quot;</span><span class="fu">:</span> <span class="st">&quot;example.com&quot;</span><span class="fu">,</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>    <span class="er">//</span> <span class="er">Optional</span> <span class="er">for</span> <span class="er">discoverable</span> <span class="er">credentials</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;allow_credentials&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>        <span class="fu">{</span></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;type&quot;</span><span class="fu">:</span> <span class="st">&quot;public-key&quot;</span><span class="fu">,</span></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="st">&quot;credential-id&quot;</span></span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>        <span class="fu">}</span></span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>    <span class="ot">]</span></span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>And our <code>/auth/verify</code> endpoint accepts:</p>
+<div class="sourceCode" id="cb26"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="st">&quot;credential-id&quot;</span><span class="fu">,</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;response&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;signature&quot;</span><span class="fu">:</span> <span class="st">&quot;base64url-encoded-signature&quot;</span><span class="fu">,</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;authenticator_data&quot;</span><span class="fu">:</span> <span class="st">&quot;base64url-encoded-authenticator-data&quot;</span><span class="fu">,</span></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;client_data_json&quot;</span><span class="fu">:</span> <span class="st">&quot;base64url-encoded-client-data&quot;</span><span class="fu">,</span></span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;user_handle&quot;</span><span class="fu">:</span> <span class="st">&quot;base64url-encoded-user-handle&quot;</span></span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>Design choices for authentication:</p>
+<ul>
+<li>Base64url-encode all binary data for transport</li>
+<li>Use snake_case in API for consistency with Rust</li>
+<li>Make user_handle required to simplify user lookup</li>
+<li>Support discoverable credentials by making allow_credentials
+optional</li>
+<li>Omit timeout and user verification preferences for simplicity</li>
+</ul>
+<p>The client-side JavaScript handles all necessary conversions between
+WebAuthn's ArrayBuffer format and our API's JSON format, using base64url
+encoding for binary data. This separation of concerns keeps our API
+clean while maintaining compatibility with the WebAuthn standard.</p>
+<h1 id="whats-next">What's Next</h1>
+<p>While this basic implementation demonstrates the core concepts of
+WebAuthn Passkeys, several enhancements would make it
+production-ready:</p>
+<h2 id="session-management">Session management</h2>
+<p>In production session management using session cookie or
+"Authentication: bearer token" header. This will enable us to identify
+access from authenticated users.</p>
+<h2 id="oauth2oidc-integration">OAuth2/OIDC integration</h2>
+<p>The system could integrate with OAuth2/OIDC providers like Google or
+Apple, enabling single sign-on and unified account management. This
+would allow users to seamlessly link their Passkey credentials with
+existing accounts.</p>
+<h2 id="storage">Storage</h2>
+<p>The current in-memory storage would need to be replaced with proper
+databases - SQL for user credentials and Redis for temporary challenge
+states. This would provide the scalability and persistence needed for
+production use.</p>
+<h1 id="conclusion">Conclusion</h1>
+<p>Building a WebAuthn Passkey implementation from scratch was an
+enlightening experience that provided deep insights into both modern
+authentication and Rust web development. The experience showed how
+standards like WebAuthn and tools like Rust can make secure
+authentication more accessible to developers, while still demanding
+careful attention to security considerations.</p>
+<p>While implementing core functionality from scratch proved to be an
+invaluable learning experience, production systems should rely on
+established, well-tested WebAuthn libraries that have undergone security
+audits. The insights gained from this exercise, however, will prove
+valuable when working with these production libraries, as understanding
+WebAuthn's internals helps make better architectural decisions.</p>
+<h1 id="resources">Resources</h1>
+<ul>
+<li><a href="https://w3c.github.io/webauthn/">WebAuthn Specification</a>
+- Official W3C standard</li>
+<li><a href="https://webauthn.guide/">WebAuthn Guide</a> - A practical
+guide to implementing WebAuthn</li>
+<li><a href="https://passkeys.dev/">Passkeys.dev</a> - Best practices
+for Passkey implementation</li>
+<li><a href="https://webauthn.io/">WebAuthn.io</a> - Interactive demo
+and debugging tool</li>
+</ul>

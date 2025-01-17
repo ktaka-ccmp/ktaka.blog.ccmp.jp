@@ -1,4 +1,4 @@
-<!-- # Implementing WebAuthn Passkeys in Rust with Axum -->
+<!-- # Implementing Passkeys Authentication in Rust with Axum -->
 
 - [Introduction](#introduction)
 - [Understanding WebAuthn and Passkeys](#understanding-webauthn-and-passkeys)
@@ -21,6 +21,8 @@
 # Introduction
 
 As a developer learning web programming and authentication in Rust, I recently undertook the challenge of implementing WebAuthn Passkeys using the Axum web framework. In this post, I'll share my experience building a basic Passkey authentication system from scratch, without relying on full-featured WebAuthn library crates.
+
+To keep things concise, I’ve included simplified code snippets for key components. The full implementation is available in my [GitHub repository](https://github.com/ktaka-ccmp/axum-passkey).
 
 # Understanding WebAuthn and Passkeys
 
@@ -256,7 +258,7 @@ For a production environment, you'd replace these HashMaps with proper databases
 
 ## Registration Handler Implementation
 
-The registration process consists of two main functions. The start_registration function generates and stores necessary registration data, and then returns registration options as a body of HTTP response in Json format:
+The registration process consists of two main functions. The start_registration function creates a new user identity and challenge, preparing the server side for credential creation:
 
 ```rust
 async fn start_registration(
@@ -293,7 +295,7 @@ async fn start_registration(
 }
 ```
 
-The finish_registration function handles credential verification and storage:
+The finish_registration function processes the authenticator's response, verifying the attestation and storing the new credential:
 
 ```rust
 async fn finish_registration(
@@ -338,7 +340,7 @@ This function performs several critical security checks:
 
 ### Authentication Handler Implementation
 
-The authentication process also uses two main functions. The start_authentication function initiates the process, i.e. generates and stores necessary data, and then returns options as a body of HTTP response in Json format::
+The authentication process also uses two main functions. The start_authentication function generates a new challenge for an authentication attempt:
 
 ```rust
 async fn start_authentication(
@@ -369,7 +371,7 @@ async fn start_authentication(
 }
 ```
 
-The verify_authentication function validates the authentication attempt:
+The verify_authentication function processes the authenticator's signed assertion, verifying the signature and associated data:
 
 ```rust
 async fn verify_authentication(

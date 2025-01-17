@@ -1,4 +1,4 @@
-# Implementing WebAuthn Passkeys in Rust with Axum: A Learning Journey
+# Implementing WebAuthn Passkeys in Rust with Axum
 
 As a developer learning web programming and authentication in Rust, I recently undertook the challenge of implementing WebAuthn Passkeys using the Axum web framework. In this post, I'll share my experience building a basic Passkey authentication system from scratch, without relying on full-featured WebAuthn library crates.
 
@@ -7,23 +7,23 @@ As a developer learning web programming and authentication in Rust, I recently u
 Passkeys are a modern authentication standard based on WebAuthn that replaces traditional passwords with public key cryptography. They offer several advantages:
 
 - **No passwords to remember**: Users authenticate using their device's biometrics or PIN
-- **Phishing-resistant**: Credentials are bound to specific origins
-- **Better security**: Uses public key cryptography instead of shared secrets
-- **Cross-platform**: Works across devices through platform authenticators (e.g., Google Password Manager or Apple key chain)
+- **Phishing-resistant**: Credentials are bound to specific origins, reducing the risk of phishing attacks.
+- **Better security**: Public key cryptography eliminates the vulnerabilities associated with shared secrets.
+- **Cross-platform**: Passkeys work across devices through platform authenticators (e.g., Google Password Manager or Apple Keychain).
 
-WebAuthn is the underlying web standard that enables passwordless authentication, while Passkeys are a consumer-friendly implementation of WebAuthn. Think of WebAuthn as the technical standard (like HTTP) and Passkeys as the user-friendly product built on top of it (like the web browser). Major platforms like Google, Apple, and Microsoft have collaborated to make Passkeys interoperable across their ecosystems.
+WebAuthn, a W3C standard for passwordless authentication, uses public-key cryptography, with private keys stored on user devices and public keys on servers. It supports platform and roaming authenticators. Passkeys, as a specific implementation of WebAuthn credentials, enable seamless account recovery through cloud-synced credentials and use biometrics or PINs for user verification. Both are based on the FIDO2 protocol, with Passkeys adding features like cross-device synchronization and a standardized UI.
 
 ## General Concept
 
-WebAuthn Passkey authentication consists of two main phases: registration and authentication. Let's look at how each phase works at a high level.
+WebAuthn authentication consists of two main phases: registration and authentication. Let's look at how each phase works at a high level.
 
 ### Registration Phase
 
 During registration:
 
 1. Server generates a challenge and options and returns them to the client
-2. The client creates a new key pair in the authenticator
-3. Sends the public key to the server with attestation information
+2. The client requests the authenticator to create a new key pair and generate an attestation object containing the public key
+3. Sends the attestation object to the server
 4. Server verifies the attestation and stores the public key
 
 ```mermaid
@@ -50,6 +50,15 @@ sequenceDiagram
     Note over S: Store credential
     S->>C: Registration success
 ```
+
+#### Attestation Object
+
+The attestationObject, returned by the authenticator during registration, contains:
+
+1. Authenticator data, including the newly generated public key
+2. An attestation statement with information about the authenticator
+
+This object allows the server to verify the authenticity of the authenticator and securely obtain the user's new public key for future authentication.
 
 ### Authentication Phase
 
@@ -139,12 +148,13 @@ Key components of the registration options:
 - **user.id**: A unique identifier for the user that remains constant across registrations. Unlike username, which might change, this ID provides a stable way to link credentials to users. It's particularly important for discoverable credentials (resident keys).
 
 - **authenticatorSelection**: Controls the behavior of the authenticator:
-  - `authenticatorAttachment`: Specifies whether to use platform authenticators (like TouchID) or cross-platform ones (like security keys)
+  - `authenticatorAttachment`: Specifies whether to use platform authenticators (like Windows Hello, Touch ID, Face ID, or synced passkeys in Apple Keychain or Google Password Manager) or cross-platform authenticators (like physical security keys)
   - `residentKey`: Determines if the credential should be discoverable without the server providing the credential ID
   - `userVerification`: Controls whether the user must verify their identity (via biometrics/PIN) when using the credential
 
 Create credentials using the options in the authenticator:
-- Creates a new key pair and receives public key as credential
+
+- Creates a new key pair and receives an attestation object containing the public keypublic key, and client data
 - Secret key never leaves authenticator
 
 ```javascript
@@ -168,7 +178,7 @@ const credential = await navigator.credentials.create({
 });
 ```
 
-Send the public key to the server with attestation information:
+Sends the attestation object, client data and othe metadata to the server
 
 ```javascript
 // 3. Send credential to server
@@ -239,6 +249,8 @@ const assertion = await navigator.credentials.get({
     }
 });
 ```
+
+- If the allow_credentials is empty the user is asked to choose available discoverble keys in the authenticator.
 
 Send assertion to the server for verification:
 
@@ -354,7 +366,7 @@ async fn start_registration(
 }
 ```
 
-The finish_registration function verifies the attestation from the authenticator and stores the credential. Here are the key steps:
+The finish_registration function verifies the attestation object from the authenticator and stores the credential(public key). Here are the key steps:
 
 1. Verify that the client data matches what we expect:
    - Challenge matches the one we generated

@@ -12,12 +12,19 @@
   - [State Management](#state-management)
   - [Registration Handler Implementation](#registration-handler-implementation)
   - [Authentication Handler Implementation](#authentication-handler-implementation)
+- [WebAuthn Data Structures and API Formats](#webauthn-data-structures-and-api-formats)
+  - [Registration Data Structures](#registration-data-structures)
+    - [Standard WebAuthn Interfaces](#standard-webauthn-interfaces)
+    - [Our Implementation's API Format](#our-implementations-api-format)
+  - [Authentication Data Structures](#authentication-data-structures)
+    - [Standard WebAuthn Interfaces](#standard-webauthn-interfaces-1)
+    - [Our Implementation's API Format](#our-implementations-api-format-1)
 - [What's Next](#whats-next)
   - [Session management](#session-management)
   - [OAuth2/OIDC integration](#oauth2oidc-integration)
   - [Storage](#storage)
 - [Conclusion](#conclusion)
-  - [Resources](#resources)
+- [Resources](#resources)
 
 # Introduction
 
@@ -404,6 +411,159 @@ This function performs three main security checks:
 
 If these verifications are successful, a session can be created and the user is regarded as logged in.
 
+# WebAuthn Data Structures and API Formats
+
+Having seen both the client and server implementations, it's important to understand how they communicate with each other. While the WebAuthn standard precisely defines how browsers interact with authenticators, it doesn't specify how WebAuthn data should be transmitted between clients and servers. This gives implementations flexibility in designing their API formats. Let's examine how our implementation maps the standard WebAuthn interfaces to our API payload formats, and understand the reasoning behind our design choices.
+
+## Registration Data Structures
+
+### Standard WebAuthn Interfaces
+
+The browser's `navigator.credentials.create()` accepts `publicKeyCredentialCreationOptions`:
+
+```javascript
+PublicKeyCredentialCreationOptions {
+    challenge: BufferSource,
+    rp: {
+        id: string,
+        name: string
+    },
+    user: {
+        id: BufferSource,
+        name: string,
+        displayName: string
+    },
+    pubKeyCredParams: [{
+        type: "public-key",
+        alg: number
+    }],
+    authenticatorSelection?: {
+        authenticatorAttachment?: "platform" | "cross-platform",
+        residentKey?: "required" | "preferred" | "discouraged",
+        userVerification?: "required" | "preferred" | "discouraged"
+    },
+    timeout?: number
+}
+```
+
+And returns `AuthenticatorAttestationResponse`:
+
+```javascript
+AuthenticatorAttestationResponse {
+    clientDataJSON: ArrayBuffer,
+    attestationObject: ArrayBuffer
+}
+```
+
+### Our Implementation's API Format
+
+Our server's `/register/start` endpoint returns:
+
+```json
+{
+    "challenge": "base64url-encoded-random-bytes",
+    "rp_id": "example.com",
+    "user": {
+        "id": "user-uuid",
+        "name": "username"
+    },
+    "authenticatorSelection": {
+        "authenticatorAttachment": "platform",
+        "residentKey": "required"
+    }
+}
+```
+
+And our `/register/finish` endpoint accepts:
+
+```json
+{
+    "id": "credential-id",
+    "rawId": "base64url-encoded-credential-id",
+    "response": {
+        "attestationObject": "base64url-encoded-attestation-object",
+        "client_data_json": "base64url-encoded-client-data"
+    },
+    "user_handle": "user-uuid"
+}
+```
+
+Key differences:
+
+- We base64url-encode binary data for JSON transport
+- We simplify the options by omitting optional fields like timeout
+- We add a user_handle field to maintain the connection between credential and user
+
+## Authentication Data Structures
+
+### Standard WebAuthn Interfaces
+
+The browser's `navigator.credentials.get()` accepts `publicKeyCredentialRequestOptions`:
+
+```javascript
+PublicKeyCredentialRequestOptions {
+    challenge: BufferSource,
+    rpId?: string,
+    allowCredentials?: [{
+        type: "public-key",
+        id: BufferSource
+    }],
+    userVerification?: "required" | "preferred" | "discouraged",
+    timeout?: number
+}
+```
+
+And returns `AuthenticatorAssertionResponse`:
+
+```javascript
+AuthenticatorAssertionResponse {
+    clientDataJSON: ArrayBuffer,
+    authenticatorData: ArrayBuffer,
+    signature: ArrayBuffer,
+    userHandle?: ArrayBuffer
+}
+```
+
+### Our Implementation's API Format
+
+Our server's `/auth/start` endpoint returns:
+
+```json
+{
+    "challenge": "base64url-encoded-random-bytes",
+    "rp_id": "example.com",
+    "allow_credentials": [
+        {
+            "type": "public-key",
+            "id": "credential-id"
+        }
+    ]
+}
+```
+
+And our `/auth/verify` endpoint accepts:
+
+```json
+{
+    "id": "credential-id",
+    "response": {
+        "signature": "base64url-encoded-signature",
+        "authenticator_data": "base64url-encoded-authenticator-data",
+        "client_data_json": "base64url-encoded-client-data",
+        "user_handle": "base64url-encoded-user-handle"
+    }
+}
+```
+
+Key differences:
+
+- We base64url-encode binary data for JSON transport
+- We use snake_case instead of camelCase for consistency with Rust naming conventions
+- We make user_handle a required field in our implementation
+- We omit optional fields like timeout to simplify the implementation
+
+This mapping between standard WebAuthn interfaces and our implementation's formats happens in the client-side JavaScript code, which converts between ArrayBuffer and base64url-encoded strings and restructures the data as needed.
+
 # What's Next
 
 While this basic implementation demonstrates the core concepts of WebAuthn Passkeys, several enhancements would make it production-ready:
@@ -426,7 +586,11 @@ Building a WebAuthn Passkey implementation from scratch was an enlightening expe
 
 While implementing core functionality from scratch proved to be an invaluable learning experience, production systems should rely on established, well-tested WebAuthn libraries that have undergone security audits. The insights gained from this exercise, however, will prove valuable when working with these production libraries, as understanding WebAuthn's internals helps make better architectural decisions.
 
-## Resources
+# Resources
 
 [WebAuthn Guide](https://webauthn.guide/) - A practical guide to implementing WebAuthn authentication
 [Passkeys.dev](https://passkeys.dev/) - Resources and best practices for Passkey authentication
+
+https://w3c.github.io/webauthn/
+
+

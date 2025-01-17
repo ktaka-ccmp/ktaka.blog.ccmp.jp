@@ -13,6 +13,7 @@
   - [Registration Handler Implementation](#registration-handler-implementation)
   - [Authentication Handler Implementation](#authentication-handler-implementation)
 - [WebAuthn Data Structures and API Formats](#webauthn-data-structures-and-api-formats)
+  - [Data Flow and Transformations](#data-flow-and-transformations)
   - [Registration Data Structures](#registration-data-structures)
     - [Standard WebAuthn Interfaces](#standard-webauthn-interfaces)
     - [Our Implementation's API Format](#our-implementations-api-format)
@@ -415,178 +416,157 @@ If these verifications are successful, a session can be created and the user is 
 
 Having seen both the client and server implementations, it's important to understand how they communicate with each other. While the WebAuthn standard precisely defines how browsers interact with authenticators, it doesn't specify how WebAuthn data should be transmitted between clients and servers. This gives implementations flexibility in designing their API formats.
 
-The data flow between components involves several transformations:
+## Data Flow and Transformations
+
+The WebAuthn API deals with binary data in ArrayBuffer format, but this needs to be transformed for client-server communication:
 
 ```mermaid
 flowchart LR
-    A[Authenticator\nBinary] --> |"WebAuthn API"| W[Browser JS\nArrayBuffer]
-    W --> |"base64url encode"| C[Client JS\nJSON] 
-    C --> |"HTTP"| S[Server API\nJSON]
-    S --> |"base64url decode"| R[Rust\nVec u8]
+    subgraph Browser
+        W[WebAuthn API] --> |ArrayBuffer| J[JavaScript]
+        J --> |ArrayBuffer| W
+    end
+    
+    subgraph Transport
+        J <--> |"JSON + base64url"| R
+    end
+    
+    subgraph Server
+        R[Rust API] <--> |"Vec<u8>"| P[Processing]
+    end
 ```
 
-Let's examine how our implementation handles these transformations and why certain design choices were made.
+Our implementation makes several key design choices for data transport:
+
+- Uses JSON format for easy parsing and debugging
+- Base64url-encodes binary data for safe transport in JSON
+- Renames fields to match language conventions (camelCase in JS, snake_case in Rust)
+- Omits optional fields to simplify the implementation
+- Makes some optional fields required where it helps our implementation
 
 ## Registration Data Structures
 
 ### Standard WebAuthn Interfaces
 
-During registration, the browser's WebAuthn API uses these interfaces:
-
-The `navigator.credentials.create()` accepts:
+The browser's `navigator.credentials.create()` accepts `PublicKeyCredentialCreationOptions`:
 
 ```javascript
 PublicKeyCredentialCreationOptions {
-    // Random bytes to prevent replay attacks
-    challenge: BufferSource,
-    
-    // Service identity for phishing protection
+    challenge: BufferSource,    // Random bytes to prevent replay attacks
     rp: {
-        id: string,     // Domain name
-        name: string    // Display name
+        id: string,      // Domain name for phishing protection
+        name: string     // Display name for the service
     },
-    
-    // User identity for credential binding
     user: {
-        id: BufferSource,     // Stable identifier
-        name: string,         // Username
-        displayName: string   // Display name
+        id: BufferSource,     // Stable identifier for the user
+        name: string,         // Username (can change)
+        displayName: string   // User's full name or display name
     },
-    
-    // Allowed key types and algorithms
+    // Allowed public key parameters
     pubKeyCredParams: [{
-        type: "public-key",
-        alg: number          // e.g., -7 for ES256
+        type: "public-key",   // Currently only "public-key" is supported
+        alg: number          // Cryptographic algorithm identifier
     }],
-    
-    // Authenticator preferences
+    // Optional authenticator preferences
     authenticatorSelection?: {
-        // "platform" for built-in, "cross-platform" for security keys
         authenticatorAttachment?: "platform" | "cross-platform",
-        
-        // Whether credential should be discoverable
         residentKey?: "required" | "preferred" | "discouraged",
-        
-        // Whether user verification (biometric/PIN) is needed
         userVerification?: "required" | "preferred" | "discouraged"
     },
-    
-    timeout?: number  // Operation timeout in milliseconds
+    timeout?: number    // Operation timeout in milliseconds
 }
 ```
 
-And returns:
+And returns `AuthenticatorAttestationResponse`:
 
 ```javascript
 AuthenticatorAttestationResponse {
-    // JSON containing challenge, origin, and type
-    clientDataJSON: ArrayBuffer,
-    
-    // CBOR-encoded credential data and attestation
-    attestationObject: ArrayBuffer
+    clientDataJSON: ArrayBuffer,    // JSON containing challenge, origin, and type
+    attestationObject: ArrayBuffer  // CBOR-encoded attestation data
 }
 ```
 
 ### Our Implementation's API Format
 
-Our server endpoints use JSON with base64url-encoded binary data for transport. The `/register/start` endpoint returns:
+Our server's `/register/start` endpoint returns:
 
 ```json
 {
     "challenge": "base64url-encoded-random-bytes",
     "rp_id": "example.com",
     "user": {
-        "id": "user-uuid",
+        "id": "user-uuid",      // String UUID for easier handling
         "name": "username"
     },
     "authenticatorSelection": {
-        "authenticatorAttachment": "platform",
-        "residentKey": "required"
+        "authenticatorAttachment": "platform",  // Prefer platform authenticators
+        "residentKey": "required"               // Require discoverable credentials
     }
 }
 ```
 
-Key points about our registration options:
-
-- We use a domain name as `rp_id` to prevent phishing
-- We require platform authenticators for better UX
-- We require resident keys (discoverable credentials) for passwordless login
-- We omit optional fields to simplify the implementation
-
-The `/register/finish` endpoint accepts:
+And our `/register/finish` endpoint accepts:
 
 ```json
 {
-    "id": "credential-id",
+    "id": "credential-id",      // Base64url credential identifier
     "rawId": "base64url-encoded-credential-id",
     "response": {
         "attestationObject": "base64url-encoded-attestation-object",
         "client_data_json": "base64url-encoded-client-data"
     },
-    "user_handle": "user-uuid"
+    "user_handle": "user-uuid"  // Links credential to user account
 }
 ```
 
-The `attestationObject` contains:
+Design choices for registration:
 
-- The new credential's public key
-- The credential ID
-- Authenticator data like counters and flags
-- Attestation format and statement
+- Base64url-encode all binary data (challenge, credential ID, attestation object)
+- Use string UUID for user.id instead of binary format
+- Require platform authenticators and resident keys for better UX
+- Add explicit user_handle to maintain credential-user connection
+- Omit timeout and other optional fields for simplicity
 
 ## Authentication Data Structures
 
 ### Standard WebAuthn Interfaces
 
-For authentication, the browser's `navigator.credentials.get()` accepts:
+The browser's `navigator.credentials.get()` accepts `PublicKeyCredentialRequestOptions`:
 
 ```javascript
 PublicKeyCredentialRequestOptions {
-    // Random bytes to prevent replay attacks
-    challenge: BufferSource,
-    
-    // Domain name for phishing protection
-    rpId?: string,
-    
-    // Allowed credentials (optional for discoverable credentials)
-    allowCredentials?: [{
+    challenge: BufferSource,    // Random bytes to prevent replay attacks
+    rpId?: string,          // Optional domain name restriction
+    allowCredentials?: [{   // Optional list of allowed credentials
         type: "public-key",
-        id: BufferSource    // Credential ID
+        id: BufferSource    // Credential identifier
     }],
-    
-    // Whether user verification is needed
+    // Optional user verification requirement
     userVerification?: "required" | "preferred" | "discouraged",
-    
-    timeout?: number
+    timeout?: number    // Operation timeout in milliseconds
 }
 ```
 
-And returns:
+And returns `AuthenticatorAssertionResponse`:
 
 ```javascript
 AuthenticatorAssertionResponse {
-    // JSON containing challenge, origin, and type
-    clientDataJSON: ArrayBuffer,
-    
-    // Authenticator data including counter
-    authenticatorData: ArrayBuffer,
-    
-    // Signature over authenticatorData and clientDataHash
-    signature: ArrayBuffer,
-    
-    // User identifier (required for discoverable credentials)
-    userHandle?: ArrayBuffer
+    clientDataJSON: ArrayBuffer,    // JSON containing challenge, origin, and type
+    authenticatorData: ArrayBuffer, // CBOR-encoded authenticator data
+    signature: ArrayBuffer,         // Cryptographic signature
+    userHandle?: ArrayBuffer        // Optional user identifier
 }
 ```
 
 ### Our Implementation's API Format
 
-The `/auth/start` endpoint returns:
+Our server's `/auth/start` endpoint returns:
 
 ```json
 {
     "challenge": "base64url-encoded-random-bytes",
     "rp_id": "example.com",
+    // Optional for discoverable credentials
     "allow_credentials": [
         {
             "type": "public-key",
@@ -596,9 +576,7 @@ The `/auth/start` endpoint returns:
 }
 ```
 
-The `challenge` is unique per authentication attempt to prevent replay attacks. The `allow_credentials` list is optional when using discoverable credentials.
-
-The `/auth/verify` endpoint accepts:
+And our `/auth/verify` endpoint accepts:
 
 ```json
 {
@@ -612,14 +590,15 @@ The `/auth/verify` endpoint accepts:
 }
 ```
 
-Design choices in our API:
+Design choices for authentication:
 
-- Binary data is base64url-encoded for safe JSON transport
-- We use snake_case to match Rust conventions
-- The user_handle field is required to simplify user lookup
-- Timeout and other optional fields are omitted
+- Base64url-encode all binary data for transport
+- Use snake_case in API for consistency with Rust
+- Make user_handle required to simplify user lookup
+- Support discoverable credentials by making allow_credentials optional
+- Omit timeout and user verification preferences for simplicity
 
-The client-side JavaScript handles all necessary transformations between the WebAuthn API's ArrayBuffer format and our API's JSON format. This includes base64url encoding/decoding and restructuring the data to match our API's expectations.
+The client-side JavaScript handles all necessary conversions between WebAuthn's ArrayBuffer format and our API's JSON format, using base64url encoding for binary data. This separation of concerns keeps our API clean while maintaining compatibility with the WebAuthn standard.
 
 # What's Next
 
@@ -645,9 +624,7 @@ While implementing core functionality from scratch proved to be an invaluable le
 
 # Resources
 
-[WebAuthn Guide](https://webauthn.guide/) - A practical guide to implementing WebAuthn authentication
-[Passkeys.dev](https://passkeys.dev/) - Resources and best practices for Passkey authentication
-
-https://w3c.github.io/webauthn/
-
-
+- [WebAuthn Specification](https://w3c.github.io/webauthn/) - Official W3C standard
+- [WebAuthn Guide](https://webauthn.guide/) - A practical guide to implementing WebAuthn
+- [Passkeys.dev](https://passkeys.dev/) - Best practices for Passkey implementation
+- [WebAuthn.io](https://webauthn.io/) - Interactive demo and debugging tool

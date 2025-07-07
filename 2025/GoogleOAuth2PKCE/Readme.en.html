@@ -1,0 +1,288 @@
+<h1
+id="google-oauth2-and-pkce-understanding-client-secret-requirements">Google
+OAuth2 and PKCE: Understanding Client Secret Requirements</h1>
+<p><em>A systematic test of Google’s OAuth2 PKCE implementation and its
+implications for different application types.</em></p>
+<p><strong>Key Finding</strong>: Google’s OAuth2 implementation requires
+<code>client_secret</code> even when using PKCE for Web Application
+client types, contrary to RFC 7636 standard expectations. This post
+documents systematic testing that confirms this behavior and provides
+architectural guidance for developers.</p>
+<h2 id="background-pkce-and-public-clients">Background: PKCE and Public
+Clients</h2>
+<p>PKCE (Proof Key for Code Exchange) was introduced in RFC 7636 to
+address security concerns with public clients—applications that cannot
+securely store credentials, such as mobile apps and single-page
+applications (SPAs).</p>
+<p>The standard OAuth2 flow requires a <code>client_secret</code>, but
+PKCE provides an alternative mechanism:</p>
+<ol type="1">
+<li>Generate a random <code>code_verifier</code></li>
+<li>Create a <code>code_challenge</code> by hashing the verifier<br />
+</li>
+<li>Send the challenge with the authorization request</li>
+<li>Exchange the authorization code using the verifier</li>
+</ol>
+<p>According to RFC 7636, this should eliminate the need for
+<code>client_secret</code> in public clients.</p>
+<h2 id="testing-googles-implementation">Testing Google’s
+Implementation</h2>
+<p>I conducted a systematic test to understand how Google’s OAuth2
+endpoints handle PKCE requests using a Web Application client type.</p>
+<h3 id="test-setup">Test Setup</h3>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/bin/bash</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate PKCE parameters</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="va">code_verifier</span><span class="op">=</span><span class="va">$(</span><span class="ex">openssl</span> rand <span class="at">-base64</span> 32 <span class="kw">|</span> <span class="fu">tr</span> <span class="at">-d</span> <span class="st">&quot;=+/&quot;</span> <span class="kw">|</span> <span class="fu">cut</span> <span class="at">-c1-43</span><span class="va">)</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="va">code_challenge</span><span class="op">=</span><span class="va">$(</span><span class="bu">echo</span> <span class="at">-n</span> <span class="va">$code_verifier</span> <span class="kw">|</span> <span class="ex">openssl</span> dgst <span class="at">-sha256</span> <span class="at">-binary</span> <span class="kw">|</span> <span class="ex">openssl</span> base64 <span class="kw">|</span> <span class="fu">tr</span> <span class="at">-d</span> <span class="st">&#39;\n&#39;</span> <span class="kw">|</span> <span class="fu">tr</span> <span class="st">&#39;+&#39;</span> <span class="st">&#39;-&#39;</span> <span class="kw">|</span> <span class="fu">tr</span> <span class="st">&#39;/&#39;</span> <span class="st">&#39;_&#39;</span> <span class="kw">|</span> <span class="fu">tr</span> <span class="at">-d</span> <span class="st">&#39;=&#39;</span><span class="va">)</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;=== PKCE Parameters ===&quot;</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;code_verifier: </span><span class="va">$code_verifier</span><span class="st">&quot;</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;code_challenge: </span><span class="va">$code_challenge</span><span class="st">&quot;</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;&quot;</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="co"># OAuth2 settings</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="va">client_id</span><span class="op">=</span><span class="st">&#39;[REDACTED_CLIENT_ID]&#39;</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="va">redirect_uri</span><span class="op">=</span><span class="st">&#39;https://oauth2.example.com/result&#39;</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Generate authorization URL</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="va">auth_url</span><span class="op">=</span><span class="st">&quot;https://accounts.google.com/o/oauth2/v2/auth?redirect_uri=</span><span class="va">${redirect_uri}</span><span class="st">&amp;response_type=code&amp;client_id=</span><span class="va">${client_id}</span><span class="st">&amp;scope=openid+email+profile&amp;access_type=online&amp;code_challenge=</span><span class="va">${code_challenge}</span><span class="st">&amp;code_challenge_method=S256&amp;response_mode=fragment&quot;</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;=== Authorization URL ===&quot;</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;</span><span class="va">$auth_url</span><span class="st">&quot;</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;&quot;</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;=== Token Exchange Command ===&quot;</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;curl -X POST </span><span class="dt">\\</span><span class="st">&quot;</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;  --data-urlencode </span><span class="dt">\&quot;</span><span class="st">code=</span><span class="dt">\$</span><span class="st">CODE</span><span class="dt">\&quot;</span><span class="st"> </span><span class="dt">\\</span><span class="st">&quot;</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;  --data-urlencode </span><span class="dt">\&quot;</span><span class="st">client_id=</span><span class="va">$client_id</span><span class="dt">\&quot;</span><span class="st"> </span><span class="dt">\\</span><span class="st">&quot;</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;  --data-urlencode </span><span class="dt">\&quot;</span><span class="st">redirect_uri=</span><span class="va">$redirect_uri</span><span class="dt">\&quot;</span><span class="st"> </span><span class="dt">\\</span><span class="st">&quot;</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;  --data-urlencode </span><span class="dt">\&quot;</span><span class="st">code_verifier=</span><span class="va">$code_verifier</span><span class="dt">\&quot;</span><span class="st"> </span><span class="dt">\\</span><span class="st">&quot;</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;  -d &#39;grant_type=authorization_code&#39; </span><span class="dt">\\</span><span class="st">&quot;</span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;  https://oauth2.googleapis.com/token&quot;</span></span></code></pre></div>
+<h3 id="test-results">Test Results</h3>
+<p><strong>Authorization Request</strong>: ✅ Successful Google accepted
+the PKCE parameters (<code>code_challenge</code> and
+<code>code_challenge_method=S256</code>) and returned an authorization
+code.</p>
+<p><strong>Token Exchange with PKCE only</strong>: ❌ Failed</p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-X</span> POST <span class="dt">\</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--data-urlencode</span> <span class="st">&quot;code=</span><span class="va">$CODE</span><span class="st">&quot;</span> <span class="dt">\</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--data-urlencode</span> <span class="st">&quot;client_id=[REDACTED_CLIENT_ID]&quot;</span> <span class="dt">\</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">--data-urlencode</span> <span class="st">&quot;redirect_uri=https://oauth2.example.com/result&quot;</span> <span class="dt">\</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">--data-urlencode</span> <span class="st">&quot;code_verifier=[REDACTED_VERIFIER]&quot;</span> <span class="dt">\</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">-d</span> <span class="st">&#39;grant_type=authorization_code&#39;</span> <span class="dt">\</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  https://oauth2.googleapis.com/token</span></code></pre></div>
+<p><strong>Response:</strong></p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;error&quot;</span><span class="fu">:</span> <span class="st">&quot;invalid_request&quot;</span><span class="fu">,</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;error_description&quot;</span><span class="fu">:</span> <span class="st">&quot;client_secret is missing.&quot;</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h2 id="community-confirmation">Community Confirmation</h2>
+<p>This limitation has been documented by the developer community:</p>
+<p><strong>Stack Overflow Evidence:</strong> - <a
+href="https://stackoverflow.com/questions/76528208/google-oauth-2-0-authorization-code-with-pkce-requires-a-client-secret">Google
+OAuth 2.0 Authorization Code (with PKCE) requires a client secret</a> -
+Multiple developers confirm this requirement - <a
+href="https://stackoverflow.com/questions/78673050/is-a-client-secret-required-for-google-oauth-2-0-using-the-pkce-authorization-fl">Is
+a Client Secret Required for Google OAuth 2.0 using the PKCE
+Authorization Flow?</a> - Discussion of Google’s non-standard
+implementation</p>
+<p><strong>Google Cloud Community:</strong> - <a
+href="https://www.googlecloudcommunity.com/gc/Developer-Tools/Authorization-Code-Flow-without-client-secret/m-p/814109">Authorization
+Code Flow without client secret</a> - A Google representative
+acknowledges: “Google’s Identity Platform as of today does not support
+public applications under the ‘Web Application’ profile. Flows always
+require a client_secret.”</p>
+<p><strong>GitHub Issues:</strong> - <a
+href="https://github.com/postmanlabs/postman-app-support/issues/9409">OAuth
+2.0 with PKCE still requires client secret</a> - Tool developers
+encounter this limitation</p>
+<h2 id="understanding-the-implications">Understanding the
+Implications</h2>
+<h3 id="for-server-side-applications">For Server-Side Applications</h3>
+<p><strong>Recommendation</strong>: Use the traditional OAuth2 flow with
+<code>client_secret</code> stored securely on your server.</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-X</span> POST <span class="dt">\</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--data-urlencode</span> <span class="st">&quot;code=</span><span class="va">$code</span><span class="st">&quot;</span> <span class="dt">\</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--data-urlencode</span> <span class="st">&quot;client_id=</span><span class="va">$client_id</span><span class="st">&quot;</span> <span class="dt">\</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">--data-urlencode</span> <span class="st">&quot;redirect_uri=</span><span class="va">$redirect_uri</span><span class="st">&quot;</span> <span class="dt">\</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">-d</span> <span class="st">&quot;client_secret=</span><span class="va">$client_secret</span><span class="st">&quot;</span> <span class="dt">\</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">-d</span> <span class="st">&#39;grant_type=authorization_code&#39;</span> <span class="dt">\</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  https://oauth2.googleapis.com/token</span></code></pre></div>
+<p>This is the intended use case where <code>client_secret</code> can be
+stored securely.</p>
+<h3 id="for-single-page-applications-spas">For Single-Page Applications
+(SPAs)</h3>
+<p><strong>Recommendation</strong>: Limit authentication to
+<code>id_token</code> only and handle API access through your
+backend.</p>
+<p><strong>Critical Security Warning</strong>: Embedding a
+<code>client_secret</code> in browser code exposes it to anyone with
+access to the client, which is fundamentally insecure. This is why the
+OAuth2 standard forbids it for public clients.</p>
+<p>For SPAs that cannot securely store <code>client_secret</code>: 1.
+Use the implicit flow or authorization code flow to obtain only
+<code>id_token</code> for user authentication 2. Send the
+<code>id_token</code> to your backend for verification 3. Handle Google
+API calls from your backend using server-stored credentials</p>
+<p>This approach separates authentication (client-side) from API access
+(server-side).</p>
+<p><strong>Note</strong>: As of this writing, Google’s official
+documentation still directs SPAs toward the <a
+href="https://developers.google.com/identity/protocols/oauth2/javascript-implicit-flow">implicit
+flow</a>, which has been deprecated in OAuth 2.1 due to security
+concerns. This inconsistency in guidance contributes to confusion around
+best practices.</p>
+<h3 id="for-mobile-and-desktop-applications">For Mobile and Desktop
+Applications</h3>
+<p><strong>Current Reality</strong>: Google’s implementation requires
+embedding <code>client_secret</code> in the application code.</p>
+<p>Google’s documentation acknowledges this: “The process results in a
+client ID and, in some cases, a client secret, which you embed in the
+source code of your application. (In this context, the client secret is
+obviously not treated as a secret.)”</p>
+<p>While not ideal from a security perspective, this is Google’s
+intended approach for native applications.</p>
+<h2 id="technical-implementation-notes">Technical Implementation
+Notes</h2>
+<h3 id="pkce-parameter-generation">PKCE Parameter Generation</h3>
+<p>Google requires base64url encoding for the code challenge:</p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Correct base64url encoding for Google</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="va">code_challenge</span><span class="op">=</span><span class="va">$(</span><span class="bu">echo</span> <span class="at">-n</span> <span class="va">$code_verifier</span> <span class="kw">|</span> <span class="ex">openssl</span> dgst <span class="at">-sha256</span> <span class="at">-binary</span> <span class="kw">|</span> <span class="ex">openssl</span> base64 <span class="kw">|</span> <span class="fu">tr</span> <span class="at">-d</span> <span class="st">&#39;\n&#39;</span> <span class="kw">|</span> <span class="fu">tr</span> <span class="st">&#39;+&#39;</span> <span class="st">&#39;-&#39;</span> <span class="kw">|</span> <span class="fu">tr</span> <span class="st">&#39;/&#39;</span> <span class="st">&#39;_&#39;</span> <span class="kw">|</span> <span class="fu">tr</span> <span class="at">-d</span> <span class="st">&#39;=&#39;</span><span class="va">)</span></span></code></pre></div>
+<h3 id="test-configuration">Test Configuration</h3>
+<p>This testing used: - Web Application client type in Google Cloud
+Console - Scopes: <code>openid email profile</code> - Standard OAuth2
+endpoints (<code>https://accounts.google.com/o/oauth2/v2/auth</code> and
+<code>https://oauth2.googleapis.com/token</code>) - PKCE method S256</p>
+<h3 id="different-client-types">Different Client Types</h3>
+<p>Google offers various OAuth2 client types that may have different
+behaviors: - <strong>Web Application</strong>: In our testing, always
+required <code>client_secret</code> - <strong>Android/iOS</strong>: May
+have different requirements (needs further testing) -
+<strong>Desktop</strong>: Reported to require secret but treat as
+non-confidential - <strong>TV/Limited Input</strong>: Similar behavior
+to desktop (based on community reports)</p>
+<h2 id="summary-standard-vs-reality">Summary: Standard vs Reality</h2>
+<p>According to OAuth2/PKCE standards, public clients should be able to
+authenticate without embedding secrets. Here’s how Google’s
+implementation compares:</p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 12%" />
+<col style="width: 34%" />
+<col style="width: 36%" />
+<col style="width: 16%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Client Type</th>
+<th>Standard PKCE<br>(No Secret Needed)</th>
+<th>Google’s Reality<br>(Secret Required)</th>
+<th>Security Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Server-side</strong></td>
+<td>❌ No (secret required)</td>
+<td>❌ No (secret required)</td>
+<td>✅ Secure (secret stays on server)</td>
+</tr>
+<tr class="even">
+<td><strong>SPA (Browser)</strong></td>
+<td>✅ Yes (recommended)</td>
+<td>❌ No (not supported)</td>
+<td>❌ Secret exposed to users</td>
+</tr>
+<tr class="odd">
+<td><strong>Mobile/Desktop</strong></td>
+<td>✅ Yes (recommended)</td>
+<td>❌ No (not supported)</td>
+<td>❌ Secret embedded in app</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The Problem</strong>: Google requires secrets for all client
+types, forcing developers to embed credentials in publicly distributed
+code—exactly what PKCE was designed to prevent.</p>
+<h2 id="architectural-recommendations">Architectural
+Recommendations</h2>
+<h3 id="hybrid-approach-for-spas">Hybrid Approach for SPAs</h3>
+<pre><code>Browser (SPA) → Authentication only (id_token)
+     ↓
+Backend Server → API calls with client_secret</code></pre>
+<h3 id="mobile-applications">Mobile Applications</h3>
+<p>If using Google OAuth2 with mobile apps, implement additional
+security measures: - Use certificate pinning - Implement runtime
+application self-protection (RASP) - Monitor for application
+tampering</p>
+<h3 id="server-side-applications">Server-Side Applications</h3>
+<p>Standard OAuth2 flow with proper secret management: - Store
+<code>client_secret</code> in secure configuration - Use environment
+variables or secret management systems - Rotate credentials
+regularly</p>
+<h2 id="community-feedback-welcome">Community Feedback Welcome</h2>
+<p>The findings in this post are based on testing with a specific client
+configuration (Web Application type) and may not represent all possible
+scenarios. Google’s OAuth2 implementation is complex, with different
+behaviors across client types, API versions, and configuration
+options.</p>
+<p><strong>If you have different results or experiences</strong>, please
+share them: - Have you successfully used PKCE without client_secret with
+Google OAuth2? - Do different client types (Android, iOS, Desktop)
+behave differently? - Are there specific Google APIs or configurations
+that work as expected? - Have there been recent changes to Google’s
+implementation?</p>
+<p>This post aims to document one specific finding to help other
+developers, but the OAuth2 landscape is constantly evolving.
+Contradicting evidence or alternative approaches would be valuable
+additions to the community’s understanding.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>Google’s OAuth2 implementation requires <code>client_secret</code>
+even when using PKCE for Web Application client types, which differs
+from the RFC 7636 standard. This finding, supported by community
+reports, indicates a consistent pattern in Google’s implementation.</p>
+<p>Understanding this behavior helps in choosing appropriate
+architectural patterns:</p>
+<ul>
+<li><strong>Server-side applications</strong>: Use standard OAuth2 with
+secure secret storage</li>
+<li><strong>SPAs</strong>: Limit to authentication-only flows, handle
+API access server-side<br />
+</li>
+<li><strong>Mobile/Desktop</strong>: Accept the embedded secret
+limitation or use hybrid architectures</li>
+</ul>
+<p>When implementing OAuth2 with Google, design your architecture around
+these observed constraints. While other client types may behave
+differently, the Web Application type consistently requires client
+secrets alongside PKCE.</p>
+<h2 id="references">References</h2>
+<ol type="1">
+<li><a href="https://tools.ietf.org/html/rfc7636">RFC 7636 - Proof Key
+for Code Exchange by OAuth Public Clients</a></li>
+<li><a
+href="https://developers.google.com/identity/protocols/oauth2">Google
+OAuth 2.0 Documentation</a></li>
+<li><a
+href="https://developers.google.com/identity/protocols/oauth2/native-app">Google
+OAuth 2.0 for Mobile &amp; Desktop Apps</a></li>
+<li><a
+href="https://developers.google.com/identity/protocols/oauth2/javascript-implicit-flow">Google
+OAuth 2.0 JavaScript Implicit Flow</a></li>
+<li><a href="https://support.google.com/cloud/answer/15549257">Manage
+OAuth Clients - Google Cloud Platform Console Help</a></li>
+<li><a
+href="https://stackoverflow.com/questions/76528208/google-oauth-2-0-authorization-code-with-pkce-requires-a-client-secret">Stack
+Overflow: Google OAuth 2.0 Authorization Code (with PKCE) requires a
+client secret</a></li>
+<li><a
+href="https://www.googlecloudcommunity.com/gc/Developer-Tools/Authorization-Code-Flow-without-client-secret/m-p/814109">Google
+Cloud Community: Authorization Code Flow without client secret</a></li>
+</ol>

@@ -1,35 +1,40 @@
 <h1
-id="oauth2-flow-testing-a-comprehensive-analysis-of-response-types-and-modes">OAuth2
-Flow Testing: A Comprehensive Analysis of Response Types and Modes</h1>
-<p>When implementing OAuth2 authentication, developers face numerous
-configuration choices that significantly impact both security and user
-experience. While the OAuth2 specification provides guidance,
-understanding how different combinations of response types and response
-modes behave in practice requires empirical testing.</p>
-<p>This post presents a systematic analysis of OAuth2 flows using
-Google’s OAuth2 implementation, revealing key insights about token
-delivery patterns, security implications, and practical recommendations
-for production deployments.</p>
+id="oauth2-and-openid-connect-oidc-flow-testing-a-comprehensive-analysis-of-response-types-and-modes">OAuth2
+and OpenID Connect (OIDC) Flow Testing: A Comprehensive Analysis of
+Response Types and Modes</h1>
+<p>When implementing OAuth2 authorization and OpenID Connect (OIDC)
+authentication, developers face numerous configuration choices that
+significantly impact both security and user experience. While the OAuth2
+and OIDC specifications provide guidance, understanding how different
+combinations of response types and response modes behave in practice
+requires empirical testing.</p>
+<p>This post presents a systematic analysis of OAuth2/OIDC flows using
+Google’s implementation, revealing key insights about token delivery
+patterns, security implications, and practical recommendations for
+production deployments.</p>
 <h2 id="the-challenge-too-many-options-too-little-clarity">The
 Challenge: Too Many Options, Too Little Clarity</h2>
-<p>OAuth2 offers multiple response types (<code>code</code>,
-<code>token</code>, <code>id_token</code>, and combinations) and
-response modes (<code>query</code>, <code>fragment</code>,
-<code>form_post</code>). This creates a matrix of possibilities:</p>
-<ul>
-<li><strong>Response Types</strong>: 7 different combinations</li>
-<li><strong>Response Modes</strong>: 3 different delivery methods<br />
-</li>
-<li><strong>Scopes</strong>: Various combinations affecting token
-types</li>
-</ul>
-<p>The result? 42 different flow configurations to understand. Rather
-than rely on documentation alone, I built an automated testing framework
-to examine how these flows actually behave.</p>
-<h2 id="methodology-automated-flow-testing">Methodology: Automated Flow
-Testing</h2>
-<p>I created a Python script that systematically tests all OAuth2 flow
-combinations:</p>
+<p>OAuth2 and OpenID Connect (OIDC) offer multiple response types and
+response modes that serve different purposes:</p>
+<p><strong>OAuth2 Response Types</strong>: - <code>code</code> -
+Authorization Code Grant (for access tokens) - <code>token</code> -
+Implicit Grant (direct access tokens)</p>
+<p><strong>OIDC Response Types</strong>: - <code>id_token</code> -
+Identity tokens for authentication - <code>code token</code>,
+<code>code id_token</code>, <code>token id_token</code>,
+<code>code token id_token</code> - Hybrid flows</p>
+<p><strong>Response Modes</strong> (both OAuth2/OIDC): -
+<code>query</code>, <code>fragment</code>, <code>form_post</code> -
+Different delivery methods</p>
+<p>This creates a matrix of possibilities: 7 response types × 3 response
+modes × various scope combinations = 42+ different flow configurations
+to understand. Rather than rely on documentation alone, I built an
+automated testing framework to examine how these flows actually
+behave.</p>
+<h2 id="methodology-automated-oauth2oidc-flow-testing">Methodology:
+Automated OAuth2/OIDC Flow Testing</h2>
+<p>I created a Python script that systematically tests all OAuth2/OIDC
+flow combinations:</p>
 <div class="sourceCode" id="cb1"><pre
 class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Core testing parameters</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>RESPONSE_TYPES <span class="op">=</span> [<span class="st">&#39;code&#39;</span>, <span class="st">&#39;token&#39;</span>, <span class="st">&#39;id_token&#39;</span>, <span class="st">&#39;code token&#39;</span>, <span class="st">&#39;code id_token&#39;</span>, <span class="st">&#39;token id_token&#39;</span>, <span class="st">&#39;code token id_token&#39;</span>]</span>
@@ -37,22 +42,21 @@ class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a hr
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>SCOPES <span class="op">=</span> [<span class="st">&#39;profile email&#39;</span>, <span class="st">&#39;openid profile email&#39;</span>]</span></code></pre></div>
 <p>The testing framework:</p>
 <ol type="1">
-<li><strong>Generates authorization URLs</strong> for each
+<li><strong>Generates authorization URLs</strong> for each OAuth2/OIDC
 combination</li>
 <li><strong>Opens browser windows</strong> for user authentication</li>
 <li><strong>Captures responses</strong> across query parameters, form
 data, and URL fragments</li>
 <li><strong>Performs token exchange</strong> when authorization codes
-are present</li>
+are present (OAuth2 code flow)</li>
+<li><strong>Validates ID tokens</strong> when present (OIDC
+authentication)</li>
 <li><strong>Logs comprehensive results</strong> for analysis</li>
 </ol>
-<p>This approach provided empirical data on how Google’s OAuth2
+<p>This approach provided empirical data on how Google’s OAuth2/OIDC
 implementation handles each flow configuration.</p>
 <h2 id="key-findings-response-behavior-patterns">Key Findings: Response
 Behavior Patterns</h2>
-<p>See the results in <a
-href="https://gist.github.com/ktaka-ccmp/915a3680f04f1704742f13e898ca668d?permalink_comment_id=5665842#gistcomment-5665842">Gist
-page</a>.</p>
 <h3 id="pattern-1-location-predictability">Pattern 1: Location
 Predictability</h3>
 <p>The testing revealed consistent patterns in where tokens are
@@ -67,50 +71,296 @@ fragments - Multiple tokens → Always delivered together</p>
 (<code>response_type=code token id_token</code>), they are always
 delivered together in the same location. You never see mixed delivery
 like code in query parameters while tokens appear in fragments.</p>
-<h3 id="pattern-3-scope-normalization">Pattern 3: Scope
+<h3 id="pattern-3-oidc-scope-normalization">Pattern 3: OIDC Scope
 Normalization</h3>
-<p>Regardless of requested scope, Google consistently: - Adds
-<code>openid</code> scope to all responses - Expands scopes to include
-full URL versions - Maintains identical behavior for
-<code>profile email</code> vs <code>openid profile email</code></p>
-<h2 id="security-analysis-most-and-least-recommended-flows">Security
-Analysis: Most and Least Recommended Flows</h2>
-<h3 id="most-recommended-authorization-code-with-form-post">🏆 Most
-Recommended: Authorization Code with Form Post</h3>
+<p>Regardless of requested scope, Google’s OIDC implementation
+consistently: - Adds <code>openid</code> scope to all responses (making
+them OIDC flows) - Expands scopes to include full URL versions -
+Maintains identical behavior for <code>profile email</code> vs
+<code>openid profile email</code> - Always includes identity information
+when ID tokens are requested</p>
+<h2 id="detailed-test-results">Detailed Test Results</h2>
+<p>The comprehensive testing revealed distinct patterns across all
+response mode and type combinations:</p>
+<h3 id="query-response-mode-results">Query Response Mode Results</h3>
+<table>
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 17%" />
+<col style="width: 15%" />
+<col style="width: 25%" />
+<col style="width: 24%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Response Type</th>
+<th>Scope</th>
+<th>Response Location</th>
+<th>Returned Tokens</th>
+<th>Token Exchange</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>code</td>
+<td>profile email</td>
+<td>query params</td>
+<td>code</td>
+<td>access_token, id_token</td>
+</tr>
+<tr class="even">
+<td>code</td>
+<td>openid profile email</td>
+<td>query params</td>
+<td>code</td>
+<td>access_token, id_token</td>
+</tr>
+<tr class="odd">
+<td>token</td>
+<td>both scopes</td>
+<td>fragment</td>
+<td>access_token</td>
+<td>none</td>
+</tr>
+<tr class="even">
+<td>id_token</td>
+<td>both scopes</td>
+<td>fragment</td>
+<td>id_token</td>
+<td>none</td>
+</tr>
+<tr class="odd">
+<td>code token</td>
+<td>both scopes</td>
+<td>fragment</td>
+<td>code, access_token</td>
+<td>access_token, id_token</td>
+</tr>
+<tr class="even">
+<td>code id_token</td>
+<td>both scopes</td>
+<td>fragment</td>
+<td>code, id_token</td>
+<td>access_token, id_token</td>
+</tr>
+<tr class="odd">
+<td>token id_token</td>
+<td>both scopes</td>
+<td>fragment</td>
+<td>access_token, id_token</td>
+<td>none</td>
+</tr>
+<tr class="even">
+<td>code token id_token</td>
+<td>both scopes</td>
+<td>fragment</td>
+<td>code, access_token, id_token</td>
+<td>access_token, id_token</td>
+</tr>
+</tbody>
+</table>
+<h3 id="fragment-response-mode-results">Fragment Response Mode
+Results</h3>
+<table>
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 17%" />
+<col style="width: 15%" />
+<col style="width: 25%" />
+<col style="width: 24%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Response Type</th>
+<th>Scope</th>
+<th>Response Location</th>
+<th>Returned Tokens</th>
+<th>Token Exchange</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>code</td>
+<td>both scopes</td>
+<td>query params</td>
+<td>code</td>
+<td>access_token, id_token</td>
+</tr>
+<tr class="even">
+<td>token</td>
+<td>both scopes</td>
+<td>fragment</td>
+<td>access_token</td>
+<td>none</td>
+</tr>
+<tr class="odd">
+<td>id_token</td>
+<td>both scopes</td>
+<td>fragment</td>
+<td>id_token</td>
+<td>none</td>
+</tr>
+<tr class="even">
+<td>code token</td>
+<td>both scopes</td>
+<td>fragment</td>
+<td>code, access_token</td>
+<td>access_token, id_token</td>
+</tr>
+<tr class="odd">
+<td>code id_token</td>
+<td>both scopes</td>
+<td>fragment</td>
+<td>code, id_token</td>
+<td>access_token, id_token</td>
+</tr>
+<tr class="even">
+<td>token id_token</td>
+<td>both scopes</td>
+<td>fragment</td>
+<td>access_token, id_token</td>
+<td>none</td>
+</tr>
+<tr class="odd">
+<td>code token id_token</td>
+<td>both scopes</td>
+<td>fragment</td>
+<td>code, access_token, id_token</td>
+<td>access_token, id_token</td>
+</tr>
+</tbody>
+</table>
+<h3 id="form-post-response-mode-results">Form Post Response Mode
+Results</h3>
+<table>
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 17%" />
+<col style="width: 15%" />
+<col style="width: 25%" />
+<col style="width: 24%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Response Type</th>
+<th>Scope</th>
+<th>Response Location</th>
+<th>Returned Tokens</th>
+<th>Token Exchange</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>code</td>
+<td>both scopes</td>
+<td>form params</td>
+<td>code</td>
+<td>access_token, id_token</td>
+</tr>
+<tr class="even">
+<td>token</td>
+<td>both scopes</td>
+<td>form params</td>
+<td>access_token</td>
+<td>none</td>
+</tr>
+<tr class="odd">
+<td>id_token</td>
+<td>both scopes</td>
+<td>form params</td>
+<td>id_token</td>
+<td>none</td>
+</tr>
+<tr class="even">
+<td>code token</td>
+<td>both scopes</td>
+<td>form params</td>
+<td>code, access_token</td>
+<td>access_token, id_token</td>
+</tr>
+<tr class="odd">
+<td>code id_token</td>
+<td>both scopes</td>
+<td>form params</td>
+<td>code, id_token</td>
+<td>access_token, id_token</td>
+</tr>
+<tr class="even">
+<td>token id_token</td>
+<td>both scopes</td>
+<td>form params</td>
+<td>access_token, id_token</td>
+<td>none</td>
+</tr>
+<tr class="odd">
+<td>code token id_token</td>
+<td>both scopes</td>
+<td>form params</td>
+<td>code, access_token, id_token</td>
+<td>access_token, id_token</td>
+</tr>
+</tbody>
+</table>
+<h3 id="key-observations-from-results">Key Observations from
+Results</h3>
+<ol type="1">
+<li><strong>OAuth2 Code Exchange Pattern</strong>: Any flow that
+includes “code” triggers a token exchange, always returning both
+access_token and id_token (full OIDC response)</li>
+<li><strong>OIDC Response Location Consistency</strong>: Code-only
+responses go to query_params in query/fragment modes, while any
+responses containing tokens or ID tokens are delivered via URL fragments
+(regardless of whether response_mode is query or fragment). Only
+form_post mode consistently delivers all response types via the
+specified method.</li>
+<li><strong>Scope Independence</strong>: No difference in behavior
+between “profile email” and “openid profile email” - OpenID scope is
+always included, making all flows OIDC-compliant</li>
+</ol>
+<h2
+id="security-analysis-most-and-least-recommended-oauth2oidc-flows">Security
+Analysis: Most and Least Recommended OAuth2/OIDC Flows</h2>
+<h3 id="most-recommended-authorization-code-flow-with-form-post">🏆 Most
+Recommended: Authorization Code Flow with Form Post</h3>
 <p><strong>Configuration</strong>: <code>response_type=code</code>,
 <code>response_mode=form_post</code></p>
 <p><strong>Why it’s secure:</strong> - No tokens in URLs or browser
 history - Credentials don’t appear in server logs - Backend token
-exchange enables client authentication - Authorization code is
-short-lived and single-use</p>
+exchange enables client authentication (OAuth2) - Authorization code is
+short-lived and single-use - Full OIDC compliance with secure ID token
+delivery</p>
 <p><strong>Implementation benefits:</strong> - Simple to implement and
 debug - Reliable across all browsers - No client-side token handling
-required</p>
-<h3 id="least-recommended-implicit-flows">⚠️ Least Recommended: Implicit
-Flows</h3>
+required - Works for both OAuth2 authorization and OIDC
+authentication</p>
+<h3 id="least-recommended-implicit-and-oidc-implicit-flows">⚠️ Least
+Recommended: Implicit and OIDC Implicit Flows</h3>
 <p><strong>Configuration</strong>: <code>response_type=token</code> or
 <code>response_type=id_token</code></p>
-<p><strong>Security concerns:</strong> - Tokens exposed in URL fragments
-- No client authentication possible - Higher risk of token leakage -
-Tokens may be logged in browser history</p>
+<p><strong>Security concerns:</strong> - Tokens/ID tokens exposed in URL
+fragments - No client authentication possible - Higher risk of token
+leakage - ID tokens may be logged in browser history (OIDC security
+risk)</p>
 <p><strong>Functional limitations:</strong> - No refresh tokens
 available - Shorter token lifetimes required - Limited error handling
-capabilities</p>
+capabilities - Deprecated in OAuth 2.1 draft</p>
 <h2 id="practical-recommendations">Practical Recommendations</h2>
 <h3 id="for-web-applications">For Web Applications</h3>
 <div class="sourceCode" id="cb2"><pre
-class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Recommended: Authorization Code with Form Post</span></span>
+class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Recommended: Authorization Code with Form Post + PKCE</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> authUrl <span class="op">=</span> <span class="vs">`https://accounts.google.com/o/oauth2/v2/auth?`</span> <span class="op">+</span></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="vs">`response_type=code&amp;`</span> <span class="op">+</span></span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="vs">`response_mode=form_post&amp;`</span> <span class="op">+</span></span>
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="vs">`client_id=</span><span class="sc">${</span>clientId<span class="sc">}</span><span class="vs">&amp;`</span> <span class="op">+</span></span>
 <span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="vs">`redirect_uri=</span><span class="sc">${</span>redirectUri<span class="sc">}</span><span class="vs">&amp;`</span> <span class="op">+</span></span>
 <span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  <span class="vs">`scope=openid profile email&amp;`</span> <span class="op">+</span></span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  <span class="vs">`state=</span><span class="sc">${</span>state<span class="sc">}</span><span class="vs">`</span><span class="op">;</span></span></code></pre></div>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  <span class="vs">`code_challenge=</span><span class="sc">${</span>codeChallenge<span class="sc">}</span><span class="vs">&amp;`</span> <span class="op">+</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  <span class="vs">`code_challenge_method=S256&amp;`</span> <span class="op">+</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>  <span class="vs">`state=</span><span class="sc">${</span>state<span class="sc">}</span><span class="vs">`</span><span class="op">;</span></span></code></pre></div>
 <h3 id="for-single-page-applications-spas">For Single Page Applications
 (SPAs)</h3>
 <div class="sourceCode" id="cb3"><pre
-class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Recommended: Authorization Code with PKCE</span></span>
+class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">// Recommended: Authorization Code with PKCE (OAuth2/OIDC)</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">const</span> authUrl <span class="op">=</span> <span class="vs">`https://accounts.google.com/o/oauth2/v2/auth?`</span> <span class="op">+</span></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="vs">`response_type=code&amp;`</span> <span class="op">+</span></span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="vs">`response_mode=fragment&amp;`</span> <span class="op">+</span></span>
@@ -123,17 +373,21 @@ class="sourceCode javascript"><code class="sourceCode javascript"><span id="cb3-
 <p><strong>Note:</strong> Google’s current OAuth2 implementation
 requires <code>client_secret</code> during token exchange even with
 PKCE, which violates RFC 7636 standards. For authentication-only SPAs,
-consider using <code>response_type=id_token</code> to avoid embedding
-client secrets in your application code.</p>
+where client secret can’t be safely stored, consider using
+<code>response_type=id_token</code> to entirely skip token exchange.</p>
 <h3 id="security-enhancements">Security Enhancements</h3>
 <p>Regardless of chosen flow, implement these security measures:</p>
 <ol type="1">
-<li><strong>Always use PKCE</strong> for code-based flows</li>
+<li><strong>Always use PKCE</strong> for code-based flows
+(OAuth2/OIDC)</li>
 <li><strong>Implement state parameter</strong> for CSRF protection</li>
-<li><strong>Use nonce parameter</strong> for replay protection</li>
+<li><strong>Use nonce parameter</strong> for OIDC ID token replay
+protection</li>
 <li><strong>Validate redirect URIs</strong> strictly</li>
 <li><strong>Keep authorization codes short-lived</strong> (&lt; 10
 minutes)</li>
+<li><strong>Verify ID token signatures</strong> and claims (OIDC)</li>
+<li><strong>Validate token audiences</strong> and issuers</li>
 </ol>
 <h2 id="response-mode-comparison">Response Mode Comparison</h2>
 <table>
@@ -166,9 +420,10 @@ minutes)</li>
 </tr>
 </tbody>
 </table>
-<h2 id="testing-your-own-implementation">Testing Your Own
-Implementation</h2>
-<p>The testing framework can be adapted for other OAuth2 providers:</p>
+<h2 id="testing-your-own-oauth2oidc-implementation">Testing Your Own
+OAuth2/OIDC Implementation</h2>
+<p>The testing framework can be adapted for other OAuth2/OIDC
+providers:</p>
 <div class="sourceCode" id="cb4"><pre
 class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Configuration for different providers</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>PROVIDERS <span class="op">=</span> {</span>
@@ -182,27 +437,31 @@ class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a hr
 <span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    }</span>
 <span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
 <h2 id="conclusion">Conclusion</h2>
-<p>This systematic analysis reveals that OAuth2 flow selection
+<p>This systematic analysis reveals that OAuth2/OIDC flow selection
 significantly impacts both security and implementation complexity. Key
 takeaways:</p>
 <ol type="1">
 <li><strong>Form Post mode</strong> provides the best security profile
-for web applications</li>
+for both OAuth2 and OIDC flows</li>
 <li><strong>Authorization code flows</strong> remain the gold standard
-for secure authentication</li>
+for secure authentication and authorization</li>
 <li><strong>Implicit flows</strong> should be avoided in favor of
-code-based alternatives</li>
+code-based alternatives (deprecated in OAuth 2.1)</li>
+<li><strong>OIDC scope normalization</strong> means most flows become
+OpenID Connect flows automatically</li>
 <li><strong>Consistent testing</strong> is essential for understanding
 provider-specific behavior</li>
 </ol>
-<p>The OAuth2 landscape continues evolving, with new security
+<p>The OAuth2/OIDC landscape continues evolving, with new security
 enhancements like PKCE and PAR (Pushed Authorization Requests) becoming
 standard. However, the fundamental principles revealed through this
 testing remain relevant: prioritize security, minimize token exposure,
-and thoroughly test your chosen configuration.</p>
+understand the difference between OAuth2 authorization and OIDC
+authentication, and thoroughly test your chosen configuration.</p>
 <p>For production deployments, always combine empirical testing with
-security best practices to ensure robust authentication flows that
-protect both your application and your users.</p>
+security best practices to ensure robust authentication and
+authorization flows that protect both your application and your
+users.</p>
 <hr />
 <p><em>The complete testing framework and detailed results are available
 in the <a

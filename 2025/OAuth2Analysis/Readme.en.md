@@ -169,8 +169,22 @@ const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
 
 ### For Single Page Applications (SPAs)
 ```javascript
-// Recommended: Authorization Code with PKCE (OAuth2/OIDC)
+// Recommended: Use Backend-for-Frontend (BFF) Pattern
+// SPA communicates with your BFF, BFF handles OAuth2/OIDC with provider
+// BFF uses the secure web application flow:
+
 const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
+  `response_type=code&` +
+  `response_mode=form_post&` +
+  `client_id=${clientId}&` +
+  `redirect_uri=${bffRedirectUri}&` +  // Points to BFF, not SPA
+  `scope=openid profile email&` +
+  `code_challenge=${codeChallenge}&` +
+  `code_challenge_method=S256&` +
+  `state=${state}`;
+
+// Alternative: If BFF not feasible, Authorization Code + PKCE directly in SPA
+const spaAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
   `response_type=code&` +
   `response_mode=fragment&` +
   `client_id=${clientId}&` +
@@ -181,7 +195,7 @@ const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
   `state=${state}`;
 ```
 
-**Note:** Google's current OAuth2 implementation requires `client_secret` during token exchange even with PKCE, which violates RFC 7636 standards. For authentication-only SPAs, where client secret can't be safely stored, consider using `response_type=id_token` to entirely skip token exchange.
+**Note:** For SPAs, the Backend-for-Frontend (BFF) pattern is the recommended approach where your backend acts as the OAuth2/OIDC Relying Party. The BFF can safely store client secrets, handle token exchange, and manage session state. This avoids browser-based security limitations and provides the most secure implementation. If BFF is not feasible, use Authorization Code + PKCE directly in the SPA, though this may require workarounds for provider-specific limitations like Google's client secret requirement.
 
 ### Security Enhancements
 

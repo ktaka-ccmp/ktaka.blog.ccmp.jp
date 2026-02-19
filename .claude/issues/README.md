@@ -6,16 +6,16 @@ This directory contains issue/task tracking files for the project.
 
 <!-- AUTO-UPDATED: Do not edit manually. Updated by /issue command. -->
 
-### Open (1)
+### Open (0)
 
 | ID | Priority | Difficulty | Title |
 |----|----------|------------|-------|
-| `20260219-1820` | high | medium | [GitHub Pagesでkt.blog.ccmp.jpとしてブログを公開する](open/20260219-1820-github-pages-custom-domain.md) |
 
-### Completed (0)
+### Completed (1)
 
 | ID | Title |
 |----|-------|
+| `20260219-1820` | [GitHub Pagesでkt.blog.ccmp.jpとしてブログを公開する](completed/20260219-1820-github-pages-custom-domain.md) |
 
 ### Wontfix (0)
 

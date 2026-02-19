@@ -14,9 +14,9 @@
 
 ## Created: 2026-02-19-18-20
 
-## Closed:
+## Closed: 2026-02-19-19-00
 
-## Status: open
+## Status: completed
 
 ## Priority: high
 
@@ -41,17 +41,17 @@ GitHub Actions経由で、リポジトリ https://github.com/ktaka-ccmp/ktaka.bl
 
 ## Related Files
 
-- `.github/workflows/` (新規作成予定)
-- `CNAME` (GitHub Pages 用、新規作成予定)
-- 各年のディレクトリ配下の Markdown/HTML ファイル
+- `.github/workflows/pages.yml`
+- `github-markdown.css`
+- `2026/GcpToGitHubPages/Readme.jp.md`
 
 ## Implementation Tasks
 
-- [ ] DNS に CNAME レコード追加 (`kt.blog.ccmp.jp` → `ktaka-ccmp.github.io.`)
-- [ ] GitHub Actions ワークフローファイルを作成
-- [ ] GitHub リポジトリ Settings → Pages でカスタムドメインを設定
-- [ ] HTTPS の有効化を確認
-- [ ] デプロイの動作確認
+- [x] DNS に CNAME レコード追加 (`kt.blog.ccmp.jp` → `ktaka-ccmp.github.io.`)
+- [x] GitHub Actions ワークフローファイルを作成
+- [x] GitHub リポジトリ Settings → Pages でカスタムドメインを設定
+- [x] HTTPS の有効化を確認
+- [x] デプロイの動作確認
 
 ## Decision Log
 
@@ -65,3 +65,4 @@ GitHub Actions経由で、リポジトリ https://github.com/ktaka-ccmp/ktaka.bl
 
 ## Resolution
 
+GitHub Actions ワークフロー（`.github/workflows/pages.yml`）を作成し、pandoc で Markdown → HTML 変換 + GitHub Pages デプロイを自動化。DNS CNAME レコード追加とカスタムドメイン設定により、`https://kt.blog.ccmp.jp/` でアクセス可能になった。

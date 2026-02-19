@@ -33,6 +33,9 @@ jobs:
           # Prevent Jekyll processing
           touch _site/.nojekyll
 
+          # Custom domain
+          echo "kt.blog.ccmp.jp" > _site/CNAME
+
           # Convert article to HTML
           pandoc -s -c ../../github-markdown.css \
             2026/GcpToGitHubPages/Readme.jp.md \

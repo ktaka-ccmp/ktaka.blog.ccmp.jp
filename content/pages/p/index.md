@@ -1,6 +1,5 @@
 +++
 title = "Profile"
-date = 2019-09-13
 path = "p/p.html"
 +++
 

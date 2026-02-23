@@ -4,19 +4,11 @@ date = 2011-04-07
 path = "2011/04/gnu-tar124ok.html"
 +++
 
->
-
->
-
 GNU tar 1.24以降であれば、タイムスタンプが保存されるようである。
 
 [http://git.savannah.gnu.org/cgit/tar.git/plain/NEWS?id=release_1_24](http://git.savannah.gnu.org/cgit/tar.git/plain/NEWS?id=release_1_24)
 
 > ** Symbolic link attributes When extracting symbolic links, tar now restores attributes such as last-modified time and link permissions, if the operating system supports this.  For example, recent versions of the Linux kernel support setting times on symlinks, and some BSD kernels also support symlink permissions.
-
-```
-
-```
 
 Debian squeeze のtarは1.23である。
 

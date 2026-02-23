@@ -5,3 +5,5 @@ path = "2011/04/hhkb-pro2.html"
 +++
 
 愛用のキーボードは、Happy Hacking Keyboard Professional 2です。キータッチが秀逸です。
+
+![HHKB Pro2](hhkb.webp)

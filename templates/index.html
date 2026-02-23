@@ -11,7 +11,7 @@
     <h2>{{ current_year }}</h2>
   {% endif %}
   <article>
-    <h3><a href="{{ page.permalink }}">{{ page.title }}</a></h3>
+    <h3><a href="{{ page.permalink | trim_end_matches(pat='/') }}">{{ page.title }}</a></h3>
     <time>{{ page.date | date(format="%Y-%m-%d") }}</time>
   </article>
 {% endfor %}

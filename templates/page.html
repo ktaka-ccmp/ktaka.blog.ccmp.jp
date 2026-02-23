@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page.title }} | {{ config.title }}{% endblock %}
+
+{% block content %}
+<article>
+  <h1>{{ page.title }}</h1>
+  <time>{{ page.date | date(format="%Y-%m-%d") }}</time>
+
+  {% if page.toc %}
+  <nav id="toc">
+    <h2>Table of Contents</h2>
+    <ul>
+      {% for h2 in page.toc %}
+      <li>
+        <a href="{{ h2.permalink }}">{{ h2.title }}</a>
+        {% if h2.children %}
+        <ul>
+          {% for h3 in h2.children %}
+          <li><a href="{{ h3.permalink }}">{{ h3.title }}</a></li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </nav>
+  {% endif %}
+
+  <div>{{ page.content | safe }}</div>
+</article>
+{% endblock %}

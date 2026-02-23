@@ -11,27 +11,45 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
 
 ## Project Overview
 
-This is a blog content repository containing technical articles in Markdown and HTML format, organized by year. The blog is published at `kt.blog.ccmp.jp` via GitHub Pages.
+This is a Zola-based blog containing technical articles in Markdown, organized by year. The blog is published at `kt.blog.ccmp.jp` via GitHub Pages. Zola (v0.22.1) is used as the static site generator.
 
 ## Repository Structure
 
 ```
-├── 2013/                  # Articles by year
-├── 2023/
-├── 2024/
-├── 2025/
-├── 2026/
-├── gh-md-toc              # Table of contents generator
-├── github-markdown.css    # CSS for GitHub-style markdown
-└── Readme.md              # Blog workflow instructions
+├── config.toml            # Zola site configuration
+├── content/               # Articles in Zola format (Markdown + TOML front matter)
+│   ├── _index.md          # Root section (sort_by = "date")
+│   ├── 2013/              # Articles by year
+│   ├── 2023/
+│   ├── 2024/
+│   ├── 2025/
+│   └── 2026/
+├── templates/             # Tera templates (base, index, section, page)
+├── static/                # Static assets (CSS, CNAME, .nojekyll)
+└── .github/workflows/     # GitHub Actions (zola build + deploy)
 ```
 
 ## Content Workflow
 
-1. Write articles in Markdown format
-2. Generate TOC: `./gh-md-toc Readme.md`
-3. Convert to HTML: `pandoc Readme.md -o Readme.html`
-4. Or with CSS: `pandoc -s -c ../../github-markdown.css Readme.md -o Readme.html --metadata title="..."`
+1. Create article directory under `content/YYYY/ArticleName/`
+2. Write `index.md` with TOML front matter:
+   ```
+   +++
+   title = "Article Title"
+   date = YYYY-MM-DD
+   path = "YYYY/ArticleName"
+   +++
+   ```
+3. For bilingual articles, add `index.en.md` alongside `index.md`
+4. Place images in `image/` subdirectory, reference with relative paths
+5. Preview locally: `zola serve`
+6. Build: `zola build` (output to `public/`)
+
+## Build Commands
+
+- `zola serve` — Local dev server with live reload (http://127.0.0.1:1111)
+- `zola build` — Build static site to `public/`
+- `zola check` — Check for broken links and other issues
 
 ## Workflow Tools
 

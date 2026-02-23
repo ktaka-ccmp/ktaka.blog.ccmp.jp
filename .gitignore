@@ -3,5 +3,4 @@
 *.pdf
 \#*#
 /tmp/
-.markdown-preview.html
-
+/public/

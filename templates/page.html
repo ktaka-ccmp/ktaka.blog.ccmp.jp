@@ -68,4 +68,22 @@
     {% endif %}
   </nav>
 </article>
+<script>
+document.querySelectorAll('article img').forEach(function(img, i) {
+  if (!img.closest('a')) {
+    var id = 'lb-' + i;
+    var a = document.createElement('a');
+    a.href = '#' + id;
+    img.parentNode.insertBefore(a, img);
+    a.appendChild(img);
+    var overlay = document.createElement('a');
+    overlay.id = id;
+    overlay.href = '#';
+    overlay.className = 'lightbox';
+    overlay.innerHTML = '<span class="close">&times;</span><img src="' + img.src + '">';
+    overlay.onclick = function(e) { e.preventDefault(); history.back(); };
+    document.body.appendChild(overlay);
+  }
+});
+</script>
 {% endblock %}

@@ -14,19 +14,46 @@
     .markdown-body {
       padding: 20px 0;
     }
-    nav {
+    .site-nav {
       padding: 10px 0;
       border-bottom: 1px solid #eee;
+      font-size: 1.5em;
     }
-    nav a {
+    .site-nav a {
       text-decoration: none;
       color: #0366d6;
+    }
+    .lightbox {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .lightbox:target {
+      display: flex;
+    }
+    .lightbox img {
+      max-width: 90vw;
+      max-height: 90vh;
+      object-fit: contain;
+    }
+    .lightbox .close {
+      position: fixed;
+      top: 15px; right: 20px;
+      color: #fff;
+      font-size: 2em;
+      text-decoration: none;
     }
   </style>
 </head>
 <body>
-  <nav>
+  <nav class="site-nav" style="display: flex; align-items: center;">
     <a href="/">{{ config.title }}</a>
+    <a href="/p/p.html" style="margin-left: 20px;">Profile</a>
+    {% block nav_extra %}{% endblock %}
   </nav>
   <main class="markdown-body">
     {% block content %}{% endblock %}

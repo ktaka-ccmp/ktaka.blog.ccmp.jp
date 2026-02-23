@@ -14,9 +14,9 @@
 
 ## Created: 2026-02-20-02-08
 
-## Closed:
+## Closed: 2026-02-23
 
-## Status: open
+## Status: completed
 
 ## Priority: high
 
@@ -111,9 +111,9 @@ path = "2026/GcpToGitHubPages"
 - [x] PoC: 1記事のZola化＋ローカル動作確認
 - [x] URLパス保持の検証
 - [x] 多言語対応の検証（.en.md / .jp.md）
-- [ ] 残り記事のZola形式変換
-- [ ] GitHub Actionsワークフロー更新
-- [ ] 旧ファイル整理
+- [x] 残り記事のZola形式変換
+- [x] GitHub Actionsワークフロー更新
+- [x] 旧ファイル整理
 
 ## Decision Log
 
@@ -135,4 +135,18 @@ path = "2026/GcpToGitHubPages"
   - スラグは自動小文字化されるため、大文字URLには`path` front matterが必要
   - 多言語は`index.en.md`で自動認識、画像は`content/`内に同居で相対パス参照可能
 
+### 2026-02-23: Zola移行完了
+
+- Context: 導入決定に基づき、全記事変換・ワークフロー更新・旧ファイル整理を実施
+- Decision: 移行完了、イシューをクローズ
+- Details:
+  - 全11記事をZola形式に変換（TOML front matter追加、手動TOC削除、画像コピー）
+  - テンプレート4種（base, index, section, page）を自作
+  - GitHub Actionsをpandoc→zola buildに更新
+  - transparent sectionで全記事を日付降順に一覧表示
+  - 旧ソースディレクトリ・gh-md-toc・ルートCSS・Readme.mdを削除
+  - コミット: 33eebe7（zola-evaluationブランチ）
+
 ## Resolution
+
+Zola移行を完了。全11記事のビルド確認済み。masterへのマージ＋push後にGitHub Pagesへデプロイされる。

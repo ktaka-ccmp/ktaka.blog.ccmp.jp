@@ -3,10 +3,10 @@ title = "ktaka's blog"
 default_language = "ja"
 compile_sass = false
 build_search_index = false
-generate_feeds = false
+generate_feeds = true
 
 [languages.en]
-generate_feeds = false
+generate_feeds = true
 build_search_index = false
 
 [markdown.highlighting]

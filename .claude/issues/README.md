@@ -6,17 +6,17 @@ This directory contains issue/task tracking files for the project.
 
 <!-- AUTO-UPDATED: Do not edit manually. Updated by /issue command. -->
 
-### Open (2)
+### Open (1)
 
 | ID | Priority | Difficulty | Title |
 |----|----------|------------|-------|
-| `20260220-0209` | high | large | [Blogspot（ktaka.blog.ccmp.jp）からのコンテンツ移行](open/20260220-0209-blogspot-content-migration.md) |
 | `20260220-0210` | medium | medium | [ドメイン変更 kt.blog.ccmp.jp → ktaka.blog.ccmp.jp](open/20260220-0210-domain-migration.md) |
 
-### Completed (2)
+### Completed (3)
 
 | ID | Title |
 |----|-------|
+| `20260220-0209` | [Blogspot（ktaka.blog.ccmp.jp）からのコンテンツ移行](completed/20260220-0209-blogspot-content-migration.md) |
 | `20260220-0208` | [入稿システム検討 — Zola静的サイトジェネレーター評価・導入](completed/20260220-0208-zola-evaluation.md) |
 | `20260219-1820` | [GitHub Pagesでkt.blog.ccmp.jpとしてブログを公開する](completed/20260219-1820-github-pages-custom-domain.md) |
 

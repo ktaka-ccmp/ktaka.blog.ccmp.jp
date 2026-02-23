@@ -1,0 +1,49 @@
++++
+title = "ＶＡＩＯ X用Linuxカーネルコンフィグ"
+date = 2009-11-01
+path = "2009/11/x.html"
++++
+
+VAIO Xの各デバイスを認識させるためにとりあえず必要そうなもの。
+
+PATA ＳＳＤ用のドライバ　(8086:811a System Controller Hub (SCH Poulsbo) IDE Controller)
+
+> CONFIG_PATA_SCH=y
+
+ＮＩＣドライバ(11ab:4380  Ethernet controller: Marvell Technology Group Ltd. Device 4380)
+
+> CONFIG_SKY2=m
+> CONFIG_SKY2_DEBUG=y
+
+無線LANドライバ(168c:002b AR9285 Wireless Network Adapter (PCI-Express) )
+
+> CONFIG_CFG80211=m
+> CONFIG_CFG80211_REG_DEBUG=y
+> CONFIG_CFG80211_DEBUGFS=y
+> CONFIG_LIB80211=m
+> CONFIG_LIB80211_DEBUG=y
+> CONFIG_MAC80211=m
+> CONFIG_MAC80211_DEFAULT_PS=y
+> CONFIG_MAC80211_DEFAULT_PS_VALUE=1
+> CONFIG_MAC80211_RC_PID=y
+> CONFIG_MAC80211_RC_MINSTREL=y
+> CONFIG_MAC80211_RC_DEFAULT_MINSTREL=y
+> CONFIG_MAC80211_RC_DEFAULT="minstrel"
+> CONFIG_MAC80211_LEDS=y
+> CONFIG_MAC80211_DEBUGFS=y
+> CONFIG_MAC80211_DEBUG_MENU=y
+> CONFIG_WLAN_PRE80211=y
+> CONFIG_WLAN_80211=y
+> CONFIG_ATH_COMMON=m
+> CONFIG_ATH5K=m
+> CONFIG_ATH5K_DEBUG=y
+> CONFIG_ATH9K=m
+> CONFIG_ATH9K_DEBUG=y
+
+イーモバイルＤ３１ＨＷのために...
+
+> CONFIG_USB_ACM=m
+> CONFIG_USB_SERIAL=m
+> CONFIG_USB_SERIAL_GENERIC=y
+
+イーモバイルのデータカードはこれだけではダメで、usb_modeswitchによるモード切替が必要。

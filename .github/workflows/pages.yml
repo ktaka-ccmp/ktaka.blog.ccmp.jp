@@ -20,46 +20,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install pandoc
-        run: sudo apt-get update && sudo apt-get install -y pandoc
+      - name: Install Zola
+        run: |
+          ZOLA_VERSION="0.22.1"
+          curl -sL "https://github.com/getzola/zola/releases/download/v${ZOLA_VERSION}/zola-v${ZOLA_VERSION}-x86_64-unknown-linux-gnu.tar.gz" | tar xz -C /usr/local/bin
 
       - name: Build site
-        run: |
-          mkdir -p _site/2026/GcpToGitHubPages
-
-          # Copy CSS
-          cp github-markdown.css _site/
-
-          # Prevent Jekyll processing
-          touch _site/.nojekyll
-
-          # Custom domain
-          echo "kt.blog.ccmp.jp" > _site/CNAME
-
-          # Convert article to HTML
-          pandoc -s -c ../../github-markdown.css \
-            2026/GcpToGitHubPages/Readme.jp.md \
-            -o _site/2026/GcpToGitHubPages/index.html \
-            --metadata title="コーポレートサイトを GCP から GitHub Pages に移行して月額 \$23 を節約した話"
-
-          # Create index page
-          cat > _site/index.html <<'HTMLEOF'
-          <!DOCTYPE html>
-          <html lang="ja">
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <title>kt.blog.ccmp.jp</title>
-            <link rel="stylesheet" href="github-markdown.css">
-          </head>
-          <body class="markdown-body" style="max-width: 980px; margin: 0 auto; padding: 2em;">
-            <h1>kt.blog.ccmp.jp</h1>
-            <ul>
-              <li><a href="2026/GcpToGitHubPages/">コーポレートサイトを GCP から GitHub Pages に移行して月額 $23 を節約した話</a></li>
-            </ul>
-          </body>
-          </html>
-          HTMLEOF
+        run: zola build
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -67,7 +34,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: _site
+          path: public
 
   deploy:
     environment:

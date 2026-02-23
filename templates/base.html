@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ config.title }}{% endblock %}</title>
+  <link rel="stylesheet" href="/github-markdown.css">
+  <style>
+    body {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .markdown-body {
+      padding: 20px 0;
+    }
+    nav {
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+    }
+    nav a {
+      text-decoration: none;
+      color: #0366d6;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="/">{{ config.title }}</a>
+  </nav>
+  <main class="markdown-body">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

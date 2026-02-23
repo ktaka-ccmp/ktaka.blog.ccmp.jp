@@ -1,4 +1,4 @@
-base_url = "https://kt.blog.ccmp.jp"
+base_url = "https://ktaka.blog.ccmp.jp"
 title = "ktaka's blog"
 default_language = "ja"
 compile_sass = false

@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with th
 
 ## Project Overview
 
-This is a Zola-based blog containing technical articles in Markdown, organized by year. The blog is published at `kt.blog.ccmp.jp` via GitHub Pages. Zola (v0.22.1) is used as the static site generator.
+This is a Zola-based blog containing technical articles in Markdown, organized by year. The blog is published at `ktaka.blog.ccmp.jp` via GitHub Pages. Zola (v0.22.1) is used as the static site generator.
 
 ## Repository Structure
 

@@ -106,11 +106,11 @@ path = "2026/GcpToGitHubPages"
 
 ## Implementation Tasks
 
-- [ ] Zolaインストール・動作確認
-- [ ] テーマ候補の選定・比較
-- [ ] PoC: 1記事のZola化＋ローカル動作確認
-- [ ] URLパス保持の検証
-- [ ] 多言語対応の検証（.en.md / .jp.md）
+- [x] Zolaインストール・動作確認
+- [x] テーマ候補の選定・比較
+- [x] PoC: 1記事のZola化＋ローカル動作確認
+- [x] URLパス保持の検証
+- [x] 多言語対応の検証（.en.md / .jp.md）
 - [ ] 残り記事のZola形式変換
 - [ ] GitHub Actionsワークフロー更新
 - [ ] 旧ファイル整理
@@ -124,5 +124,15 @@ path = "2026/GcpToGitHubPages"
 - Context: 入稿システムの改善が必要。現在のpandoc手動構成はスケールしない
 - Decision: Zolaを第一候補として評価する（Hugo, Jekyll等は現時点では比較対象外）
 - Reason: ユーザーがZolaを候補として提示。Rust製の単一バイナリで依存なし、GitHub Pages対応、URLパス保持可能、多言語対応ありと要件に合致
+
+### 2026-02-23: Zola導入を決定
+
+- Context: PoC完了。ビルド・ローカルプレビュー、URLパス保持、多言語対応、画像・動画の扱いをすべて検証済み
+- Decision: Zolaを導入する。テーマは使わず自作テンプレートで構成する
+- Reason: 全検証項目をクリア。テーマなしでもgithub-markdown.cssで十分な表示品質。記事追加がMDファイル作成のみで完結し、現行のpandoc+YAML手動編集から大幅に改善される
+- Findings:
+  - Zola 0.22.1ではhighlight設定が`[markdown.highlighting]`セクションに変更
+  - スラグは自動小文字化されるため、大文字URLには`path` front matterが必要
+  - 多言語は`index.en.md`で自動認識、画像は`content/`内に同居で相対パス参照可能
 
 ## Resolution

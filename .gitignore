@@ -3,5 +3,6 @@
 *.pdf
 \#*#
 /tmp/
+/public/
 .markdown-preview.html
 

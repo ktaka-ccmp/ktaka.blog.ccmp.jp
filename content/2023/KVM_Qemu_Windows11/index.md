@@ -1,7 +1,7 @@
 +++
 title = "KVM/QEMUコマンドラインでWindows11をインストールする"
 date = 2023-12-15
-path = "2023/KVM_Qemu_Windows11"
+path = "2023/03/kvmqemuwindows11.html"
 +++
 
 ## はじめに

@@ -1,7 +1,7 @@
 +++
 title = "AxumでGoogle OAuth2/OIDC認証を実装する"
 date = 2024-12-06
-path = "2024/Axum-Google-OAuth2-Login"
+path = "2024/12/axum-google-oauth2oidc-implementation_0937899567.html"
 +++
 
 この記事は[Rust Advent Calendar 2024](https://qiita.com/advent-calendar/2024/rust) シリーズ2の6日目の記事です。

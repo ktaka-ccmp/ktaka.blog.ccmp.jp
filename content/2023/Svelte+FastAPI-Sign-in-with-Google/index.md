@@ -1,7 +1,7 @@
 +++
 title = "Svelte + FastAPI でGoogle Sign-in を実装する"
 date = 2023-06-01
-path = "2023/Svelte+FastAPI-Sign-in-with-Google"
+path = "2023/12/sveltefastapisign-in-with-google.html"
 +++
 
 ## はじめに

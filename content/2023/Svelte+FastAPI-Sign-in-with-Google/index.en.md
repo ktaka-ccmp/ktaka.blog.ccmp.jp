@@ -1,7 +1,7 @@
 +++
 title = "Implementing Google Sign-In with Svelte + FastAPI"
 date = 2023-06-01
-path = "2023/Svelte+FastAPI-Sign-in-with-Google-en"
+path = "2024/01/svelte-fastapi-session-cookie-jwt-01.html"
 +++
 
 ## Introduction

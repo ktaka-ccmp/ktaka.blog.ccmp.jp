@@ -1,7 +1,7 @@
 +++
 title = "KVM/QEMUコマンドラインでWindows10をインストールする"
 date = 2023-12-01
-path = "2023/KVM_Qemu_Windows10"
+path = "2023/03/kvmqemuwindows.html"
 +++
 
 ## はじめに

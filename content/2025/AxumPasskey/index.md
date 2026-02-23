@@ -1,7 +1,7 @@
 +++
 title = "Implementing Passkeys Authentication in Rust with Axum"
 date = 2025-01-17
-path = "2025/AxumPasskey"
+path = "2025/01/implementing-passkeys-authentication-in-rust-axum.html"
 +++
 
 # Introduction

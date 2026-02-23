@@ -1,7 +1,7 @@
 +++
 title = "UEFIモードとBIOSモードの両方でGRUBを起動できるUSBメモリの作成"
 date = 2023-12-27
-path = "2023/UEFI_BIOS_GRUB_USB"
+path = "2023/04/uefibiosgrubusb.html"
 +++
 
 ## 要旨

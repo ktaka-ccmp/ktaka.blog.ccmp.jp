@@ -1,7 +1,7 @@
 +++
 title = "簡易VPN、sshuttleが強力過ぎる"
 date = 2013-01-02
-path = "2013/sshuttle"
+path = "2013/07/sshuttle.html"
 +++
 
 外出先から社内のWindowsサーバにリモートデスクトップ接続したいのだが、

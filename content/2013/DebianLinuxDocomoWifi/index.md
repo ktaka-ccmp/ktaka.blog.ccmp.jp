@@ -1,7 +1,7 @@
 +++
 title = "パソコンからドコモwifiに繋ぐための設定"
 date = 2013-01-01
-path = "2013/DebianLinuxDocomoWifi"
+path = "2013/07/debian-linuxdocomo-wifi.html"
 +++
 
 ```

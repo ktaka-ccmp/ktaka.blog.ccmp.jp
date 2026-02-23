@@ -1,7 +1,7 @@
 +++
 title = "Implementing Google OAuth2/OIDC with Axum"
 date = 2024-12-06
-path = "2024/Axum-Google-OAuth2-Login-en"
+path = "2024/12/axum-google-oauth2oidc-implementation.html"
 +++
 
 ## Introduction

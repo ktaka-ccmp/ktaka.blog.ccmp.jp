@@ -1,7 +1,7 @@
 +++
 title = "Sign in with Google vs OpenID Connect: Understanding the difference"
 date = 2024-12-08
-path = "2024/Understanding-Sign-in-with-Google"
+path = "2024/10/sign-in-with-google-vs-openid-connect.html"
 +++
 
 # Introduction

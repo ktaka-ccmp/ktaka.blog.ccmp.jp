@@ -6,11 +6,10 @@ This directory contains issue/task tracking files for the project.
 
 <!-- AUTO-UPDATED: Do not edit manually. Updated by /issue command. -->
 
-### Open (3)
+### Open (2)
 
 | ID | Priority | Difficulty | Title |
 |----|----------|------------|-------|
-| `20260220-0207` | medium | medium | [ブログの見た目改善（テーマ・CSS・レイアウト）](open/20260220-0207-theme-css-improvement.md) |
 | `20260220-0209` | high | large | [Blogspot（ktaka.blog.ccmp.jp）からのコンテンツ移行](open/20260220-0209-blogspot-content-migration.md) |
 | `20260220-0210` | medium | medium | [ドメイン変更 kt.blog.ccmp.jp → ktaka.blog.ccmp.jp](open/20260220-0210-domain-migration.md) |
 
@@ -26,10 +25,11 @@ This directory contains issue/task tracking files for the project.
 | ID | Title |
 |----|-------|
 
-### Deferred (0)
+### Deferred (1)
 
 | ID | Title |
 |----|-------|
+| `20260220-0207` | [ブログの見た目改善（テーマ・CSS・レイアウト）](deferred/20260220-0207-theme-css-improvement.md) |
 
 <!-- END AUTO-UPDATED -->
 

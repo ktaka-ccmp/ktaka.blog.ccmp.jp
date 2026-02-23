@@ -1,7 +1,7 @@
 +++
 title = "Sign in with Google in HTMX+FastAPI"
 date = 2024-11-01
-path = "2024/HTMX-FasAPI-Sign-in-with-Google"
+path = "2024/02/sign-in-with-google-in-htmxfastapi.html"
 +++
 
 # TL;DR

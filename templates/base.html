@@ -14,19 +14,22 @@
     .markdown-body {
       padding: 20px 0;
     }
-    nav {
+    .site-nav {
       padding: 10px 0;
       border-bottom: 1px solid #eee;
+      font-size: 1.5em;
     }
-    nav a {
+    .site-nav a {
       text-decoration: none;
       color: #0366d6;
     }
   </style>
 </head>
 <body>
-  <nav>
+  <nav class="site-nav" style="display: flex; align-items: center;">
     <a href="/">{{ config.title }}</a>
+    <a href="/p/p.html" style="margin-left: 20px;">Profile</a>
+    {% block nav_extra %}{% endblock %}
   </nav>
   <main class="markdown-body">
     {% block content %}{% endblock %}

@@ -2,6 +2,7 @@
 title = "イエスマン"
 date = 2008-04-05
 path = "2008/04/blog-post_721.html"
+draft = true
 +++
 
 イエスマンが欲しい

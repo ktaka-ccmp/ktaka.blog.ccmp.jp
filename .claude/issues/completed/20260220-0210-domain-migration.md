@@ -14,9 +14,9 @@
 
 ## Created: 2026-02-20-02-10
 
-## Closed:
+## Closed: 2026-02-23
 
-## Status: open
+## Status: completed
 
 ## Priority: medium
 
@@ -99,16 +99,16 @@
 
 ## Implementation Tasks
 
-- [ ] `20260220-0209` Blogspotコンテンツ移行の完了を待つ
-- [ ] 切替手順の詳細化・リハーサル
-- [ ] DNS TTL短縮（切替数日前）
-- [ ] Blogspotカスタムドメイン解除
-- [ ] DNS CNAME変更
-- [ ] GitHub Pagesカスタムドメイン変更
-- [ ] ワークフロー/設定ファイルのドメイン更新
-- [ ] 旧ドメイン（kt.blog.ccmp.jp）の扱い決定・対応
-- [ ] 全ページ動作確認
-- [ ] HTTPS確認
+- [x] `20260220-0209` Blogspotコンテンツ移行の完了を待つ
+- [x] 切替手順の詳細化・リハーサル
+- [x] DNS TTL短縮（切替数日前）
+- [x] Blogspotカスタムドメイン解除
+- [x] DNS CNAME変更
+- [x] GitHub Pagesカスタムドメイン変更
+- [x] ワークフロー/設定ファイルのドメイン更新（`config.toml`, `static/CNAME`, `CLAUDE.md`）
+- [x] 旧ドメイン（kt.blog.ccmp.jp）の扱い決定・対応 → 廃止
+- [x] 全ページ動作確認
+- [x] HTTPS確認
 
 ## Decision Log
 
@@ -120,4 +120,24 @@
 - Decision: Blogspotコンテンツ移行（20260220-0209）を先に完了させ、全記事がGitHub Pagesで閲覧可能な状態になってからドメイン切替を行う
 - Reason: ドメインを先に切り替えるとコンテンツ未移行の記事が404になる。ユーザーへの影響を最小化するため、コンテンツ準備完了後に一括切替が適切
 
+### 2026-02-23: 旧ドメイン kt.blog.ccmp.jp を廃止する方針
+
+- Context: 旧ドメインをリダイレクトするか廃止するかの判断が必要だった
+- Decision: `kt.blog.ccmp.jp` は廃止とする（リダイレクト不要）
+- Reason: ユーザーの判断により、旧ドメインへの外部リンクは少なく、リダイレクトの仕組みを構築するコストに見合わないと判断
+
 ## Resolution
+
+ドメイン移行を完了。以下の変更を実施：
+
+1. **手動作業**（ユーザーが実施）:
+   - Blogspotカスタムドメイン解除
+   - DNS CNAME変更（`ktaka.blog.ccmp.jp` → `ktaka-ccmp.github.io`）
+   - GitHub Pages カスタムドメイン設定変更
+
+2. **コード変更**（PR #42, #43 でマージ済み）:
+   - `config.toml`: `base_url` を `https://ktaka.blog.ccmp.jp` に変更
+   - `static/CNAME`: `ktaka.blog.ccmp.jp` に変更
+   - `CLAUDE.md`: ドメイン参照を更新
+
+3. **旧ドメイン**: `kt.blog.ccmp.jp` は廃止（リダイレクトなし）

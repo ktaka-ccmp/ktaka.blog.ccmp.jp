@@ -4,27 +4,39 @@
 
 {% block nav_extra %}
   {% set root_section = get_section(path="_index.md") %}
-  {% set_global earlier_url = "" %}
-  {% set_global earlier_title = "" %}
-  {% set_global later_url = "" %}
-  {% set_global later_title = "" %}
+  {% set_global older_url = "" %}
+  {% set_global older_title = "" %}
+  {% set_global newer_url = "" %}
+  {% set_global newer_title = "" %}
   {% set_global found = false %}
+  {% set_global newest_url = "" %}
+  {% set_global newest_title = "" %}
   {% for p in root_section.pages %}
-    {% if found and earlier_url == "" %}
-      {% set_global earlier_url = p.permalink %}
-      {% set_global earlier_title = p.title %}
+    {% if loop.first %}
+      {% set_global newest_url = p.permalink %}
+      {% set_global newest_title = p.title %}
+    {% endif %}
+    {% if found and older_url == "" %}
+      {% set_global older_url = p.permalink %}
+      {% set_global older_title = p.title %}
     {% endif %}
     {% if p.path == page.path %}
       {% set_global found = true %}
     {% endif %}
     {% if not found %}
-      {% set_global later_url = p.permalink %}
-      {% set_global later_title = p.title %}
+      {% set_global newer_url = p.permalink %}
+      {% set_global newer_title = p.title %}
     {% endif %}
   {% endfor %}
+  {% if not found %}
+    {% set_global older_url = newest_url %}
+    {% set_global older_title = newest_title %}
+    {% set_global newer_url = "" %}
+    {% set_global newer_title = "" %}
+  {% endif %}
   <span style="margin-left: auto;">
-    {% if earlier_url %}<a href="{{ earlier_url | trim_end_matches(pat='/') }}">←</a>{% endif %}
-    {% if later_url %}<a href="{{ later_url | trim_end_matches(pat='/') }}" style="margin-left: 10px;">→</a>{% endif %}
+    {% if newer_url %}<a href="{{ newer_url | trim_end_matches(pat='/') }}">←</a>{% endif %}
+    {% if older_url %}<a href="{{ older_url | trim_end_matches(pat='/') }}" style="margin-left: 10px;">→</a>{% endif %}
   </span>
 {% endblock %}
 
@@ -56,13 +68,13 @@
   <div>{{ page.content | safe }}</div>
 
   <nav style="display: flex; justify-content: space-between; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee;">
-    {% if earlier_url %}
-    <a href="{{ earlier_url | trim_end_matches(pat='/') }}">← {{ earlier_title }}</a>
+    {% if newer_url %}
+    <a href="{{ newer_url | trim_end_matches(pat='/') }}">← {{ newer_title }}</a>
     {% else %}
     <span></span>
     {% endif %}
-    {% if later_url %}
-    <a href="{{ later_url | trim_end_matches(pat='/') }}">{{ later_title }} →</a>
+    {% if older_url %}
+    <a href="{{ older_url | trim_end_matches(pat='/') }}">{{ older_title }} →</a>
     {% else %}
     <span></span>
     {% endif %}

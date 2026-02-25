@@ -166,6 +166,42 @@ mnt/boot/efi/
 
 以上でGRUBまで立ち上がるUSBは完成である。
 
+### なぜこの構成でBIOS/UEFI両対応になるのか
+
+BIOSブートとUEFIブートでは、GRUBが読み込まれる場所が異なる。しかし、最終的に同じ `/boot/grub/grub.cfg`を参照するように構成することで、両対応が可能になる。
+
+```
+BIOS:  MBR → BIOS boot partition → /boot/grub/grub.cfg → kernel
+                                          ↑
+UEFI:  ESP → bootx64.efi → ESP/grub.cfg --┘
+```
+
+**BIOSブートの場合:**
+
+1. BIOSがディスク先頭のMBR（Master Boot Record）を読む
+2. MBRのブートコードがBIOS boot partition内のGRUB core.imgへジャンプ
+3. GRUBが`/boot/grub/grub.cfg`を読み込み
+4. 設定に従ってカーネルをロード
+
+**UEFIブートの場合:**
+
+1. UEFIファームウェアがGPT上のESP（EFI System Partition）を探す
+2. デフォルトパス`/EFI/boot/bootx64.efi`を実行（リムーバブルメディアのフォールバック）
+3. 同じディレクトリの`grub.cfg`を読む:
+   ```
+   search.fs_label usbdebian root
+   set prefix=($root)'/boot/grub'
+   configfile $prefix/grub.cfg
+   ```
+4. ラベル`usbdebian`のパーティションを見つけ、`/boot/grub/grub.cfg`を読み込み
+5. 設定に従ってカーネルをロード
+
+**ポイント:**
+
+- ESPの`grub.cfg`は**リダイレクト役**。本体の設定ファイルへ誘導するだけ
+- メインの`/boot/grub/grub.cfg`を1箇所で管理できる
+- `search.fs_label`でラベル指定することで、デバイス名（/dev/sdaなど）に依存しない
+
 ## 実際にブートできるのか
 
 作成したUSBメモリで実際にブート可能であるかを、SupermicroのワークステーションとIntel

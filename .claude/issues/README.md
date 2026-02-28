@@ -6,10 +6,11 @@ This directory contains issue/task tracking files for the project.
 
 <!-- AUTO-UPDATED: Do not edit manually. Updated by /issue command. -->
 
-### Open (0)
+### Open (1)
 
 | ID | Priority | Difficulty | Title |
 |----|----------|------------|-------|
+| `20260301-0801` | medium | small | [ブログ記事のmetaタグ（description・OGP）をテンプレートに組み込む](open/20260301-0801-meta-tags-ogp.md) |
 
 ### Completed (4)
 

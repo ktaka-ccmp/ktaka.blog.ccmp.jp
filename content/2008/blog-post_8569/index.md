@@ -1,6 +1,7 @@
 +++
 title = "六本木ヒルズ"
 date = 2008-04-05
+description = "六本木ヒルズでの顧客打ち合わせの訪問記。"
 path = "2008/04/blog-post_8569.html"
 +++
 

@@ -1,6 +1,7 @@
 +++
 title = "sshuttle最強すぎる"
 date = 2013-07-31
+description = "sshuttleを使って外出先から社内Windowsサーバへリモートデスクトップ接続する簡単な手順の紹介。"
 path = "2013/07/sshuttle.html"
 +++
 

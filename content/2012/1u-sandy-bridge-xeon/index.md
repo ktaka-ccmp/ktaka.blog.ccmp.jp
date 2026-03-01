@@ -1,6 +1,7 @@
 +++
 title = "1U Sandy Bridge Xeon ファイルサーバ"
 date = 2012-01-12
+description = "Sandy Bridge Xeon E3-1270搭載の1Uファイルサーバの構成と内部写真の紹介。"
 path = "2012/01/1u-sandy-bridge-xeon.html"
 +++
 

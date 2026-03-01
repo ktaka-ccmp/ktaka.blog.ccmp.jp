@@ -1,6 +1,7 @@
 +++
 title = "pppoe接続のインターフェース名を変更する　How to rename pppoe interface name."
 date = 2015-10-14
+description = "LinuxでPPPoE接続のインターフェース名をppp0からプロバイダ名などの任意の名前に変更する方法。"
 path = "2015/10/pppoehow-to-rename-pppoe-interface-name.html"
 +++
 

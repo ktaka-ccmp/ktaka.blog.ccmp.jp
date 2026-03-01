@@ -1,6 +1,7 @@
 +++
 title = "1U 4ノードサーバ　SR1640TH"
 date = 2012-01-12
+description = "1Uシャーシに独立した4ノードを搭載するIntel SR1640THサーバベアボーンの写真付き紹介。"
 path = "2012/01/1u-4sr1640th.html"
 +++
 

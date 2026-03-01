@@ -1,6 +1,7 @@
 +++
 title = "KVM再入門：Qemuコマンドラインで仮想マシンを起動し、Windows10ゲストをセットアップする。"
 date = 2023-03-20
+description = "QemuコマンドラインのみでKVM仮想マシンを起動し、Windows10ゲストをインストールする手順をまとめた記事。"
 path = "2023/03/kvmqemuwindows.html"
 +++
 

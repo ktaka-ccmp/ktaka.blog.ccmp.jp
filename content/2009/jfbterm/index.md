@@ -1,6 +1,7 @@
 +++
 title = "[備忘録] jfbterm終了時に固まることがある件"
 date = 2009-10-26
+description = "jfbterm終了時にフリーズする問題をwaitpidで修正した備忘録。"
 path = "2009/10/jfbterm.html"
 +++
 

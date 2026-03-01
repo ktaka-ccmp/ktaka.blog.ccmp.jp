@@ -1,6 +1,7 @@
 +++
 title = "マイKVM環境を晒しておきます。My Jessie on Jessie KVM environment."
 date = 2015-10-29
+description = "Debian jessie上でlibvirtを使わずに自家製スクリプトでKVM仮想マシンを管理する環境の紹介と使い方。"
 path = "2015/10/kvmmy-jessie-on-jessie-kvm-environment.html"
 +++
 

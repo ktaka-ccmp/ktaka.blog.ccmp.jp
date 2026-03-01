@@ -1,6 +1,7 @@
 +++
 title = "イエスマン"
 date = 2008-04-05
+description = "小さい会社におけるイエスマンと自分で考える社員の両立について。"
 path = "2008/04/blog-post_721.html"
 draft = true
 +++

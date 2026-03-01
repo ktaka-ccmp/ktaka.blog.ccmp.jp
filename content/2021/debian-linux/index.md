@@ -1,6 +1,7 @@
 +++
 title = "Debian Linuxのノートパソコンでハイバネート"
 date = 2021-01-17
+description = "Linuxカーネルのスワップ領域を使ったハイバネート設定と、ノートPCの蓋閉じ時にacpidで自動ハイバネートする方法。"
 path = "2021/01/debian-linux.html"
 +++
 

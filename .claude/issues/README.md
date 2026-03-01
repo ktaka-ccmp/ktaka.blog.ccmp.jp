@@ -11,10 +11,11 @@ This directory contains issue/task tracking files for the project.
 | ID | Priority | Difficulty | Title |
 |----|----------|------------|-------|
 
-### Completed (4)
+### Completed (5)
 
 | ID | Title |
 |----|-------|
+| `20260301-0801` | [ブログ記事のmetaタグ（description・OGP）をテンプレートに組み込む](completed/20260301-0801-meta-tags-ogp.md) |
 | `20260220-0210` | [ドメイン変更 kt.blog.ccmp.jp → ktaka.blog.ccmp.jp](completed/20260220-0210-domain-migration.md) |
 | `20260220-0209` | [Blogspot（ktaka.blog.ccmp.jp）からのコンテンツ移行](completed/20260220-0209-blogspot-content-migration.md) |
 | `20260220-0208` | [入稿システム検討 — Zola静的サイトジェネレーター評価・導入](completed/20260220-0208-zola-evaluation.md) |

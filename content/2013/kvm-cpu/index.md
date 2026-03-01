@@ -1,6 +1,7 @@
 +++
 title = "kvmによる仮想マシン\"-cpu host\"オプションで性能向上する場合がある"
 date = 2013-05-22
+description = "KVMゲストに-cpu hostオプションを付けることでLinpackベンチマークが約2倍高速化した検証結果。"
 path = "2013/05/kvm-cpu.html"
 +++
 

@@ -1,5 +1,6 @@
 +++
 title = "Profile"
+description = "高橋公俊のプロフィールページ。"
 path = "p/p.html"
 +++
 

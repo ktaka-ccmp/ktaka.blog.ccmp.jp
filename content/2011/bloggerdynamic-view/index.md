@@ -1,6 +1,7 @@
 +++
 title = "BloggerのDynamic viewがおしゃれ"
 date = 2011-04-07
+description = "BloggerのDynamic View機能で利用できる5種類のおしゃれな表示スタイルの紹介。"
 path = "2011/04/bloggerdynamic-view.html"
 +++
 

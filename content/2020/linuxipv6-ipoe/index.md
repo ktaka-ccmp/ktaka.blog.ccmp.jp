@@ -1,6 +1,7 @@
 +++
 title = "LinuxルーターでのIPv6 IPoE設定"
 date = 2020-05-04
+description = "フレッツ回線のLinuxルーターでIPv6 IPoE接続を設定し、SLAACやradvdによるLAN側アドレス配布、ip6tablesの設定を行った記録。"
 path = "2020/05/linuxipv6-ipoe.html"
 +++
 

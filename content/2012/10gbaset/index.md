@@ -1,6 +1,7 @@
 +++
 title = "10GBaseTイーサネットに関して調べ物"
 date = 2012-05-10
+description = "CX4、SFP+ファイバー、SFP+ DAC、10GBaseTなど10Gbeインターフェースの特徴比較と対応製品の紹介。"
 path = "2012/05/10gbaset.html"
 +++
 

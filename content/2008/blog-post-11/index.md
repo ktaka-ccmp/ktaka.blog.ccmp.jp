@@ -1,6 +1,7 @@
 +++
 title = "信用三本柱"
 date = 2008-11-02
+description = "富山の置き薬にならったHDD予備サービスと、商売における信用三本柱の紹介。"
 path = "2008/11/blog-post.html"
 +++
 

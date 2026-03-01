@@ -1,6 +1,7 @@
 +++
 title = "Intel 10GBaseT NICのドライバ"
 date = 2012-05-14
+description = "Intel X540 10GBaseT NICのLinuxドライバixgbeがカーネル2.6.38からサポートされていることの確認メモ。"
 path = "2012/05/intel-10gbaset-nic.html"
 +++
 

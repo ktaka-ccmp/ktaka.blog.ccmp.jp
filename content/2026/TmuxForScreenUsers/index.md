@@ -1,6 +1,7 @@
 +++
 title = "GNU Screen ユーザーのための tmux カスタマイズ"
 date = 2026-03-01
+description = "長年GNU Screenを使ってきたユーザーがtmuxに移行する際の、操作体系の違いとカスタマイズの記録。"
 path = "2026/TmuxForScreenUsers"
 [extra]
 lang = "ja"

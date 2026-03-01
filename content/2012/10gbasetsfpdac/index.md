@@ -1,6 +1,7 @@
 +++
 title = "10GBaseTとSFP+DACの比較"
 date = 2012-05-14
+description = "10GBaseTとSFP+DACのレイテンシ、最大ケーブル長、消費電力の比較調査メモ。"
 path = "2012/05/10gbasetsfpdac.html"
 +++
 

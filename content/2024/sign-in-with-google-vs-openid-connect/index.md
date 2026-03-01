@@ -1,6 +1,7 @@
 +++
 title = "Sign in with Google vs OpenID Connect: Understanding the difference"
 date = 2024-10-28
+description = "A technical comparison of Google's proprietary Sign in with Google SDK and the standard OpenID Connect protocol."
 path = "2024/10/sign-in-with-google-vs-openid-connect.html"
 +++
 

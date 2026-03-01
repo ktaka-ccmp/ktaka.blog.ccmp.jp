@@ -1,6 +1,7 @@
 +++
 title = "Google OAuth2 in Svelte + FastAPI: Create a Session Cookie from JWT"
 date = 2024-01-09
+description = "Implementing Google OAuth2 sign-in with Svelte and FastAPI, converting JWT to server-side session cookies for secure authentication."
 path = "2024/01/svelte-fastapi-session-cookie-jwt-01.html"
 +++
 

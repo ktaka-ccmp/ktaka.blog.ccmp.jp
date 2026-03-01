@@ -1,6 +1,7 @@
 +++
 title = "今日は自転車通勤"
 date = 2011-04-25
+description = "暖かくなってきた季節の自転車通勤の様子。"
 path = "2011/04/blog-post.html"
 +++
 

@@ -1,6 +1,7 @@
 +++
 title = "Implementing Passkeys Authentication in Rust with Axum"
 date = 2025-01-17
+description = "Building a WebAuthn Passkeys authentication system from scratch in Rust using the Axum web framework."
 path = "2025/01/implementing-passkeys-authentication-in-rust-axum.html"
 +++
 

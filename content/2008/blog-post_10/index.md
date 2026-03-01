@@ -1,6 +1,7 @@
 +++
 title = "仕事の中心"
 date = 2008-04-10
+description = "仕事の中心は楽しさであるべきだという考え。"
 path = "2008/04/blog-post_10.html"
 +++
 

@@ -1,6 +1,7 @@
 +++
 title = "Galaxy からBlogger アプリ"
 date = 2011-04-25
+description = "GalaxyスマートフォンのBloggerアプリから気軽にブログ投稿を試した感想。"
 path = "2011/04/galaxy-blogger.html"
 +++
 

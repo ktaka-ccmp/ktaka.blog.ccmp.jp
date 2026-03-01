@@ -1,6 +1,7 @@
 +++
 title = "KVM用のマシンの引越し"
 date = 2012-05-29
+description = "KVM用マシンをDell T105からIntel製1Uサーバへ引っ越した作業の記録。"
 path = "2012/05/kvm.html"
 +++
 

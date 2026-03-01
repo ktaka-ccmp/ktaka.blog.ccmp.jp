@@ -1,6 +1,7 @@
 +++
 title = "Lineのインフラセミナーに参加してきました。"
 date = 2014-04-16
+description = "LINE Developer Conferenceのインフラセッションに参加した備忘録。DB sharding、L3DSR、Stateless SLBなどの話題。"
 path = "2014/04/line.html"
 +++
 

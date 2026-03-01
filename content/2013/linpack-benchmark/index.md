@@ -1,6 +1,7 @@
 +++
 title = "もろもろLinpack Benchmarkしてみました"
 date = 2013-05-21
+description = "Intel Optimized Linpackを用いて複数の物理サーバとKVM・Xen仮想マシンの浮動小数点演算性能を比較した記録。"
 path = "2013/05/linpack-benchmark.html"
 +++
 

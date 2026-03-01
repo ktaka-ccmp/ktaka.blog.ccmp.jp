@@ -1,6 +1,7 @@
 +++
 title = "1CPU、Xeonサーバ紹介"
 date = 2013-11-18
+description = "Xeon E3-1270v2搭載のシングルソケット1Uサーバの構成とホットスワップSSDベイの紹介。"
 path = "2013/11/1cpuxeon.html"
 +++
 

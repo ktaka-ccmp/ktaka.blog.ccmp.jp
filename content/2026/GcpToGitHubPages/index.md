@@ -1,6 +1,7 @@
 +++
 title = "9年前に Joomla + wget で静的化したサイトを GitHub Pages へ移行した"
 date = 2026-02-15
+description = "GCP上のVM + CLB構成で運用していた静的サイトをGitHub Pagesに移行し、月額約$23のコストを削減した事例。"
 path = "2026/GcpToGitHubPages"
 [extra]
 lang = "ja"

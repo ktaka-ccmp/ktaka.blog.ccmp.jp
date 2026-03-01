@@ -1,6 +1,7 @@
 +++
 title = "仮想化ブートキャンプ"
 date = 2008-04-20
+description = "KVMとXenを使った仮想サーバ移行作業の一週間の記録。"
 path = "2008/04/blog-post_21.html"
 +++
 

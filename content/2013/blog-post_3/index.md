@@ -1,6 +1,7 @@
 +++
 title = "出荷を待つファイルサーバー"
 date = 2013-07-03
+description = "Xeon E3-1270v2とMegaRAID 9271-8iを搭載した1Uファイルサーバの内部構成を写真付きで紹介。"
 path = "2013/07/blog-post_3.html"
 +++
 

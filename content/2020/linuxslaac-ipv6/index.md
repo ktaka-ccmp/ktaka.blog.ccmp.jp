@@ -1,6 +1,7 @@
 +++
 title = "LinuxでのSLAAC IPv6アドレス自動設定"
 date = 2020-05-17
+description = "LinuxカーネルのSLAAC addr_gen_modeパラメータの各モード（EUI64、RFC7217 SOII等）の違いと設定方法の解説。"
 path = "2020/05/linuxslaac-ipv6.html"
 +++
 

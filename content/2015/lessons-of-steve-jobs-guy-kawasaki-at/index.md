@@ -1,6 +1,7 @@
 +++
 title = "Lessons of Steve Jobs: Guy Kawasaki at TEDxUCSD の要点"
 date = 2015-10-18
+description = "Guy KawasakiがTEDxUCSDで語ったSteve Jobsの教訓12項目の要点メモ。"
 path = "2015/10/lessons-of-steve-jobs-guy-kawasaki-at.html"
 +++
 

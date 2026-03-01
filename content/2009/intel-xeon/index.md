@@ -1,6 +1,7 @@
 +++
 title = "Intel Xeon 新モデル"
 date = 2009-02-24
+description = "Intel Xeonクアッドコア低消費電力版の新モデル発売の紹介。"
 path = "2009/02/intel-xeon.html"
 +++
 

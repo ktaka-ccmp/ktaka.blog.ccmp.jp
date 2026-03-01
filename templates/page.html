@@ -2,6 +2,24 @@
 
 {% block title %}{{ page.title }} | {{ config.title }}{% endblock %}
 
+{% block meta %}
+{% if page.description %}
+<meta name="description" content="{{ page.description }}">
+{% else %}
+<meta name="description" content="{{ config.description }}">
+{% endif %}
+<meta property="og:title" content="{{ page.title }}">
+<meta property="og:description" content="{% if page.description %}{{ page.description }}{% else %}{{ config.description }}{% endif %}">
+<meta property="og:type" content="article">
+<meta property="og:url" content="{{ page.permalink }}">
+{% if page.extra.og_image %}
+<meta property="og:image" content="{{ page.extra.og_image }}">
+{% elif config.extra.og_image %}
+<meta property="og:image" content="{{ config.extra.og_image }}">
+{% endif %}
+<meta name="twitter:card" content="summary">
+{% endblock %}
+
 {% block nav_extra %}
   {% set root_section = get_section(path="_index.md") %}
   {% set_global older_url = "" %}

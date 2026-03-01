@@ -1,6 +1,7 @@
 +++
 title = "rsync --updateオプションで悩む"
 date = 2011-04-13
+description = "rsyncの--updateオプションがシンボリックリンクには効かない問題についてのメモ。"
 path = "2011/04/rsync-update.html"
 +++
 

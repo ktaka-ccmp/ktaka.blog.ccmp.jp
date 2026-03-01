@@ -1,6 +1,7 @@
 +++
 title = "VAIO X linuxでの輝度調整"
 date = 2009-11-09
+description = "VAIO XのLinuxでsetpciコマンドを使った液晶輝度調整の方法。"
 path = "2009/11/vaio-x-linux.html"
 +++
 

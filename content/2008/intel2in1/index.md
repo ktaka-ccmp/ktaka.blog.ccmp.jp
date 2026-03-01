@@ -1,6 +1,7 @@
 +++
 title = "Intelの2in1サーバがイケてる"
 date = 2008-09-20
+description = "Intel 2in1サーバ SR1520MLの魅力と商品化の検討について。"
 path = "2008/09/intel2in1.html"
 +++
 

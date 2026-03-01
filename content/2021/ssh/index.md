@@ -1,6 +1,7 @@
 +++
 title = "SSH踏み台サーバを経由して社内サーバにアクセスする"
 date = 2021-01-21
+description = "SSHダイナミックフォワードとproxy.pacを使い、Chromeから社内WEBサーバやBMCにアクセスする方法。"
 path = "2021/01/ssh.html"
 +++
 

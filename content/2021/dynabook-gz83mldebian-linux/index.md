@@ -1,6 +1,7 @@
 +++
 title = "Dynabook GZ83/MLにDebian Linuxをのせて使ってます。"
 date = 2021-01-15
+description = "859gの軽量ノートPC Dynabook GZ83/MLを購入し、Debian LinuxとWindowsのデュアルブートで運用している紹介。"
 path = "2021/01/dynabook-gz83mldebian-linux.html"
 +++
 

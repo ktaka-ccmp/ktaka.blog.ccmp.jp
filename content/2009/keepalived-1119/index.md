@@ -1,6 +1,7 @@
 +++
 title = "keepalived-1.1.19がリリースされました"
 date = 2009-10-08
+description = "keepalived 1.1.19のリリースとnopreemptオプションによるVRRP改善の紹介。"
 path = "2009/10/keepalived-1119.html"
 +++
 

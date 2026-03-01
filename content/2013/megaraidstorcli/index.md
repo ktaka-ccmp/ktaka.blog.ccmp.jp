@@ -1,6 +1,7 @@
 +++
 title = "MegaRAIDのStorCLIを試してみました。"
 date = 2013-05-22
+description = "LSI MegaRAIDのCLI管理ツールStorCLIのインストールとRAID5アレイ作成・ホットスペア設定の操作例。"
 path = "2013/05/megaraidstorcli.html"
 +++
 

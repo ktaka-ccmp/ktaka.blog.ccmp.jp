@@ -1,6 +1,7 @@
 +++
 title = "ＶＡＩＯ X用Linuxカーネルコンフィグ"
 date = 2009-11-01
+description = "VAIO Xの各デバイスを認識させるためのLinuxカーネルコンフィグの備忘録。"
 path = "2009/11/x.html"
 +++
 

@@ -1,6 +1,7 @@
 +++
 title = "ノートパソコン(Debian Linux)からdocomo wifiへの接続法(メモ)"
 date = 2013-07-25
+description = "Debian Linuxノートパソコンからwpa_supplicantを使ってdocomo wifiに接続する設定メモ。"
 path = "2013/07/debian-linuxdocomo-wifi.html"
 +++
 

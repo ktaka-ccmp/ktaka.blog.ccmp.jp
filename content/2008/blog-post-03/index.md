@@ -1,6 +1,7 @@
 +++
 title = "ブログことはじめ"
 date = 2008-03-18
+description = "ブログを始めた動機と書く内容の方針について。"
 path = "2008/03/blog-post.html"
 +++
 

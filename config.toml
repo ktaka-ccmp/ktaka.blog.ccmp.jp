@@ -1,5 +1,6 @@
 base_url = "https://ktaka.blog.ccmp.jp"
 title = "ktaka's blog"
+description = "ktaka's blog — Linux, セキュリティ, プログラミングの技術メモ"
 default_language = "ja"
 compile_sass = false
 build_search_index = false
@@ -8,6 +9,9 @@ generate_feeds = true
 [languages.en]
 generate_feeds = true
 build_search_index = false
+
+[extra]
+og_image = ""
 
 [markdown.highlighting]
 enabled = true

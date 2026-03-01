@@ -1,6 +1,7 @@
 +++
 title = "Axum Google OAuth2/OIDC implementation "
 date = 2024-12-05
+description = "A walkthrough of implementing Google OAuth2/OIDC authentication in a Rust Axum web application with session management."
 path = "2024/12/axum-google-oauth2oidc-implementation.html"
 +++
 

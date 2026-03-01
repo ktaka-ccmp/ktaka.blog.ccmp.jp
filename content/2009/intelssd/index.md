@@ -1,6 +1,7 @@
 +++
 title = "Intelの爆速SSD"
 date = 2009-01-13
+description = "Intel SSD X25-Eの爆速性能の評価レポート紹介。"
 path = "2009/01/intelssd.html"
 +++
 

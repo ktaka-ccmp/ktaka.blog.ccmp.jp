@@ -1,6 +1,7 @@
 +++
 title = "メルマガ配信完了"
 date = 2009-02-02
+description = "Intel SSD X25-EやSeagateファームウェア関連のメルマガ配信完了の報告。"
 path = "2009/02/blog-post.html"
 +++
 

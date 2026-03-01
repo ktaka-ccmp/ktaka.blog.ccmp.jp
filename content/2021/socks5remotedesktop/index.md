@@ -1,6 +1,7 @@
 +++
 title = "社外からSOCKS5プロキシ経由でRemoteDesktop接続"
 date = 2021-01-22
+description = "SSHダイナミックフォワードでSOCKS5トンネルを作り、xfreerdpで社内PCにリモートデスクトップ接続するスクリプト。"
 path = "2021/01/socks5remotedesktop.html"
 +++
 

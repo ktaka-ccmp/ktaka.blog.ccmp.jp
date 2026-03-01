@@ -1,6 +1,7 @@
 +++
 title = "iodrive2入荷しました"
 date = 2012-10-05
+description = "FusionIO製PCIeフラッシュストレージiodrive2の入荷報告とIOPS性能の紹介。"
 path = "2012/10/iodrive2.html"
 +++
 

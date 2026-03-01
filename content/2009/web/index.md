@@ -1,6 +1,7 @@
 +++
 title = "[備忘録] テキストコンソールでWeb閲覧"
 date = 2009-10-26
+description = "Linuxテキストコンソールでjfbtermとscreen、emacs+w3mを使ってWeb閲覧する設定。"
 path = "2009/10/web.html"
 +++
 

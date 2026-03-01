@@ -1,6 +1,7 @@
 +++
 title = "カーネル読書会に参加してきました。"
 date = 2009-02-24
+description = "ylug主催カーネル読書会でAndi Kleenのx86-64メンテナー話を聞いた参加記。"
 path = "2009/02/blog-post_25.html"
 +++
 

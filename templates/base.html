@@ -4,6 +4,17 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ config.title }}{% endblock %}</title>
+  {% block meta %}
+  <meta name="description" content="{{ config.description }}">
+  <meta property="og:title" content="{{ config.title }}">
+  <meta property="og:description" content="{{ config.description }}">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="{{ config.base_url }}">
+  {% if config.extra.og_image %}
+  <meta property="og:image" content="{{ config.extra.og_image }}">
+  {% endif %}
+  <meta name="twitter:card" content="summary">
+  {% endblock %}
   <link rel="alternate" type="application/atom+xml" title="{{ config.title }}" href="/atom.xml">
   <link rel="stylesheet" href="/github-markdown.css">
   <style>

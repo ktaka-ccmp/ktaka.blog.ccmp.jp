@@ -1,6 +1,7 @@
 +++
 title = "出荷を待つサーバたち"
 date = 2014-08-27
+description = "Intel IvyBridge Xeonデュアルソケットサーバの紹介と、大容量メモリやSSD RAIDによる高性能IO構成について。"
 path = "2014/08/blog-post.html"
 +++
 

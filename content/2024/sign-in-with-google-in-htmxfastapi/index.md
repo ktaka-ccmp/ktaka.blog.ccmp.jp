@@ -1,6 +1,7 @@
 +++
 title = "Sign in with Google in HTMX+FastAPI"
 date = 2024-02-02
+description = "Integrating Sign in with Google into an HTMX + FastAPI web application with session cookie authentication."
 path = "2024/02/sign-in-with-google-in-htmxfastapi.html"
 +++
 

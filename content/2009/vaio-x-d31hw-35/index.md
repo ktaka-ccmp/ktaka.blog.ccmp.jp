@@ -1,6 +1,7 @@
 +++
 title = "vaio x + d31hw 電池の持ちは3.5時間"
 date = 2009-11-04
+description = "VAIO XでイーモバイルD31HW使用時の電池持ちが約3.5時間だった検証。"
 path = "2009/11/vaio-x-d31hw-35.html"
 +++
 

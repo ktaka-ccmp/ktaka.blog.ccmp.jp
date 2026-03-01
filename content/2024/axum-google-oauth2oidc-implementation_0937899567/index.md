@@ -1,6 +1,7 @@
 +++
 title = "AxumでGoogle OAuth2/OIDC認証を実装する"
 date = 2024-12-05
+description = "RustのAxumフレームワークでGoogle OAuth2/OIDC認証を実装する方法を、基礎知識と実装の両面から解説。"
 path = "2024/12/axum-google-oauth2oidc-implementation_0937899567.html"
 +++
 

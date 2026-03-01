@@ -1,6 +1,7 @@
 +++
 title = "CentOSをネットワークインストールしてみる"
 date = 2013-01-10
+description = "PXEブートを利用したCentOS 6.3のネットワークインストール手順の備忘録。"
 path = "2013/01/centos.html"
 +++
 

@@ -1,6 +1,7 @@
 +++
 title = "Keepalivedで作るMySQLフェイルオーバーシステム"
 date = 2015-12-22
+description = "KeepalivedのVRRP機能とMySQLの双方向レプリケーションを組み合わせた、約4秒以内にフェイルオーバーするMySQLの冗長化構成の解説。"
 path = "2015/12/keepalivedmysql.html"
 +++
 

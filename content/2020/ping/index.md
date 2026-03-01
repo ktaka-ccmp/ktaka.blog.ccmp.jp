@@ -1,6 +1,7 @@
 +++
 title = "pingが通らない時"
 date = 2020-11-25
+description = "ファイルシステムコピー時にcapabilityが欠落してpingが動作しなくなる問題の原因と、setcapでの復旧方法。"
 path = "2020/11/ping.html"
 +++
 

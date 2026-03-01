@@ -1,6 +1,7 @@
 +++
 title = "今日の逸品"
 date = 2014-11-03
+description = "Intel PCIe SSD DC P3700 1.6TBの実機ベンチマーク結果をdd・fio・mysqlslapで計測し、AWS RDSとも比較。"
 path = "2014/11/blog-post.html"
 +++
 

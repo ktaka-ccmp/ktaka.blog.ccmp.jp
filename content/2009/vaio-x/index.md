@@ -1,6 +1,7 @@
 +++
 title = "VAIO X 購入しました"
 date = 2009-10-31
+description = "軽量薄型ネットブックVAIO Xを購入しDebianを導入した話。"
 path = "2009/10/vaio-x.html"
 +++
 

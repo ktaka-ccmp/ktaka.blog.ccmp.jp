@@ -1,6 +1,7 @@
 +++
 title = "Debian LinuxのノートパソコンでドトールWiFiにつなぐ"
 date = 2021-01-15
+description = "Debian Linuxでドトールの無料WiFiに接続するためのwpa_supplicant設定とifupの手順メモ。"
 path = "2021/01/debian-linuxwifi.html"
 +++
 

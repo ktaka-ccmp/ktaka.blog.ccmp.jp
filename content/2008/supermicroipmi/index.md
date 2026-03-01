@@ -1,6 +1,7 @@
 +++
 title = "SupermicroのIPMI"
 date = 2008-04-28
+description = "Supermicroからベーシックなシンプル仕様のIPMIカードが発売された話。"
 path = "2008/04/supermicroipmi.html"
 +++
 

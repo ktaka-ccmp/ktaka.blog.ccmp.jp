@@ -1,6 +1,7 @@
 +++
 title = "出荷を待つサーバたち"
 date = 2013-04-03
+description = "デュアルXeon E5-2650搭載のDBサーバの出荷前テスト風景の写真付きレポート。"
 path = "2013/04/blog-post.html"
 +++
 

@@ -1,6 +1,7 @@
 +++
 title = "sshuttle vpnでサーバのリモート管理を便利に"
 date = 2013-07-25
+description = "SSH経由の簡易VPNツールsshuttleを使って、ファイアウォール越しにサーバをリモート管理する方法の紹介。"
 path = "2013/07/sshuttle-vpn.html"
 +++
 

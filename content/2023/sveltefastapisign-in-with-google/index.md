@@ -1,6 +1,7 @@
 +++
 title = "Svelte+FastAPIでSign in with Googleを試してみた"
 date = 2023-12-25
+description = "SvelteとFastAPIで構築したWebアプリにGoogle Sign Inを実装し、セッションCookieで認証を管理する方法を紹介。"
 path = "2023/12/sveltefastapisign-in-with-google.html"
 +++
 

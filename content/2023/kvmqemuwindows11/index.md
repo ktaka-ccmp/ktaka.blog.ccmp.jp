@@ -1,6 +1,7 @@
 +++
 title = "KVM再入門：Qemuコマンドラインで仮想マシンを起動し、Windows11ゲストをセットアップする。"
 date = 2023-03-22
+description = "TPMエミュレーターとOVMF UEFIファームウェアを使い、KVM上にWindows11をインストールする手順を解説。"
 path = "2023/03/kvmqemuwindows11.html"
 +++
 

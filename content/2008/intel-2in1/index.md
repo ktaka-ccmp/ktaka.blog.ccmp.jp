@@ -1,6 +1,7 @@
 +++
 title = "Intel 2in1 サーバーはコストパフォーマンスが高い"
 date = 2008-11-02
+description = "Intel SR1520ML 2in1ベアボーンサーバのコストパフォーマンスの紹介。"
 path = "2008/11/intel-2in1.html"
 +++
 

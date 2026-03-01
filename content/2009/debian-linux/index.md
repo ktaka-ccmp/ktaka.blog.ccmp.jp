@@ -1,6 +1,7 @@
 +++
 title = "Debian Linux でイーモバイルD31HW使う"
 date = 2009-11-01
+description = "Debian LinuxでイーモバイルD31HWをusb_modeswitchとpppで接続する手順。"
 path = "2009/11/debian-linux.html"
 +++
 

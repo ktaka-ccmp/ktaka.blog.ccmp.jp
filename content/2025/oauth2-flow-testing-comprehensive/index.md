@@ -1,6 +1,7 @@
 +++
 title = "OAuth2 and OpenID Connect (OIDC) Flow Testing: A Comprehensive Analysis of Response Types and Modes"
 date = 2025-07-07
+description = "Systematic testing and analysis of OAuth2/OIDC response types, response modes, and their behavior in Google's implementation."
 path = "2025/07/oauth2-flow-testing-comprehensive.html"
 +++
 

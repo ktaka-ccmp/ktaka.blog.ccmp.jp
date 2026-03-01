@@ -1,6 +1,7 @@
 +++
 title = "ブログ"
 date = 2012-07-06
+description = "ブログ記事を書くことへのハードルとTwitterの気軽さについての雑感。"
 path = "2012/07/blog-post.html"
 +++
 

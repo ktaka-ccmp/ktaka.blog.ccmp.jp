@@ -1,6 +1,7 @@
 +++
 title = "Blogspot の記事を Zola + GitHub Pages に移行した"
 date = 2026-02-24
+description = "Blogspotの107記事をZola + GitHub Pagesに一括移行した手順と、ドメイン切替までの記録。"
 path = "2026/BlogspotToZola"
 +++
 

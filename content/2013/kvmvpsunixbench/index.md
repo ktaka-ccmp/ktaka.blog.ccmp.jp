@@ -1,6 +1,7 @@
 +++
 title = "KVMのゲストマシンとさくらのVPSでUnixBench採ってみました"
 date = 2013-05-09
+description = "自社KVMゲストマシンとさくらのVPSでUnixBenchを実行し、結果を比較した記録。"
 path = "2013/05/kvmvpsunixbench.html"
 +++
 

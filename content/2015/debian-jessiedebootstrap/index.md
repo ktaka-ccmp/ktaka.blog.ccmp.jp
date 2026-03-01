@@ -1,6 +1,7 @@
 +++
 title = "debian jessieをdebootstrapでインストールした時のメモ"
 date = 2015-10-14
+description = "ネットブート環境からdebootstrapでDebian jessieのミニマム環境を構築する手順メモ。"
 path = "2015/10/debian-jessiedebootstrap.html"
 +++
 

@@ -1,6 +1,7 @@
 +++
 title = "本家Linuxカーネルに採用されました！"
 date = 2008-11-07
+description = "社員が書いたIntel X38用EDACドライバがLinuxメインラインカーネルに採用された報告。"
 path = "2008/11/linux.html"
 +++
 

@@ -1,6 +1,7 @@
 +++
 title = "Kernel Virtual Machine(kvm)のセットアップ"
 date = 2012-02-15
+description = "KVMによる仮想マシン環境の構築手順をカーネル構築、ネットワーク設定、ゲストOS作成まで備忘録的にまとめた記事。"
 path = "2012/02/kvm.html"
 +++
 

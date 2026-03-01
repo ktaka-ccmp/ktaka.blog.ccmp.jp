@@ -1,6 +1,7 @@
 +++
 title = "Intel SSDの保証とsmart情報について"
 date = 2014-08-11
+description = "Intel SSDの保証条件とMedia Wearout Indicatorの関係を調査し、smartctlでの取得方法をRAIDカード経由の実例とともに解説。"
 path = "2014/08/intel-ssd.html"
 +++
 

@@ -1,6 +1,7 @@
 +++
 title = "vaio xの駆動時間は実質4時間位か"
 date = 2009-11-03
+description = "VAIO XのDebian Linux環境でのバッテリ駆動時間が実質約4時間だった検証結果。"
 path = "2009/11/vaio-x4.html"
 +++
 

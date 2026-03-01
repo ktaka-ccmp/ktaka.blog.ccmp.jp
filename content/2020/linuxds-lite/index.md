@@ -1,6 +1,7 @@
 +++
 title = "LinuxルーターでのDS-Lite設定"
 date = 2020-05-05
+description = "LinuxルーターでDS-Liteトンネルを設定し、ポリシールーティングでHTTP/HTTPSのみIPv4 over IPv6経由にする方法。"
 path = "2020/05/linuxds-lite.html"
 +++
 

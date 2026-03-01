@@ -1,6 +1,7 @@
 +++
 title = "Google OAuth2/OIDC and PKCE: Understanding Client Secret Requirements"
 date = 2025-07-07
+description = "Testing Google's OAuth2 PKCE implementation reveals that client_secret is required even with PKCE for Web Application client types."
 path = "2025/07/oogle-oauth2-and-pkce-understanding.html"
 +++
 

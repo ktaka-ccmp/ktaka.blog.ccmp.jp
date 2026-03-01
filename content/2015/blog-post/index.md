@@ -1,6 +1,7 @@
 +++
 title = "デスクトップパソコン新調"
 date = 2015-10-03
+description = "Intel NUC DN2820FYKHをデスクトップPCとして導入し、Debian jessieでHDMI音声出力を設定した記録。"
 path = "2015/10/blog-post.html"
 +++
 

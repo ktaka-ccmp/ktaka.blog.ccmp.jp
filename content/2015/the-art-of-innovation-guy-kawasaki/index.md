@@ -1,6 +1,7 @@
 +++
 title = "The art of innovation | Guy Kawasaki | TEDxBerkeley の要点メモ"
 date = 2015-10-18
+description = "Guy KawasakiのTEDxBerkeleyでの講演「The Art of Innovation」の要点メモ。イノベーションに必要な10の教訓。"
 path = "2015/10/the-art-of-innovation-guy-kawasaki.html"
 +++
 

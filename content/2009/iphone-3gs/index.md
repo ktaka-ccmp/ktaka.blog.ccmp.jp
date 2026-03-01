@@ -1,6 +1,7 @@
 +++
 title = "巷で評判のiPhone 3GSを購入しました。"
 date = 2009-10-19
+description = "iPhone 3GSを購入しメール確認が快適になった話。"
 path = "2009/10/iphone-3gs.html"
 +++
 

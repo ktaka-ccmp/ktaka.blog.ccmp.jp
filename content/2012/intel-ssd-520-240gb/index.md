@@ -1,6 +1,7 @@
 +++
 title = "Intel SSD 520 240GB 購入しました"
 date = 2012-04-14
+description = "Intel SSD 520 240GBの開封レビューとスペック紹介。"
 path = "2012/04/intel-ssd-520-240gb.html"
 +++
 

@@ -1,6 +1,7 @@
 +++
 title = "シングルソケット ローコスト　Intelサーバー "
 date = 2012-11-13
+description = "固定式HDDベイ4つを備えたIntelシングルソケットのローコスト1Uサーバの写真付き紹介。"
 path = "2012/11/intel.html"
 +++
 

@@ -40,7 +40,12 @@ This is a Zola-based blog containing technical articles in Markdown, organized b
    path = "YYYY/ArticleName"
    +++
    ```
-3. For bilingual articles, add `index.en.md` alongside `index.md`
+3. For bilingual articles:
+   - Create a separate directory (e.g., `content/YYYY/ArticleNameEn/`)
+   - Each language version is an independent article with its own `index.md`
+   - JP article: `path = "YYYY/ArticleName"`, EN article: `path = "en/YYYY/ArticleName"`
+   - Share assets (videos, images) via absolute paths pointing to the primary article's directory
+   - Add cross-links between versions (e.g., `<p style="text-align: right"><a href="...">English version</a></p>`)
 4. Place images in `image/` subdirectory, reference with relative paths
 5. Preview locally: `zola serve`
 6. Build: `zola build` (output to `public/`)

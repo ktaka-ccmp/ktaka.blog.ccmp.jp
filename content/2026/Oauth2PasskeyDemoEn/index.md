@@ -1,15 +1,15 @@
 +++
 title = "Try Passwordless Auth: oauth2-passkey Live Demo"
-date = 2026-03-01
+date = 2026-03-02
 description = "Introducing oauth2-passkey, a Rust library for passwordless authentication with OAuth2 and Passkeys. Try the live demo at passkey-demo.ccmp.jp."
 path = "en/2026/Oauth2PasskeyDemo"
 +++
 
 <p style="text-align: right"><a href="/2026/Oauth2PasskeyDemo">日本語版</a></p>
 
-*A live demo of [oauth2-passkey](https://github.com/ktaka-ccmp/oauth2-passkey), a Rust library that adds OAuth2 + Passkey authentication to your web app with minimal code.*
+*A live demo of [oauth2-passkey](https://github.com/ktaka-ccmp/oauth2-passkey), a Rust library that adds OAuth2 and Passkey authentication to your web app with minimal code.*
 
-Two short videos below walk through the demo at [passkey-demo.ccmp.jp](https://passkey-demo.ccmp.jp) -- first registering via Google and adding a Passkey, then signing in with just the Passkey.
+Two short videos below walk through the demo at [passkey-demo.ccmp.jp](https://passkey-demo.ccmp.jp) — first registering via Google and adding a Passkey, then signing in using only the Passkey.
 
 ---
 
@@ -21,11 +21,11 @@ Here's what happens in the video:
 
 1. The **login page** offers two options: "Register / Sign in with Google" and "Sign in with Passkey".
 2. Clicking **"Register / Sign in with Google"** opens the standard Google account chooser and consent screen.
-3. Right after Google authentication, the app prompts: **"Create a passkey to sign in?"** -- this is the *Passkey promotion* feature, encouraging OAuth2 users to register a Passkey for faster future logins.
+3. Immediately after Google authentication, the app prompts: **"Create a passkey to sign in?"** — this is the *Passkey promotion* feature, encouraging OAuth2 users to register a Passkey for faster future logins.
 4. After creating the Passkey, the user lands on the **Dashboard** with links to My Account and Admin Panel.
 5. The **My Account** page shows User Information, Passkey Credentials, linked OAuth2 Accounts, and Recent Login History.
 
-The key idea: users get the familiarity of Google sign-in, then immediately gain the speed and security of Passkeys.
+The key idea: users start with the familiarity of Google sign-in, then immediately gain the speed and security of Passkeys.
 
 ## Demo 2: Sign in with Passkey
 
@@ -34,10 +34,10 @@ The key idea: users get the familiarity of Google sign-in, then immediately gain
 Now the same user signs in again, this time with their Passkey:
 
 1. On the **login page**, clicking **"Sign in with Passkey"** triggers the browser's built-in Passkey dialog.
-2. After biometric verification (fingerprint, face, etc.), the user is **logged in instantly** -- no redirect to Google, no password.
-3. The **Login History** now shows both the Passkey login and the earlier OAuth2 login, so users can see their full authentication trail.
+2. After biometric verification (fingerprint, face, etc.), the user is **logged in instantly** —no redirect to Google, no password.
+3. The **Login History** now shows both the Passkey login and the earlier OAuth2 login, so users can review their full authentication history.
 
-This is the daily login experience: fast, phishing-resistant, and no external dependencies once the Passkey is registered.
+This is the daily login experience: fast, phishing-resistant, and free of external dependencies once the Passkey is registered.
 
 ## Try It Yourself
 
@@ -53,14 +53,14 @@ Data is stored in memory and resets on server restart, so feel free to experimen
 
 [oauth2-passkey](https://crates.io/crates/oauth2-passkey) is a Rust library for adding passwordless authentication to web applications. It combines:
 
-- **OAuth2 (Google)** -- One-click registration and login, familiar to users
-- **Passkeys (WebAuthn/FIDO2)** -- Phishing-resistant, biometric login (fingerprint, face, security key)
+- **OAuth2 (Google)** —One-click registration and login, familiar to users
+- **Passkeys (WebAuthn/FIDO2)** —Phishing-resistant, biometric login (fingerprint, face, security key)
 
-Users sign up with Google, then optionally add a Passkey for faster daily login. OAuth2 stays as a backup if the device is lost.
+Users sign up with Google, then optionally add a Passkey for faster daily logins. OAuth2 remains available as a fallback if a device is lost.
 
 ## Quick Start
 
-Add oauth2-passkey to your Axum app:
+Add oauth2-passkey to your Axum application:
 
 ```rust
 use axum::{Router, routing::get, response::IntoResponse};
@@ -89,7 +89,7 @@ async fn protected(user: AuthUser) -> impl IntoResponse {
 }
 ```
 
-The `oauth2_passkey_full_router()` call adds all authentication routes under `/o2p/*`: login page, OAuth2 flow, Passkey registration/authentication, user account management, and admin panel.
+The `oauth2_passkey_full_router()` call adds all authentication routes under `/o2p/*`, including the login page, OAuth2 flow, Passkey registration and authentication, user account management, and the admin panel.
 
 Set a few environment variables (Google OAuth2 credentials, session secret) and you're ready to go. See the [Getting Started guide](https://ktaka-ccmp.github.io/oauth2-passkey/) for details.
 
@@ -104,7 +104,7 @@ Set a few environment variables (Google OAuth2 credentials, session secret) and 
 | **Session management** | Secure cookies, conflict policies, force logout |
 | **Admin panel** | User management, audit trail, admin safeguards |
 | **Theme system** | 9 built-in CSS themes + custom theme support |
-| **Storage** | SQLite (dev) or PostgreSQL (prod), with Redis or in-memory cache |
+| **Storage** | SQLite (development) or PostgreSQL (production), with Redis or in-memory caching |
 
 ## Links
 
@@ -115,4 +115,4 @@ Set a few environment variables (Google OAuth2 credentials, session secret) and 
 
 ## Background
 
-This library grew out of a [from-scratch Passkey implementation](/2025/01/implementing-passkeys-authentication-in-rust-axum.html) I wrote in early 2025. That project taught me the WebAuthn protocol deeply, and I decided to package the result into a reusable library with OAuth2 integration, session management, and a complete UI.
+This library grew out of a [from-scratch Passkey implementation](/2025/01/implementing-passkeys-authentication-in-rust-axum.html) I wrote in early 2025. That project gave me a deep understanding of the WebAuthn protocol, and I decided to package the result into a reusable library with OAuth2 integration, session management, and a complete UI.

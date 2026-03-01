@@ -1,6 +1,6 @@
 +++
 title = "パスワードなしの認証を試す: oauth2-passkey ライブデモ"
-date = 2026-03-01
+date = 2026-03-02
 description = "Rust 向けパスワードレス認証ライブラリ「oauth2-passkey」の紹介。OAuth2 と Passkey を組み合わせた認証を passkey-demo.ccmp.jp で体験できます。"
 path = "2026/Oauth2PasskeyDemo"
 +++

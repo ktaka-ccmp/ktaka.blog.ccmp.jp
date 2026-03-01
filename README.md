@@ -27,6 +27,7 @@ content/
 +++
 title = "記事タイトル"
 date = 2026-02-23
+description = "記事の概要を1文で。検索結果やSNSシェア時の説明文に使われます。"
 path = "2026/MyNewArticle"
 +++
 
@@ -35,6 +36,7 @@ path = "2026/MyNewArticle"
 
 - `title` — 記事タイトル
 - `date` — 公開日（`YYYY-MM-DD` 形式、記事一覧のソート順に使用）
+- `description` — 記事の概要（SEO の検索スニペットや SNS シェア時の OGP description に使用）
 - `path` — URL パス（`https://ktaka.blog.ccmp.jp/{path}` になる）
 
 ### 3. 画像の配置

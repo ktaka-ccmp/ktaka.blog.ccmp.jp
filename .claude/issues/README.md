@@ -6,10 +6,13 @@ This directory contains issue/task tracking files for the project.
 
 <!-- AUTO-UPDATED: Do not edit manually. Updated by /issue command. -->
 
-### Open (0)
+### Open (3)
 
 | ID | Priority | Difficulty | Title |
 |----|----------|------------|-------|
+| `20260301-1750` | high | large | [ブログ記事 — oauth2-passkey ライブラリ紹介 + デモサイト宣伝](open/20260301-1750-blog-oauth2-passkey-introduction.md) |
+| `20260301-1751` | medium | large | [ブログ記事 — Rust アプリを 27MB Docker イメージで Cloud Run にデプロイ](open/20260301-1751-blog-rust-cloud-run-deploy.md) |
+| `20260301-1752` | medium | medium | [ブログ記事 — Async Rust の落とし穴（JWKS デッドロック + SQLite Pool）](open/20260301-1752-blog-async-rust-pitfalls.md) |
 
 ### Completed (5)
 

@@ -237,7 +237,7 @@ def process_video(input_path, output_path):
     result = subprocess.run([
         "ffmpeg", "-y",
         "-i", tmp_raw_path,
-        "-c:v", "libx264", "-preset", "medium", "-crf", "18",
+        "-c:v", "libx264", "-preset", "medium", "-crf", "23",
         "-pix_fmt", "yuv420p", "-movflags", "+faststart",
         output_path,
     ], capture_output=True, text=True)

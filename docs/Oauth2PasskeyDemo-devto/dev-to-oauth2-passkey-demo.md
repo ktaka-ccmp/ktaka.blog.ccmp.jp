@@ -14,8 +14,7 @@ Two short videos below walk through the demo at [passkey-demo.ccmp.jp](https://p
 
 ## Demo 1: Register with Google and Add a Passkey
 
-<!-- dev.to: Upload o2p-2026-03-01_17.11.16-blurred.mp4 here -->
-<!-- After uploading, replace this comment with the generated video tag -->
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/iwbedbkv5fnodagp9jzu.gif)
 
 Here's what happens in the video:
 
@@ -29,8 +28,7 @@ The key idea: users start with the familiarity of Google sign-in, then immediate
 
 ## Demo 2: Sign in with Passkey
 
-<!-- dev.to: Upload o2p-2026-03-01_17.12.01-blurred.mp4 here -->
-<!-- After uploading, replace this comment with the generated video tag -->
+![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/n7qn8ivp9puil7qcs8or.gif)
 
 Now the same user signs in again, this time with their Passkey:
 

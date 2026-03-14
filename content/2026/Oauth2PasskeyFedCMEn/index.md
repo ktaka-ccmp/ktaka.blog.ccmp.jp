@@ -3,6 +3,9 @@ title = "Implementing FedCM Login in the oauth2-passkey Rust Library"
 date = 2026-03-14
 description = "An implementation record of FedCM login: using the browser standard API, reusing JWT validation, and security trade-offs."
 path = "en/2026/Oauth2PasskeyFedCM"
+
+[extra]
+og_image = "https://ktaka.blog.ccmp.jp/2026/Oauth2PasskeyFedCM/image/fedcm-account-chooser.png"
 +++
 
 <p style="text-align: right"><a href="/2026/Oauth2PasskeyFedCM">日本語版</a></p>

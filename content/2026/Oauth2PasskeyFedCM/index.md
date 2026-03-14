@@ -35,6 +35,17 @@ FedCM:
 
 FedCMではブラウザが仲介役になるので、RPからロードしたJavaScriptはアカウントの一覧を見ることもできない。ブラウザがGoogleのセッションCookieを使って、ネイティブUIにアカウント情報を表示し、ユーザーが選択した結果だけがJavaScriptに返される。
 
+<div style="display: flex; gap: 20px; flex-wrap: wrap;">
+  <div style="flex: 1; min-width: 300px;">
+    <img width="408" src="/2026/Oauth2PasskeyFedCM/image/fedcm-account-chooser.png" alt="FedCMのブラウザネイティブUI">
+    <p><em>FedCMのアカウント選択画面（ブラウザがネイティブUIを表示）</em></p>
+  </div>
+  <div style="flex: 1; min-width: 300px;">
+    <img width="408" src="/2026/Oauth2PasskeyFedCM/image/oauth2-popup.png" alt="従来のOAuth2ポップアップ">
+    <p><em>従来のOAuth2 Authorization Code Flow（ポップアップウィンドウでGoogleの認証画面を表示）</em></p>
+  </div>
+</div>
+
 ## 実装方針
 
 FedCMはブラウザの標準API (`navigator.credentials.get()`)として提供されている。Googleは[GIS SDK](https://developers.google.com/identity/gsi/web)経由での利用を推奨しているが、標準APIであるので、SDKなしで直接呼び出すことができる。

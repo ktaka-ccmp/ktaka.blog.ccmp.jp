@@ -77,12 +77,15 @@ const credential = await navigator.credentials.get({
         mode: 'active',
         context: 'signin',
     },
+    mediation: 'required',  // Prevent auto re-authn, always require user interaction
 });
 ```
 
 The `configURL` is the URL of Google's FedCM configuration file. The browser fetches this to discover the location of various endpoints. The `response_type`, `scope`, and `ss_domain` in the `params` object are Google-specific requirements not included in the W3C FedCM specification (discussed later). `ss_domain` contains the origin of the runtime environment (e.g., `https://passkey-demo.ccmp.jp`).
 
 `mode: 'active'` is used when responding to a user button click. It's important that this is placed directly under the `identity` object.
+
+`mediation: 'required'` is a parameter to prevent automatic re-authentication. With this setting, the browser always prompts the user to select an account.
 
 ### 3. Sending the Token to the Backend
 

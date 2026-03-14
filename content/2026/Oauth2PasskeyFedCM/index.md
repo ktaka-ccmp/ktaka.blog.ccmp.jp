@@ -77,12 +77,15 @@ const credential = await navigator.credentials.get({
         mode: 'active',
         context: 'signin',
     },
+    mediation: 'required',  // 自動再認証を防ぎ、常にユーザー操作を要求
 });
 ```
 
 `configURL`はGoogleのFedCM設定ファイルのURLである。ブラウザはここから各エンドポイントの場所を取得する。`params`内の`response_type`、`scope`、`ss_domain`はGoogle固有の要件で、FedCMのW3C仕様には含まれていない(後述)。`ss_domain`には実行環境のオリジン(例: `https://passkey-demo.ccmp.jp`)が入る。
 
 `mode: 'active'`はユーザーのボタンクリックに応答する場合に使う。これが`identity`オブジェクトの直下にあることが重要である。
+
+`mediation: 'required'`は自動再認証を防ぐためのパラメーターである。これを指定することで、ブラウザは常にユーザーにアカウント選択を求める。
 
 ### 3. バックエンドへのトークン送信
 

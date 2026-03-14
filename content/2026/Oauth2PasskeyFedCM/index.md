@@ -1,6 +1,6 @@
 +++
 title = "Rust 認証ライブラリ oauth2-passkey で FedCM ログイン機能を実装した"
-date = 2026-03-13
+date = 2026-03-14
 description = "FedCM ログイン機能の実装記録。ブラウザ標準 API の利用、JWT 検証の再利用、セキュリティのトレードオフ。"
 path = "2026/Oauth2PasskeyFedCM"
 +++

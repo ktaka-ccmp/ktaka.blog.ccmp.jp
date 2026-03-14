@@ -1,6 +1,6 @@
 +++
 title = "Implementing FedCM Login in the oauth2-passkey Rust Library"
-date = 2026-03-13
+date = 2026-03-14
 description = "An implementation record of FedCM login: using the browser standard API, reusing JWT validation, and security trade-offs."
 path = "en/2026/Oauth2PasskeyFedCM"
 +++

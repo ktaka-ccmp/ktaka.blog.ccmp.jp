@@ -7,7 +7,8 @@ path = "p/p.html"
 <style>
 .profile-links { display: flex; flex-wrap: wrap; gap: 8px; max-width: 480px; }
 .profile-links a { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; text-decoration: none; color: inherit; font-size: 13px; width: calc(33.333% - 6px); box-sizing: border-box; }
-@media (max-width: 500px) { .profile-links a { width: 100%; } }
+@media (max-width: 500px) { .profile-links a { width: calc(50% - 4px); } }
+@media (max-width: 350px) { .profile-links a { width: 100%; } }
 </style>
 
 <div class="profile-links">

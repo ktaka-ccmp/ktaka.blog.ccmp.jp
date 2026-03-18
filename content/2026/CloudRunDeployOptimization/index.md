@@ -66,9 +66,7 @@ Cloud Build のデフォルトマシンは 1 vCPU / 3.75 GB RAM。Rust のコン
 
 ## 移行先: GitHub Actions + BuildKit
 
-Cloud Build はビルドごとにクリーンな環境が立ち上がり、Docker レイヤーキャッシュをビルド間で引き継ぐ手段がない。どれだけ Dockerfile を工夫しても、毎回ゼロからコンパイルすることになる。
-
-GitHub Actions + BuildKit に移行すれば、この問題が解決する。BuildKit の `type=gha` キャッシュを使うと、ビルドで生成された Docker レイヤーを GitHub Actions のキャッシュストレージに保存し、次のビルドで復元できる。さらに GitHub Actions ランナーは 4 vCPU / 16 GB RAM と Cloud Build デフォルトの 4 倍の CPU があり、パブリックリポジトリなら無料で使える。
+前述の通り、Cloud Build ではどれだけ Dockerfile を工夫してもレイヤーキャッシュが持ち越されず、毎回ゼロからコンパイルすることになる。GitHub Actions + BuildKit に移行すれば、この問題が解決する。BuildKit の `type=gha` キャッシュを使うと、ビルドで生成された Docker レイヤーを GitHub Actions のキャッシュストレージに保存し、次のビルドで復元できる。さらに GitHub Actions ランナーは 4 vCPU / 16 GB RAM と Cloud Build デフォルトの 4 倍のコア数があり、パブリックリポジトリなら無料で使える。
 
 ただし、キャッシュを活かすにはもう一つ工夫が要る。移行前の Dockerfile のように `COPY . .` + `cargo build` では、ソースが変わるたびに依存クレートごとキャッシュが無効になる。「依存クレートのビルド」と「アプリケーションのビルド」を別のレイヤーに分離する必要がある。これを実現するのが cargo-chef である。
 
@@ -84,7 +82,7 @@ GitHub Actions + BuildKit に移行すれば、この問題が解決する。Bui
 
 ### BuildKit と type=gha キャッシュ
 
-[BuildKit](https://github.com/moby/buildkit) は Docker のビルドエンジンを置き換える次世代ビルドツールキットで、Docker 23.0 以降ではデフォルトのビルダーになっている。従来の Docker ビルドと比べて、並列ビルド、効率的なキャッシュ管理、そして**外部キャッシュバックエンド**への対応が大きな特徴である。
+[BuildKit](https://github.com/moby/buildkit) は Docker の高機能ビルドバックエンドで、Docker 23.0 以降ではデフォルトのビルダーになっている。従来の Docker ビルドと比べて、並列ビルド、効率的なキャッシュ管理、そして**外部キャッシュバックエンド**への対応が大きな特徴である。
 
 `type=gha` キャッシュは、Docker のレイヤーキャッシュを GitHub Actions のキャッシュストレージに保存・復元する仕組みである。
 

@@ -1,5 +1,5 @@
 +++
-title = "Cloud Run デプロイを 19 分から 3.5 分に短縮した話"
+title = "cargo-chef + BuildKit で Cloud Run デプロイを 19 分→3.5 分に短縮"
 date = 2026-03-17
 description = "Cloud Build を GitHub Actions BuildKit + cargo-chef に置き換えて、Rust プロジェクトのビルド時間を 82% 削減した事例。"
 path = "2026/CloudRunDeployOptimization"

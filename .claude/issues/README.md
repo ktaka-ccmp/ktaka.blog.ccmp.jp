@@ -6,10 +6,18 @@ This directory contains issue/task tracking files for the project.
 
 <!-- AUTO-UPDATED: Do not edit manually. Updated by /issue command. -->
 
-### Open (4)
+### Open (12)
 
 | ID | Priority | Difficulty | Title |
 |----|----------|------------|-------|
+| `20260326-0419` | high | large | [シリーズ — Web Crypto API で学ぶ暗号技術](open/20260326-0419-blog-series-webcrypto-learn-crypto.md) |
+| `20260326-0420` | high | small | [署名と検証 — ECDSA を体験する](open/20260326-0420-blog-webcrypto-01-ecdsa.md) |
+| `20260326-0421` | high | small | [暗号化と鍵交換 — ハイブリッド暗号を体験する](open/20260326-0421-blog-webcrypto-02-hybrid-encryption.md) |
+| `20260326-0422` | medium | medium | [TLS 1.2 ハンドシェイクを再現する](open/20260326-0422-blog-webcrypto-03-tls12.md) |
+| `20260326-0423` | medium | small | [TLS 1.3 で何が変わったか](open/20260326-0423-blog-webcrypto-035-tls13.md) |
+| `20260326-0424` | medium | small | [SSH 公開鍵認証の仕組み](open/20260326-0424-blog-webcrypto-04-ssh.md) |
+| `20260326-0425` | medium | small | [Passkey がフィッシングに強い理由](open/20260326-0425-blog-webcrypto-05-passkey.md) |
+| `20260326-0426` | low | medium | [DBSC — Cookie を TPM に縛る](open/20260326-0426-blog-webcrypto-06-dbsc.md) |
 | `20260301-1754` | high | small | [ブログ記事 — oauth2-passkey デモサイト紹介（軽量版）](open/20260301-1754-blog-demo-site-announcement.md) |
 | `20260301-1750` | high | large | [ブログ記事 — oauth2-passkey ライブラリ紹介 + デモサイト宣伝](open/20260301-1750-blog-oauth2-passkey-introduction.md) |
 | `20260301-1751` | medium | large | [ブログ記事 — Rust アプリを 27MB Docker イメージで Cloud Run にデプロイ](open/20260301-1751-blog-rust-cloud-run-deploy.md) |

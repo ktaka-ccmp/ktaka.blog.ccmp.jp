@@ -1,5 +1,5 @@
 +++
-title = "署名と検証: Web Crypto API で ECDSA を体験する"
+title = "Web Crypto API で ECDSA 署名・検証を理解する"
 date = 2026-03-26
 description = "Web Crypto API の crypto.subtle を使い、ECDSA による電子署名の生成と検証をブラウザ・Bun・Node.js で体験する。"
 path = "2026/WebCryptoEcdsa"

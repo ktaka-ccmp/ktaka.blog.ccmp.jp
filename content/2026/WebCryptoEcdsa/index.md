@@ -17,7 +17,7 @@ path = "2026/WebCryptoEcdsa"
 
 ## Web Crypto API とは
 
-Web Crypto API はブラウザに標準で組み込まれた暗号 API である。外部ライブラリを追加することなく、鍵の生成、署名、検証、暗号化、復号といった暗号操作を行える。
+[Web Crypto API](https://developer.mozilla.org/ja/docs/Web/API/Web_Crypto_API) はブラウザに標準で組み込まれた暗号 API である。外部ライブラリを追加することなく、鍵の生成、署名、検証、暗号化、復号といった暗号操作を行える。
 
 すべての操作は `crypto.subtle` オブジェクトを通じて呼び出す。
 
@@ -33,6 +33,16 @@ Web Crypto API はブラウザに標準で組み込まれた暗号 API である
 | `crypto.subtle.importKey()` | 外部の鍵をインポート |
 
 各メソッドは `Promise` を返すため、`await` で結果を受け取る。今回は `generateKey`、`sign`、`verify` の 3 つを使う。
+
+`generateKey` で指定できる主なアルゴリズム:
+
+| アルゴリズム | 種類 | 用途 |
+|-------------|------|------|
+| **ECDSA** | 楕円曲線（P-256 等） | 署名・検証 |
+| **RSA-OAEP** | RSA | 暗号化・復号 |
+| **AES-GCM** | 共通鍵 | 暗号化・復号（認証付き） |
+| **ECDH** | 楕円曲線（P-256 等） | 鍵交換 |
+| **HMAC** | 共通鍵 | メッセージ認証 |
 
 ブラウザだけでなく、Bun や Node.js (v19+) でも同じ `crypto.subtle` が利用できるため、サーバーサイドでも同じコードがそのまま動作する。
 

@@ -28,7 +28,12 @@ jobs:
           if [ -n "${MANUAL_FILE}" ]; then
             echo "files=${MANUAL_FILE}" >> "$GITHUB_OUTPUT"
           else
-            files=$(git diff --name-only HEAD~1 HEAD -- 'docs/*-devto/*.md' | tr '\n' ' ')
+            # For merge commits, diff against first parent; for regular commits, diff against HEAD~1
+            if [ "$(git rev-list --parents -n 1 HEAD | wc -w)" -gt 2 ]; then
+              files=$(git diff --name-only HEAD^1 HEAD -- 'docs/*-devto/*.md' | tr '\n' ' ')
+            else
+              files=$(git diff --name-only HEAD~1 HEAD -- 'docs/*-devto/*.md' | tr '\n' ' ')
+            fi
             echo "files=${files}" >> "$GITHUB_OUTPUT"
           fi
 

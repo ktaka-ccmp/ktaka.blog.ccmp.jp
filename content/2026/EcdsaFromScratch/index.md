@@ -79,6 +79,38 @@ const modInverse = (a, m) => {
 
 例えば `modInverse(37n, 97n)` は `21n` を返す。37 × 21 = 777 = 97 × 8 + 1 なので、確かに 37 × 21 mod 97 = 1 である。
 
+<details>
+<summary>拡張ユークリッド互除法の仕組み</summary>
+
+まず普通のユークリッド互除法で、繰り返し割り算して GCD（最大公約数）を求める。37 と 97 の場合:
+
+```
+97 = 2 × 37 + 23
+37 = 1 × 23 + 14
+23 = 1 × 14 +  9
+14 = 1 ×  9 +  5
+ 9 = 1 ×  5 +  4
+ 5 = 1 ×  4 +  1  ← 余り 1 = GCD
+ 4 = 4 ×  1 +  0  ← 終了
+```
+
+次に余り 1 から逆にたどり、「37 × ? + 97 × ? = 1」の形に変形する:
+
+```
+1 = 5 - 1×4
+  = 5 - 1×(9 - 1×5)           = 2×5 - 1×9
+  = 2×(14 - 1×9) - 1×9        = 2×14 - 3×9
+  = 2×14 - 3×(23 - 1×14)      = 5×14 - 3×23
+  = 5×(37 - 1×23) - 3×23      = 5×37 - 8×23
+  = 5×37 - 8×(97 - 2×37)      = 21×37 - 8×97
+```
+
+つまり `21 × 37 - 8 × 97 = 1` なので、`37 × 21 ≡ 1 (mod 97)`。21 が逆元である。
+
+コード中の `old_r, r` は余りの追跡、`old_s, s` はこの「逆にたどる」係数の計算を同時に行っている。
+
+</details>
+
 ---
 
 ## 第 2 層: 楕円曲線上の点の演算
@@ -92,7 +124,7 @@ const isInfinity = (P) => P.x === null && P.y === null;
 
 ### 点の加算 P + Q
 
-2 点を通る直線が曲線と交わる第 3 の点を x 軸で反転する。P = Q の場合は接線を使う（点の 2 倍）。
+2 点を通る直線が曲線と交わる第 3 の点を x 軸で反転する。P = Q の場合は接線を使う（点の 2 倍）。式は直線と曲線の方程式を連立して代数的に導かれたもので、四則演算だけで構成されているため、mod p の世界でもそのまま成り立つ。ただし割り算はモジュラー逆元を掛ける操作に置き換え、各計算の結果に mod p を適用する。
 
 ```javascript
 const pointAdd = (P, Q, a, p) => {
@@ -100,6 +132,7 @@ const pointAdd = (P, Q, a, p) => {
   if (isInfinity(Q)) return P;
   if (P.x === Q.x && mod(P.y + Q.y, p) === 0n) return INFINITY;
 
+  // lam = 直線の傾き（点の2倍の場合は接線の傾き）
   let lam;
   if (P.x === Q.x && P.y === Q.y) {
     // 点の2倍: λ = (3x² + a) / (2y)
@@ -108,6 +141,7 @@ const pointAdd = (P, Q, a, p) => {
     // 異なる2点の加算: λ = (y₂ - y₁) / (x₂ - x₁)
     lam = mod((Q.y - P.y) * modInverse(Q.x - P.x, p), p);
   }
+  // 直線と曲線の第3の交点を求め、x軸で反転
   const xr = mod(lam * lam - P.x - Q.x, p);
   const yr = mod(lam * (P.x - xr) - P.y, p);
   return { x: xr, y: yr };
@@ -116,17 +150,17 @@ const pointAdd = (P, Q, a, p) => {
 
 ### スカラー倍算 k · P
 
-G を k 回足し合わせる操作。愚直に k 回ループすると遅いので、ダブル＆アド法を使う。k を 2 進数で見て、各ビットに対応する `2^i · G` を足し合わせる。引数の `n` は群の位数（曲線上の点の個数に関係する値）で、後述の `findOrder` で求める。
+G を k 回足し合わせる操作。愚直に k 回ループすると遅いので、ダブル＆アド法を使う。例えば k = 42 は 2 進数で `101010` なので、`42·G = 32·G + 8·G + 2·G` と分解できる。G を繰り返し 2 倍しながら、ビットが 1 の位置で加算することで高速に計算する。引数の `n` は群の位数（曲線上の点の個数に関係する値）で、後述の `findOrder` で求める。
 
 ```javascript
 const scalarMul = (k, P, a, p, n) => {
   let result = INFINITY;
-  let addend = { ...P };
+  let addend = { ...P };  // G, 2G, 4G, 8G, ... と2倍されていく
   k = mod(k, n);
   while (k > 0n) {
-    if (k & 1n) result = pointAdd(result, addend, a, p);
-    addend = pointAdd(addend, addend, a, p);
-    k >>= 1n;
+    if (k & 1n) result = pointAdd(result, addend, a, p);  // ビットが1なら加算
+    addend = pointAdd(addend, addend, a, p);  // 毎回2倍
+    k >>= 1n;  // 次のビットへ
   }
   return result;
 };
@@ -141,6 +175,7 @@ const scalarMul = (k, P, a, p, n) => {
 ```javascript
 const findOrder = (G, a, p) => {
   let P = { ...G };
+  // Hasseの定理より位数 ≤ p+1+2√p なので p*4 は十分な上限
   for (let i = 2n; i < p * 4n; i++) {
     P = pointAdd(P, G, a, p);
     if (isInfinity(P)) return i;
@@ -414,6 +449,7 @@ const scalarMul = (k, P, a, p, n) => {
 // --- 補助関数 ---
 const findOrder = (G, a, p) => {
   let P = { ...G };
+  // Hasseの定理より位数 ≤ p+1+2√p なので p*4 は十分な上限
   for (let i = 2n; i < p * 4n; i++) {
     P = pointAdd(P, G, a, p);
     if (isInfinity(P)) return i;

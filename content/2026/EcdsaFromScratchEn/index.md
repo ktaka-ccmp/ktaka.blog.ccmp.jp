@@ -81,6 +81,38 @@ const modInverse = (a, m) => {
 
 For example, `modInverse(37n, 97n)` returns `21n`. Since 37 × 21 = 777 = 97 × 8 + 1, indeed 37 × 21 mod 97 = 1.
 
+<details>
+<summary>How the Extended Euclidean Algorithm works</summary>
+
+First, the standard Euclidean algorithm finds the GCD by repeated division. For 37 and 97:
+
+```
+97 = 2 × 37 + 23
+37 = 1 × 23 + 14
+23 = 1 × 14 +  9
+14 = 1 ×  9 +  5
+ 9 = 1 ×  5 +  4
+ 5 = 1 ×  4 +  1  ← remainder 1 = GCD
+ 4 = 4 ×  1 +  0  ← done
+```
+
+Then trace back from remainder 1 to express it as `37 × ? + 97 × ? = 1`:
+
+```
+1 = 5 - 1×4
+  = 5 - 1×(9 - 1×5)           = 2×5 - 1×9
+  = 2×(14 - 1×9) - 1×9        = 2×14 - 3×9
+  = 2×14 - 3×(23 - 1×14)      = 5×14 - 3×23
+  = 5×(37 - 1×23) - 3×23      = 5×37 - 8×23
+  = 5×37 - 8×(97 - 2×37)      = 21×37 - 8×97
+```
+
+So `21 × 37 - 8 × 97 = 1`, meaning `37 × 21 ≡ 1 (mod 97)`. The inverse is 21.
+
+In the code, `old_r, r` track the remainders, while `old_s, s` simultaneously compute the "trace-back" coefficients.
+
+</details>
+
 ---
 
 ## Layer 2: Elliptic Curve Point Operations
@@ -94,7 +126,7 @@ const isInfinity = (P) => P.x === null && P.y === null;
 
 ### Point Addition P + Q
 
-Draw a line through two points, find the third intersection with the curve, and reflect across the x-axis. When P = Q, use the tangent line (point doubling).
+Draw a line through two points, find the third intersection with the curve, and reflect across the x-axis. When P = Q, use the tangent line (point doubling). The formulas are derived algebraically by solving the line and curve equations simultaneously — they consist only of basic arithmetic, so they work in the mod p world as well. The only difference is that division is replaced by multiplication with the modular inverse, and each result is reduced mod p.
 
 ```javascript
 const pointAdd = (P, Q, a, p) => {
@@ -102,6 +134,7 @@ const pointAdd = (P, Q, a, p) => {
   if (isInfinity(Q)) return P;
   if (P.x === Q.x && mod(P.y + Q.y, p) === 0n) return INFINITY;
 
+  // lam = slope of the line (tangent slope for point doubling)
   let lam;
   if (P.x === Q.x && P.y === Q.y) {
     // Point doubling: λ = (3x² + a) / (2y)
@@ -110,6 +143,7 @@ const pointAdd = (P, Q, a, p) => {
     // Addition of two distinct points: λ = (y₂ - y₁) / (x₂ - x₁)
     lam = mod((Q.y - P.y) * modInverse(Q.x - P.x, p), p);
   }
+  // Find the third intersection with the curve, then reflect across x-axis
   const xr = mod(lam * lam - P.x - Q.x, p);
   const yr = mod(lam * (P.x - xr) - P.y, p);
   return { x: xr, y: yr };
@@ -118,17 +152,17 @@ const pointAdd = (P, Q, a, p) => {
 
 ### Scalar Multiplication k · P
 
-Adding G to itself k times. A naive loop would be slow, so we use the double-and-add method. We look at k in binary and accumulate the corresponding `2^i · G` terms. The parameter `n` is the group order (a value related to the number of points on the curve), computed by `findOrder` below.
+Adding G to itself k times. A naive loop would be slow, so we use the double-and-add method. For example, k = 42 is `101010` in binary, so `42·G = 32·G + 8·G + 2·G`. The algorithm repeatedly doubles G and adds when the corresponding bit is 1. The parameter `n` is the group order (a value related to the number of points on the curve), computed by `findOrder` below.
 
 ```javascript
 const scalarMul = (k, P, a, p, n) => {
   let result = INFINITY;
-  let addend = { ...P };
+  let addend = { ...P };  // doubles each iteration: G, 2G, 4G, 8G, ...
   k = mod(k, n);
   while (k > 0n) {
-    if (k & 1n) result = pointAdd(result, addend, a, p);
-    addend = pointAdd(addend, addend, a, p);
-    k >>= 1n;
+    if (k & 1n) result = pointAdd(result, addend, a, p);  // add if bit is 1
+    addend = pointAdd(addend, addend, a, p);  // double
+    k >>= 1n;  // next bit
   }
   return result;
 };
@@ -143,6 +177,7 @@ A function to find the order of base point G (`n · G = ∞` for the smallest n)
 ```javascript
 const findOrder = (G, a, p) => {
   let P = { ...G };
+  // By Hasse's theorem, order ≤ p+1+2√p, so p*4 is a safe upper bound
   for (let i = 2n; i < p * 4n; i++) {
     P = pointAdd(P, G, a, p);
     if (isInfinity(P)) return i;
@@ -416,6 +451,7 @@ const scalarMul = (k, P, a, p, n) => {
 // --- Helper functions ---
 const findOrder = (G, a, p) => {
   let P = { ...G };
+  // By Hasse's theorem, order ≤ p+1+2√p, so p*4 is a safe upper bound
   for (let i = 2n; i < p * 4n; i++) {
     P = pointAdd(P, G, a, p);
     if (isInfinity(P)) return i;

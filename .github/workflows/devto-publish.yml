@@ -12,7 +12,7 @@ on:
         required: true
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   publish:
@@ -32,7 +32,7 @@ jobs:
             echo "files=${files}" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Publish articles
+      - name: Publish or update articles
         env:
           DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
           FILES: ${{ steps.collect.outputs.files }}
@@ -48,23 +48,62 @@ jobs:
               continue
             fi
 
-            echo "Publishing: ${file}"
+            dir=$(dirname "${file}")
+            id_file="${dir}/.devto-id"
             content=$(cat "${file}" | jq -Rs .)
 
-            response=$(curl -s -w "\n%{http_code}" -X POST https://dev.to/api/articles \
-              -H "Content-Type: application/json" \
-              -H "api-key: ${DEVTO_API_KEY}" \
-              -d "{\"article\": {\"body_markdown\": ${content}}}")
+            if [ -f "${id_file}" ]; then
+              # Update existing article
+              article_id=$(cat "${id_file}")
+              echo "Updating article ${article_id}: ${file}"
 
-            http_code=$(echo "${response}" | tail -1)
-            body=$(echo "${response}" | sed '$d')
+              response=$(curl -s -w "\n%{http_code}" -X PUT "https://dev.to/api/articles/${article_id}" \
+                -H "Content-Type: application/json" \
+                -H "api-key: ${DEVTO_API_KEY}" \
+                -d "{\"article\": {\"body_markdown\": ${content}}}")
 
-            if [ "${http_code}" = "201" ]; then
-              url=$(echo "${body}" | jq -r '.url')
-              echo "Published: ${url}"
+              http_code=$(echo "${response}" | tail -1)
+              body=$(echo "${response}" | sed '$d')
+
+              if [ "${http_code}" = "200" ]; then
+                url=$(echo "${body}" | jq -r '.url')
+                echo "Updated: ${url}"
+              else
+                echo "Update failed (HTTP ${http_code}): ${body}"
+                exit 1
+              fi
             else
-              echo "Failed (HTTP ${http_code}): ${body}"
-              exit 1
+              # Create new article
+              echo "Publishing new article: ${file}"
+
+              response=$(curl -s -w "\n%{http_code}" -X POST https://dev.to/api/articles \
+                -H "Content-Type: application/json" \
+                -H "api-key: ${DEVTO_API_KEY}" \
+                -d "{\"article\": {\"body_markdown\": ${content}}}")
+
+              http_code=$(echo "${response}" | tail -1)
+              body=$(echo "${response}" | sed '$d')
+
+              if [ "${http_code}" = "201" ]; then
+                article_id=$(echo "${body}" | jq -r '.id')
+                url=$(echo "${body}" | jq -r '.url')
+                echo "${article_id}" > "${id_file}"
+                echo "Published: ${url} (id: ${article_id})"
+              else
+                echo "Publish failed (HTTP ${http_code}): ${body}"
+                exit 1
+              fi
             fi
           done
-```
+
+      - name: Commit article IDs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/*-devto/.devto-id 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No new article IDs to commit"
+          else
+            git commit -m "Save dev.to article IDs"
+            git push
+          fi

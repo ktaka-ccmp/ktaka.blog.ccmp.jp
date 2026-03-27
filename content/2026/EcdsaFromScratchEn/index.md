@@ -198,7 +198,7 @@ const toyHash = (msg, n) => {
 
 ## Curve Parameters and Base Point G
 
-In real P-256, NIST specifies the curve parameters (p, a, b) and the base point G's coordinates in the standard, and each implementation uses those values directly. Here we walk through how the base point is determined, for educational purposes.
+In real P-256, NIST specifies the curve parameters (p, a, b) and the base point G's coordinates in the standard, and each implementation uses those values directly. Here we walk through how the base point is determined, for learning purposes.
 
 <details>
 <summary>Reference: Actual P-256 parameters</summary>

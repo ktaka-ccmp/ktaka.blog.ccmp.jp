@@ -36,9 +36,9 @@ allowed-tools: Read, Write, Glob, Grep, Bash(zola:*), Bash(ls:*)
    - 画像の相対パス → ブログの絶対 URL に変換（該当がある場合）
 
 4. **ファイルを保存**:
-   - ディレクトリ: `docs/<元記事ディレクトリ名>-devto/`
+   - ディレクトリ: `devto/`
    - ファイル名: `dev-to-<スラッグ>.md`
-   - 例: `docs/WebCryptoEcdsaEn-devto/dev-to-webcrypto-ecdsa.md`
+   - 例: `devto/dev-to-webcrypto-ecdsa.md`
 
 5. **確認**:
    - ユーザーに作成したファイルのパスと `published` 状態を報告
@@ -46,7 +46,7 @@ allowed-tools: Read, Write, Glob, Grep, Bash(zola:*), Bash(ls:*)
 
 ## GitHub Actions ワークフロー
 
-- `.github/workflows/devto-publish.yml` が `docs/*-devto/*.md` の変更を検出して自動投稿
+- `.github/workflows/devto-publish.yml` が `devto/*.md` の変更を検出して自動投稿
 - `canonical_url` で既存記事を検索し、あれば PUT（更新）、なければ POST（新規）
 - `published: false` → 下書き、`published: true` → 公開
 - 公開/非公開の変更もファイルを編集して push すれば自動反映

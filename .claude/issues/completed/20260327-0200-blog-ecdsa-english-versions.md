@@ -14,9 +14,9 @@
 
 ## Created: 2026-03-27-02-00
 
-## Closed:
+## Closed: 2026-03-27
 
-## Status: open
+## Status: completed
 
 ## Priority: high
 
@@ -50,14 +50,16 @@ ECDSA 関連の日本語記事 2 本の英語版を作成する。
 
 ## Implementation Tasks
 
-- [ ] WebCryptoEcdsaEn/index.md 作成
-- [ ] EcdsaFromScratchEn/index.md 作成
-- [ ] 日本語版に英語版へのリンク追加
-- [ ] 英語版に日本語版へのリンク追加
-- [ ] `zola build` でビルド確認
+- [x] WebCryptoEcdsaEn/index.md 作成
+- [x] EcdsaFromScratchEn/index.md 作成
+- [x] 日本語版に英語版へのリンク追加
+- [x] 英語版に日本語版へのリンク追加
+- [x] `zola build` でビルド確認
 
 ## Decision Log
 
 <!-- APPEND-ONLY: Do not edit or delete existing entries. Add new entries at the bottom. -->
 
 ## Resolution
+
+英語版 2 記事を作成し、日本語版と相互リンクを追加した。ブランチ: `blog-ecdsa-english`（dev ベース）

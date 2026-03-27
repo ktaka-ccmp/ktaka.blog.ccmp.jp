@@ -6,11 +6,10 @@ This directory contains issue/task tracking files for the project.
 
 <!-- AUTO-UPDATED: Do not edit manually. Updated by /issue command. -->
 
-### Open (12)
+### Open (11)
 
 | ID | Priority | Difficulty | Title |
 |----|----------|------------|-------|
-| `20260327-0100` | high | medium | [ECDSA の計算をライブラリなしで実装する](open/20260327-0100-blog-ecdsa-from-scratch.md) |
 | `20260326-0419` | high | large | [シリーズ — Web Crypto API で学ぶ暗号技術](open/20260326-0419-blog-series-webcrypto-learn-crypto.md) |
 | `20260326-0421` | high | small | [暗号化と鍵交換 — ハイブリッド暗号を体験する](open/20260326-0421-blog-webcrypto-02-hybrid-encryption.md) |
 | `20260326-0422` | medium | medium | [TLS 1.2 ハンドシェイクを再現する](open/20260326-0422-blog-webcrypto-03-tls12.md) |
@@ -23,10 +22,11 @@ This directory contains issue/task tracking files for the project.
 | `20260301-1751` | medium | large | [ブログ記事 — Rust アプリを 27MB Docker イメージで Cloud Run にデプロイ](open/20260301-1751-blog-rust-cloud-run-deploy.md) |
 | `20260301-1752` | medium | medium | [ブログ記事 — Async Rust の落とし穴（JWKS デッドロック + SQLite Pool）](open/20260301-1752-blog-async-rust-pitfalls.md) |
 
-### Completed (6)
+### Completed (7)
 
 | ID | Title |
 |----|-------|
+| `20260327-0100` | [ECDSA の計算をライブラリなしで実装する](completed/20260327-0100-blog-ecdsa-from-scratch.md) |
 | `20260326-0420` | [Web Crypto API で ECDSA 署名・検証を理解する](completed/20260326-0420-blog-webcrypto-01-ecdsa.md) |
 | `20260301-0801` | [ブログ記事のmetaタグ（description・OGP）をテンプレートに組み込む](completed/20260301-0801-meta-tags-ogp.md) |
 | `20260220-0210` | [ドメイン変更 kt.blog.ccmp.jp → ktaka.blog.ccmp.jp](completed/20260220-0210-domain-migration.md) |

@@ -14,9 +14,9 @@
 
 ## Created: 2026-03-27-01-00
 
-## Closed:
+## Closed: 2026-03-27
 
-## Status: open
+## Status: completed
 
 ## Priority: high
 
@@ -72,11 +72,11 @@ ECDSA の署名・検証を外部ライブラリなしに BigInt だけで実装
 
 ## Implementation Tasks
 
-- [ ] 記事ファイル作成（content/2026/EcdsaFromScratch/index.md）
-- [ ] コードの動作確認
-- [ ] `zola build` でビルド確認
-- [ ] `zola serve` でプレビュー確認
-- [ ] レビュー
+- [x] 記事ファイル作成（content/2026/EcdsaFromScratch/index.md）
+- [x] コードの動作確認
+- [x] `zola build` でビルド確認
+- [x] `zola serve` でプレビュー確認
+- [x] レビュー
 
 ## Decision Log
 
@@ -88,4 +88,12 @@ ECDSA の署名・検証を外部ライブラリなしに BigInt だけで実装
 - Decision: まず JavaScript 版のみで記事を作成。Python 版は別記事にするか検討
 - Reason: 1 記事が長くなりすぎるのを避ける。JavaScript は前回記事と同じ言語で一貫性がある
 
+### 2026-03-27: 記事完成
+
+- Context: ジャーナル素材をベースに記事を執筆・レビュー完了
+- Decision: 3 層構造（モジュラー演算 → 点の演算 → ECDSA プロトコル）で解説、全体コードを heredoc で末尾に配置
+- Reason: セクションごとの解説を読みつつ、最後に全体をコピペで実行できる構成
+
 ## Resolution
+
+記事を公開した。ブランチ: `blog-ecdsa-from-scratch`（dev ベース）

@@ -277,11 +277,66 @@ Verification that G is on the curve: 2² mod 97 = 4, 0³ + 1·0 + 4 mod 97 = 4. 
 
 ## Layer 3: ECDSA Protocol
 
+The ECDSA protocol consists of three steps: key generation, signing, and verification.
+
+```
+Key generation:  Compute Q = d · G
+                 Recovering d from Q is infeasible (discrete logarithm problem)
+
+Signing:       {d, k, h, (G, a, p, n)}  →  compute (r, s)
+Verification:  {Q, s, h', (G, a, p, n)} →  compute r'
+
+d: private key, k: ephemeral key, Q: public key
+r, s: signature
+h, h': message hash
+G, a, p, n: curve parameters
+
+h' == h (no tampering) → r' == r (verification succeeds)
+h' ≠ h (tampered)      → r' ≠ r (verification fails)
+```
+
+<details>
+<summary>Why do they arrive at the same r?</summary>
+
+Signing and verification each compute the following:
+
+```
+Signing:      R = k·G
+              r = R.x mod n
+              s = k⁻¹·(h + r·d) mod n
+              → signature (r, s)
+
+Verification: r' = (s⁻¹·h'·G + s⁻¹·r·Q).x mod n
+              → r' == r means verification succeeds
+```
+
+When `h' == h`, expanding the verifier's point computation:
+
+```
+R' = s⁻¹·h'·G + s⁻¹·r·Q
+   = s⁻¹·h·G + s⁻¹·r·Q       ← substitute h' = h
+   = s⁻¹·h·G + s⁻¹·r·(d·G)   ← substitute Q = d·G
+   = (s⁻¹·h + s⁻¹·r·d)·G
+   = s⁻¹·(h + r·d)·G
+   = k·G                       ← from s = k⁻¹·(h+r·d), so s⁻¹·(h+r·d) = k
+
+r' = R'.x mod n
+   = (k·G).x mod n
+   = r                         ← same as signing side
+```
+
+Therefore, when `h' == h`, `r' == r`.
+
+</details>
+
+The following code demonstrates each step.
+
 ### Key Generation
 
 Choose a private key d and compute the public key Q = d · G. d can be any value from 1 to n-1 (1 to 88 for this curve).
 
 ```javascript
+// G=(0,2), a=1, p=97 were determined in the previous section
 const n = findOrder(G, a, p); // n = 89
 const d = 23n;                // Private key (1 ≤ d ≤ n-1)
 const Q = scalarMul(d, G, a, p, n); // Public key Q = d · G

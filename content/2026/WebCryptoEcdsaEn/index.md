@@ -169,7 +169,7 @@ Data: Hello, WebCrypto! (tampered)
 Result: false
 ```
 
-The code first generates an ECDSA key pair, then signs data with the private key to produce a signature. When verifying the signature using the public key and data, the original data returns `true` while tampered data returns `false`. If even a single byte of data changes, the signature's integrity breaks and tampering is detected. Since the signature cannot be forged from the public key alone, a third party can confirm that "the owner of the private key signed this data."
+The code first generates an ECDSA key pair, then signs data with the private key to produce a signature. When verifying the signature using the public key and data, the original data returns `true` while tampered data returns `false`. If even a single byte of data changes, the signature verification fails and tampering is detected. Since the signature cannot be forged from the public key alone, a third party can confirm that "the owner of the private key signed this data."
 
 ---
 
@@ -183,7 +183,7 @@ The code first generates an ECDSA key pair, then signs data with the private key
 
 ## Summary
 
-The Web Crypto API is a cryptographic API built into the browser, making it easy to experiment with code in the browser console, Bun, or Node.js. Using `crypto.subtle`, we verified the generation and verification of ECDSA digital signatures. We confirmed that the fundamentals of asymmetric cryptography — signing with a private key and verifying with a public key — can be easily tested.
+The Web Crypto API is a cryptographic API built into the browser, making it easy to experiment with code in the browser console, Bun, or Node.js. Using `crypto.subtle`, we demonstrated the generation and verification of ECDSA digital signatures. We confirmed that the fundamentals of asymmetric cryptography — signing with a private key and verifying with a public key — can be easily tested.
 
 ---
 

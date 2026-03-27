@@ -78,8 +78,7 @@ const modInverse = (a, m) => {
 
 For example, `modInverse(37n, 97n)` returns `21n`. Since 37 × 21 = 777 = 97 × 8 + 1, indeed 37 × 21 mod 97 = 1.
 
-<details>
-<summary>How the Extended Euclidean Algorithm works</summary>
+{% details How the Extended Euclidean Algorithm works %}
 
 First, the standard Euclidean algorithm finds the GCD by repeated division. For 37 and 97:
 
@@ -108,7 +107,7 @@ So `21 × 37 - 8 × 97 = 1`, meaning `37 × 21 ≡ 1 (mod 97)`. The inverse is 2
 
 In the code, `old_r, r` track the remainders, while `old_s, s` simultaneously compute the "trace-back" coefficients.
 
-</details>
+{% enddetails %}
 
 ---
 
@@ -197,8 +196,7 @@ const toyHash = (msg, n) => {
 
 In real P-256, NIST specifies the curve parameters (p, a, b) and the base point G's coordinates in the standard, and each implementation uses those values directly. Here we walk through how the base point is determined, for learning purposes.
 
-<details>
-<summary>Reference: Actual P-256 parameters</summary>
+{% details Reference: Actual P-256 parameters %}
 
 ```
 p   = 0xFFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF
@@ -213,7 +211,7 @@ All values are 256-bit. The scale is vastly different from the toy curve in this
 
 Source: [NIST SP 800-186 — Recommendations for Discrete Logarithm-based Cryptography: Elliptic Curve Domain Parameters](https://csrc.nist.gov/pubs/sp/800/186/final)
 
-</details>
+{% enddetails %}
 
 ### Finding Points on the Curve
 
@@ -292,8 +290,7 @@ h' == h (no tampering) → r' == r (verification succeeds)
 h' ≠ h (tampered)      → r' ≠ r (verification fails)
 ```
 
-<details>
-<summary>Why do they arrive at the same r?</summary>
+{% details Why do they arrive at the same r? %}
 
 Signing and verification each compute the following:
 
@@ -325,7 +322,7 @@ r' = R'.x mod n
 
 Therefore, when `h' == h`, `r' == r`.
 
-</details>
+{% enddetails %}
 
 The following code demonstrates each step.
 

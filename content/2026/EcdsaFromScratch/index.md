@@ -1,15 +1,17 @@
 +++
 title = "ECDSA の計算をライブラリなしで実装する"
 date = 2026-03-27
-description = "ECDSA の署名・検証を BigInt だけで実装し、モジュラー演算・楕円曲線上の点の演算・署名式の全ステップを中間値付きで確認する。"
+description = "ECDSA の署名・検証を四則演算と mod だけで実装し、モジュラー演算・楕円曲線上の点の演算・署名式の全ステップを中間値付きで確認する。"
 path = "2026/EcdsaFromScratch"
 +++
+
+<p style="text-align: right"><a href="/en/2026/EcdsaFromScratch">English version</a></p>
 
 ## はじめに
 
 [前回の記事](/2026/WebCryptoEcdsa)では、Web Crypto API の `crypto.subtle` を使って ECDSA の署名と検証を体験した。API を呼ぶだけで署名・検証ができたが、内部で何を計算しているかはブラックボックスのままだった。
 
-この記事では、暗号ライブラリを一切使わず、JavaScript の `BigInt` だけで ECDSA の署名・検証を実装する。全ステップの中間値を出力し、何が起きているかを確認する。
+この記事では、暗号ライブラリを使わず、四則演算と mod だけで ECDSA の署名・検証を実装する。全ステップの中間値を出力し、何が起きているかを確認する。
 
 なお、この記事のコードと解説は AI（Claude）との対話を通じて作成した。小さな曲線を使って全値を 2 桁に収めるアイデアや、中間値を表示して計算過程を追えるようにする構成も、AI との議論の中で生まれたものである。
 
@@ -19,15 +21,14 @@ path = "2026/EcdsaFromScratch"
 
 本物の ECDSA（P-256）では 256bit の巨大な数を扱うが、アルゴリズムは曲線のサイズに依存しない。ここでは `y² = x³ + x + 4 (mod 97)` という小さな曲線を使い、すべての値が 2 桁の整数に収まるようにした。
 
-この曲線では有限体の素数 `p = 97` と群の位数 `n = 89` が異なる。本物の P-256 でも `p ≠ n` であり、署名式の `mod n` と点の座標演算の `mod p` は別の値になる。
-
 ```javascript
 const p = 97n;  // 曲線の法（有限体の素数）
 const a = 1n;   // 曲線パラメータ a
 const b = 4n;   // 曲線パラメータ b
 // 曲線: y² = x³ + ax + b (mod p)
-// 群の位数 n = 89（p とは異なる）
 ```
+
+※ 数値の末尾の `n` は JavaScript の `BigInt`（任意精度の整数型）を示す。
 
 ---
 
@@ -47,7 +48,7 @@ ECDSA の署名・検証は、以下の 3 層で構成されている。
 
 ## 第 1 層: モジュラー演算
 
-ECDSA の全計算は「mod n の世界」で行われる。必要な演算は 2 つ: mod 演算と、モジュラー逆元である。
+ECDSA の全計算はモジュラー演算（mod）の世界で行われる。必要な演算は 2 つ: mod 演算と、モジュラー逆元である。
 
 ### mod 関数
 
@@ -76,7 +77,39 @@ const modInverse = (a, m) => {
 };
 ```
 
-例えば `modInverse(42n, 89n)` は `53n` を返す。42 × 53 = 2226 = 89 × 25 + 1 なので、確かに 42 × 53 mod 89 = 1 である。
+例えば `modInverse(37n, 97n)` は `21n` を返す。37 × 21 = 777 = 97 × 8 + 1 なので、確かに 37 × 21 mod 97 = 1 である。
+
+<details>
+<summary>拡張ユークリッド互除法の仕組み</summary>
+
+まず普通のユークリッド互除法で、繰り返し割り算して GCD（最大公約数）を求める。37 と 97 の場合:
+
+```
+97 = 2 × 37 + 23
+37 = 1 × 23 + 14
+23 = 1 × 14 +  9
+14 = 1 ×  9 +  5
+ 9 = 1 ×  5 +  4
+ 5 = 1 ×  4 +  1  ← 余り 1 = GCD
+ 4 = 4 ×  1 +  0  ← 終了
+```
+
+次に余り 1 から逆にたどり、「37 × ? + 97 × ? = 1」の形に変形する:
+
+```
+1 = 5 - 1×4
+  = 5 - 1×(9 - 1×5)           = 2×5 - 1×9
+  = 2×(14 - 1×9) - 1×9        = 2×14 - 3×9
+  = 2×14 - 3×(23 - 1×14)      = 5×14 - 3×23
+  = 5×(37 - 1×23) - 3×23      = 5×37 - 8×23
+  = 5×37 - 8×(97 - 2×37)      = 21×37 - 8×97
+```
+
+つまり `21 × 37 - 8 × 97 = 1` なので、`37 × 21 ≡ 1 (mod 97)`。21 が逆元である。
+
+コード中の `old_r, r` は余りの追跡、`old_s, s` はこの「逆にたどる」係数の計算を同時に行っている。
+
+</details>
 
 ---
 
@@ -91,7 +124,7 @@ const isInfinity = (P) => P.x === null && P.y === null;
 
 ### 点の加算 P + Q
 
-2 点を通る直線が曲線と交わる第 3 の点を x 軸で反転する。P = Q の場合は接線を使う（点の 2 倍）。
+2 点を通る直線が曲線と交わる第 3 の点を x 軸で反転する。P = Q の場合は接線を使う（点の 2 倍）。式は直線と曲線の方程式を連立して代数的に導かれたもので、四則演算だけで構成されているため、mod p の世界でもそのまま成り立つ。ただし割り算はモジュラー逆元を掛ける操作に置き換え、各計算の結果に mod p を適用する。
 
 ```javascript
 const pointAdd = (P, Q, a, p) => {
@@ -99,6 +132,7 @@ const pointAdd = (P, Q, a, p) => {
   if (isInfinity(Q)) return P;
   if (P.x === Q.x && mod(P.y + Q.y, p) === 0n) return INFINITY;
 
+  // lam = 直線の傾き（点の2倍の場合は接線の傾き）
   let lam;
   if (P.x === Q.x && P.y === Q.y) {
     // 点の2倍: λ = (3x² + a) / (2y)
@@ -107,6 +141,7 @@ const pointAdd = (P, Q, a, p) => {
     // 異なる2点の加算: λ = (y₂ - y₁) / (x₂ - x₁)
     lam = mod((Q.y - P.y) * modInverse(Q.x - P.x, p), p);
   }
+  // 直線と曲線の第3の交点を求め、x軸で反転
   const xr = mod(lam * lam - P.x - Q.x, p);
   const yr = mod(lam * (P.x - xr) - P.y, p);
   return { x: xr, y: yr };
@@ -115,17 +150,17 @@ const pointAdd = (P, Q, a, p) => {
 
 ### スカラー倍算 k · P
 
-G を k 回足し合わせる操作。愚直に k 回ループすると遅いので、ダブル＆アド法を使う。k を 2 進数で見て、各ビットに対応する `2^i · G` を足し合わせる。
+G を k 回足し合わせる操作。愚直に k 回ループすると遅いので、ダブル＆アド法を使う。例えば k = 42 は 2 進数で `101010` なので、`42·G = 32·G + 8·G + 2·G` と分解できる。G を繰り返し 2 倍しながら、ビットが 1 の位置で加算することで高速に計算する。引数の `n` は群の位数（曲線上の点の個数に関係する値）で、後述の `findOrder` で求める。
 
 ```javascript
 const scalarMul = (k, P, a, p, n) => {
   let result = INFINITY;
-  let addend = { ...P };
+  let addend = { ...P };  // G, 2G, 4G, 8G, ... と2倍されていく
   k = mod(k, n);
   while (k > 0n) {
-    if (k & 1n) result = pointAdd(result, addend, a, p);
-    addend = pointAdd(addend, addend, a, p);
-    k >>= 1n;
+    if (k & 1n) result = pointAdd(result, addend, a, p);  // ビットが1なら加算
+    addend = pointAdd(addend, addend, a, p);  // 毎回2倍
+    k >>= 1n;  // 次のビットへ
   }
   return result;
 };
@@ -140,6 +175,7 @@ const scalarMul = (k, P, a, p, n) => {
 ```javascript
 const findOrder = (G, a, p) => {
   let P = { ...G };
+  // Hasseの定理より位数 ≤ p+1+2√p なので p*4 は十分な上限
   for (let i = 2n; i < p * 4n; i++) {
     P = pointAdd(P, G, a, p);
     if (isInfinity(P)) return i;
@@ -159,6 +195,26 @@ const toyHash = (msg, n) => {
 ---
 
 ## 曲線パラメータとベースポイント G
+
+本物の P-256 では、NIST が曲線パラメータ (p, a, b) とベースポイント G の座標を仕様書で規定しており、各実装はその値をそのまま使う。ここでは学習目的で、ベースポイント G がどうやって決まるかを見ていく。
+
+<details>
+<summary>参考: P-256 の実際のパラメータ</summary>
+
+```
+p   = 0xFFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF
+a   = 0xFFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFC
+b   = 0x5AC635D8AA3A93E7B3EBBD55769886BC651D06B0CC53B0F63BCE3C3E27D2604B
+G.x = 0x6B17D1F2E12C4247F8BCE6E563A440F277037D812DEB33A0F4A13945D898C296
+G.y = 0x4FE342E2FE1A7F9B8EE7EB4A7C0F9E162BCE33576B315ECECBB6406837BF51F5
+n   = 0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551
+```
+
+すべて 256bit の値である。この記事のトイカーブ（p=97, n=89）とはスケールが異なるが、アルゴリズムは全く同じである。
+
+出典: [NIST SP 800-186 — Recommendations for Discrete Logarithm-based Cryptography: Elliptic Curve Domain Parameters](https://csrc.nist.gov/pubs/sp/800/186/final)
+
+</details>
 
 ### 曲線上の点を見つける
 
@@ -204,15 +260,13 @@ for (let x = 0n; x < p; x++) {
 
 群の位数が 89（素数）なので、全 88 点の位数がすべて 89 であり、どの点を G に選んでもよい。今回は G = (0, 2) を採用した。
 
-### 本物の P-256 では?
-
-NIST が曲線パラメータ (p, a, b) と G の座標をセットで仕様書に規定している。探索は曲線の設計時に一度だけ行えばよく、各実装は仕様に従って G を決め打ちで使う。
+今回使う曲線パラメータとベースポイントをまとめると:
 
 ```javascript
 const p = 97n;
 const a = 1n;
 const b = 4n;
-const G = { x: 0n, y: 2n }; // 仕様として固定
+const G = { x: 0n, y: 2n };
 ```
 
 G が曲線上にあることの検算: 2² mod 97 = 4、0³ + 1·0 + 4 mod 97 = 4。一致する。
@@ -221,11 +275,67 @@ G が曲線上にあることの検算: 2² mod 97 = 4、0³ + 1·0 + 4 mod 97 =
 
 ## 第 3 層: ECDSA プロトコル
 
+ECDSA プロトコルは鍵生成・署名・検証の 3 ステップからなる。
+
+```
+鍵生成:  Q = d · G を計算
+         Qからdを推測することは困難（離散対数問題）
+
+署名:  {d, k, h, (G, a, p, n)}  →  (r, s)　を計算
+検証:  {Q, s, h', (G, a, p, n)} →  r'　を計算
+
+d: 秘密鍵, k: 一時鍵, Q: 公開鍵
+r, s: シグネチャ
+h, h': メッセージのハッシュ
+G, a, p, n: 曲線パラメータ
+
+h' == h（改ざんなし）→ r' == r（検証成功）
+h' ≠ h（改ざんあり）→ r' ≠ r（検証失敗）
+```
+
+<details>
+<summary>なぜ同じ r に到達するのか</summary>
+
+署名と検証はそれぞれ以下を計算する:
+
+```
+署名側: R = k·G
+        r = R.x mod n
+        s = k⁻¹·(h + r·d) mod n
+        → シグネチャ (r, s)
+
+検証側: R' = s⁻¹·h'·G + s⁻¹·r·Q
+        r' = R'.x mod n
+        → r' == r なら検証成功
+```
+
+`h' == h` のとき、検証側の点の計算を展開する:
+
+```
+R' = s⁻¹·h'·G + s⁻¹·r·Q
+   = s⁻¹·h·G + s⁻¹·r·Q       ← h' = h を代入
+   = s⁻¹·h·G + s⁻¹·r·(d·G)   ← Q = d·G を代入
+   = (s⁻¹·h + s⁻¹·r·d)·G
+   = s⁻¹·(h + r·d)·G
+   = k·G                       ← s = k⁻¹·(h+r·d) より s⁻¹·(h+r·d) = k
+
+r' = R'.x mod n
+   = (k·G).x mod n
+   = r                         ← 署名側と同じ
+```
+
+よって、`h' == h` のとき `r' == r` となる。
+
+</details>
+
+以下、コードで各ステップを確認する。
+
 ### 鍵生成
 
 秘密鍵 d を選び、公開鍵 Q = d · G を計算する。d は 1 から n-1 の範囲（この曲線では 1〜88）なら何でもよい。
 
 ```javascript
+// G=(0,2), a=1, p=97 は前セクションで決定済み
 const n = findOrder(G, a, p); // n = 89
 const d = 23n;                // 秘密鍵 (1 ≤ d ≤ n-1)
 const Q = scalarMul(d, G, a, p, n); // 公開鍵 Q = d · G
@@ -251,7 +361,7 @@ d = 25  →  Q = (38, 77)
 
 ### 署名
 
-秘密鍵 d でメッセージに署名して (r, s) のペアを生成する。
+秘密鍵 d でメッセージに署名して (r, s) のペアを生成する。まずメッセージをハッシュして数値 h に変換し、一時鍵 k を使って署名値を計算する。
 
 ```javascript
 const message = "Hello, ECDSA!";
@@ -400,12 +510,12 @@ const pointAdd = (P, Q, a, p) => {
 
 const scalarMul = (k, P, a, p, n) => {
   let result = INFINITY;
-  let addend = { ...P };
+  let addend = { ...P };  // G, 2G, 4G, 8G, ... と2倍されていく
   k = mod(k, n);
   while (k > 0n) {
-    if (k & 1n) result = pointAdd(result, addend, a, p);
-    addend = pointAdd(addend, addend, a, p);
-    k >>= 1n;
+    if (k & 1n) result = pointAdd(result, addend, a, p);  // ビットが1なら加算
+    addend = pointAdd(addend, addend, a, p);  // 毎回2倍
+    k >>= 1n;  // 次のビットへ
   }
   return result;
 };
@@ -413,6 +523,7 @@ const scalarMul = (k, P, a, p, n) => {
 // --- 補助関数 ---
 const findOrder = (G, a, p) => {
   let P = { ...G };
+  // Hasseの定理より位数 ≤ p+1+2√p なので p*4 は十分な上限
   for (let i = 2n; i < p * 4n; i++) {
     P = pointAdd(P, G, a, p);
     if (isInfinity(P)) return i;

@@ -184,8 +184,7 @@ The Web Crypto API is a cryptographic API built into the browser, making it easy
 
 ---
 
-<details>
-<summary>Appendix: What Does ECDSA Actually Compute?</summary>
+{% details Appendix: What Does ECDSA Actually Compute? %}
 
 **Key Pair Generation:**
 
@@ -247,4 +246,4 @@ References:
 - [Wikipedia — Elliptic Curve Digital Signature Algorithm](https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm)
 - [Practical Cryptography — ECDSA: Sign / Verify](https://cryptobook.nakov.com/digital-signatures/ecdsa-sign-verify-messages)
 - [Andrea Corbellini — Elliptic Curve Cryptography: ECDH and ECDSA](https://andrea.corbellini.name/2015/05/30/elliptic-curve-cryptography-ecdh-and-ecdsa/)
-</details>
+{% enddetails %}

@@ -13,7 +13,7 @@ lang = "en"
 
 Cryptographic techniques are used everywhere on the internet — TLS, SSH, email signatures, and more. Signing, verification, encryption, decryption, key exchange — these terms come up constantly, yet if asked whether I truly understood how they work, the honest answer was: not really.
 
-Then I discovered the Web Crypto API. It's a cryptographic API built into the browser that lets you perform crypto operations without any external libraries. The API is simple enough to learn by writing and running code.
+Then I discovered the Web Crypto API. It's a cryptographic API built into the browser that lets you perform crypto operations without any external libraries. The API is simple enough that you can learn by writing and running code.
 
 This motivated me to properly understand the fundamentals of cryptography at the code level. In this article, we'll look at digital signatures (ECDSA) and see how signing and verification actually work.
 

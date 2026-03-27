@@ -1,7 +1,7 @@
 +++
 title = "Implementing ECDSA from Scratch Without Libraries"
 date = 2026-03-27
-description = "Implementing ECDSA signing and verification using only BigInt — tracing every step of modular arithmetic, elliptic curve point operations, and the signature formula with intermediate values."
+description = "Implementing ECDSA signing and verification using only basic arithmetic and mod — tracing every step of modular arithmetic, elliptic curve point operations, and the signature formula with intermediate values."
 path = "en/2026/EcdsaFromScratch"
 [extra]
 lang = "en"
@@ -512,12 +512,12 @@ const pointAdd = (P, Q, a, p) => {
 
 const scalarMul = (k, P, a, p, n) => {
   let result = INFINITY;
-  let addend = { ...P };
+  let addend = { ...P };  // doubles each iteration: G, 2G, 4G, 8G, ...
   k = mod(k, n);
   while (k > 0n) {
-    if (k & 1n) result = pointAdd(result, addend, a, p);
-    addend = pointAdd(addend, addend, a, p);
-    k >>= 1n;
+    if (k & 1n) result = pointAdd(result, addend, a, p);  // add if bit is 1
+    addend = pointAdd(addend, addend, a, p);  // double
+    k >>= 1n;  // next bit
   }
   return result;
 };

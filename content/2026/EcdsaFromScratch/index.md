@@ -1,7 +1,7 @@
 +++
 title = "ECDSA の計算をライブラリなしで実装する"
 date = 2026-03-27
-description = "ECDSA の署名・検証を BigInt だけで実装し、モジュラー演算・楕円曲線上の点の演算・署名式の全ステップを中間値付きで確認する。"
+description = "ECDSA の署名・検証を四則演算と mod だけで実装し、モジュラー演算・楕円曲線上の点の演算・署名式の全ステップを中間値付きで確認する。"
 path = "2026/EcdsaFromScratch"
 +++
 
@@ -510,12 +510,12 @@ const pointAdd = (P, Q, a, p) => {
 
 const scalarMul = (k, P, a, p, n) => {
   let result = INFINITY;
-  let addend = { ...P };
+  let addend = { ...P };  // G, 2G, 4G, 8G, ... と2倍されていく
   k = mod(k, n);
   while (k > 0n) {
-    if (k & 1n) result = pointAdd(result, addend, a, p);
-    addend = pointAdd(addend, addend, a, p);
-    k >>= 1n;
+    if (k & 1n) result = pointAdd(result, addend, a, p);  // ビットが1なら加算
+    addend = pointAdd(addend, addend, a, p);  // 毎回2倍
+    k >>= 1n;  // 次のビットへ
   }
   return result;
 };

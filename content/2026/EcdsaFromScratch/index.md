@@ -5,6 +5,8 @@ description = "ECDSA の署名・検証を BigInt だけで実装し、モジュ
 path = "2026/EcdsaFromScratch"
 +++
 
+<p style="text-align: right"><a href="/en/2026/EcdsaFromScratch">English version</a></p>
+
 ## はじめに
 
 [前回の記事](/2026/WebCryptoEcdsa)では、Web Crypto API の `crypto.subtle` を使って ECDSA の署名と検証を体験した。API を呼ぶだけで署名・検証ができたが、内部で何を計算しているかはブラックボックスのままだった。

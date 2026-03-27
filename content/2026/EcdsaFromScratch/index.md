@@ -196,6 +196,26 @@ const toyHash = (msg, n) => {
 
 ## 曲線パラメータとベースポイント G
 
+本物の P-256 では、NIST が曲線パラメータ (p, a, b) とベースポイント G の座標を仕様書で規定しており、各実装はその値をそのまま使う。ここでは教育目的で、ベースポイント G がどうやって決まるかを見ていく。
+
+<details>
+<summary>参考: P-256 の実際のパラメータ</summary>
+
+```
+p   = 0xFFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF
+a   = 0xFFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFC
+b   = 0x5AC635D8AA3A93E7B3EBBD55769886BC651D06B0CC53B0F63BCE3C3E27D2604B
+G.x = 0x6B17D1F2E12C4247F8BCE6E563A440F277037D812DEB33A0F4A13945D898C296
+G.y = 0x4FE342E2FE1A7F9B8EE7EB4A7C0F9E162BCE33576B315ECECBB6406837BF51F5
+n   = 0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551
+```
+
+すべて 256bit の値である。この記事のトイカーブ（p=97, n=89）とはスケールが異なるが、アルゴリズムは全く同じである。
+
+出典: [NIST SP 800-186 — Recommendations for Discrete Logarithm-based Cryptography: Elliptic Curve Domain Parameters](https://csrc.nist.gov/pubs/sp/800/186/final)
+
+</details>
+
 ### 曲線上の点を見つける
 
 x に 0, 1, 2, ... を順に代入して `x³ + ax + b mod p` を計算し、その値が `y²` になる y が存在するか調べる。
@@ -240,15 +260,13 @@ for (let x = 0n; x < p; x++) {
 
 群の位数が 89（素数）なので、全 88 点の位数がすべて 89 であり、どの点を G に選んでもよい。今回は G = (0, 2) を採用した。
 
-### 本物の P-256 では?
-
-NIST が曲線パラメータ (p, a, b) と G の座標をセットで仕様書に規定している。探索は曲線の設計時に一度だけ行えばよく、各実装は仕様に従って G を決め打ちで使う。
+今回使う曲線パラメータとベースポイントをまとめると:
 
 ```javascript
 const p = 97n;
 const a = 1n;
 const b = 4n;
-const G = { x: 0n, y: 2n }; // 仕様として固定
+const G = { x: 0n, y: 2n };
 ```
 
 G が曲線上にあることの検算: 2² mod 97 = 4、0³ + 1·0 + 4 mod 97 = 4。一致する。

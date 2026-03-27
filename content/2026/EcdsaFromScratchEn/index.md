@@ -198,6 +198,26 @@ const toyHash = (msg, n) => {
 
 ## Curve Parameters and Base Point G
 
+In real P-256, NIST specifies the curve parameters (p, a, b) and the base point G's coordinates in the standard, and each implementation uses those values directly. Here we walk through how the base point is determined, for educational purposes.
+
+<details>
+<summary>Reference: Actual P-256 parameters</summary>
+
+```
+p   = 0xFFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF
+a   = 0xFFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFC
+b   = 0x5AC635D8AA3A93E7B3EBBD55769886BC651D06B0CC53B0F63BCE3C3E27D2604B
+G.x = 0x6B17D1F2E12C4247F8BCE6E563A440F277037D812DEB33A0F4A13945D898C296
+G.y = 0x4FE342E2FE1A7F9B8EE7EB4A7C0F9E162BCE33576B315ECECBB6406837BF51F5
+n   = 0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551
+```
+
+All values are 256-bit. The scale is vastly different from the toy curve in this article (p=97, n=89), but the algorithm is exactly the same.
+
+Source: [NIST SP 800-186 — Recommendations for Discrete Logarithm-based Cryptography: Elliptic Curve Domain Parameters](https://csrc.nist.gov/pubs/sp/800/186/final)
+
+</details>
+
 ### Finding Points on the Curve
 
 Substitute x = 0, 1, 2, ... and compute `x³ + ax + b mod p`, checking whether a y exists such that `y² ≡ result (mod p)`.
@@ -242,15 +262,13 @@ for (let x = 0n; x < p; x++) {
 
 Since the group order is 89 (prime), all 88 points have order 89, and any point can serve as G. We choose G = (0, 2).
 
-### What About Real P-256?
-
-NIST specifies the curve parameters (p, a, b) and G's coordinates together in the standard. The search only needs to happen once during curve design; each implementation uses G as specified.
+Summarizing the curve parameters and base point for this demo:
 
 ```javascript
 const p = 97n;
 const a = 1n;
 const b = 4n;
-const G = { x: 0n, y: 2n }; // Fixed by specification
+const G = { x: 0n, y: 2n };
 ```
 
 Verification that G is on the curve: 2² mod 97 = 4, 0³ + 1·0 + 4 mod 97 = 4. They match.

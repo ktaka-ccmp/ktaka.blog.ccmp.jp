@@ -306,7 +306,8 @@ Signing:      R = k·G
               s = k⁻¹·(h + r·d) mod n
               → signature (r, s)
 
-Verification: r' = (s⁻¹·h'·G + s⁻¹·r·Q).x mod n
+Verification: R' = s⁻¹·h'·G + s⁻¹·r·Q
+              r' = R'.x mod n
               → r' == r means verification succeeds
 ```
 

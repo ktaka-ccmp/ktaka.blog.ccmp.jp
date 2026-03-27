@@ -1,0 +1,105 @@
+name: Publish to dev.to
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'docs/*-devto/*.md'
+  workflow_dispatch:
+    inputs:
+      file:
+        description: 'Markdown file path (e.g. docs/WebCryptoEcdsaEn-devto/dev-to-webcrypto-ecdsa.md)'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Collect articles to publish
+        id: collect
+        env:
+          MANUAL_FILE: ${{ github.event.inputs.file }}
+        run: |
+          if [ -n "${MANUAL_FILE}" ]; then
+            echo "files=${MANUAL_FILE}" >> "$GITHUB_OUTPUT"
+          else
+            files=$(git diff --name-only HEAD~1 HEAD -- 'docs/*-devto/*.md' | tr '\n' ' ')
+            echo "files=${files}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish or update articles
+        env:
+          DEVTO_API_KEY: ${{ secrets.DEVTO_API_KEY }}
+          FILES: ${{ steps.collect.outputs.files }}
+        run: |
+          if [ -z "${FILES}" ]; then
+            echo "No articles to publish"
+            exit 0
+          fi
+
+          for file in ${FILES}; do
+            if [ ! -f "${file}" ]; then
+              echo "File not found: ${file}"
+              continue
+            fi
+
+            content=$(cat "${file}" | jq -Rs .)
+
+            # Extract canonical_url from frontmatter
+            canonical_url=$(grep '^canonical_url:' "${file}" | sed 's/canonical_url: *//')
+
+            # Search for existing article by canonical_url
+            article_id=""
+            if [ -n "${canonical_url}" ]; then
+              article_id=$(curl -s \
+                -H "api-key: ${DEVTO_API_KEY}" \
+                "https://dev.to/api/articles/me/all?per_page=100" \
+                | jq -r --arg url "${canonical_url}" '.[] | select(.canonical_url == $url) | .id' \
+                | head -1)
+            fi
+
+            if [ -n "${article_id}" ] && [ "${article_id}" != "null" ]; then
+              # Update existing article
+              echo "Updating article ${article_id}: ${file}"
+
+              response=$(curl -s -w "\n%{http_code}" -X PUT "https://dev.to/api/articles/${article_id}" \
+                -H "Content-Type: application/json" \
+                -H "api-key: ${DEVTO_API_KEY}" \
+                -d "{\"article\": {\"body_markdown\": ${content}}}")
+
+              http_code=$(echo "${response}" | tail -1)
+              body=$(echo "${response}" | sed '$d')
+
+              if [ "${http_code}" = "200" ]; then
+                url=$(echo "${body}" | jq -r '.url')
+                echo "Updated: ${url}"
+              else
+                echo "Update failed (HTTP ${http_code}): ${body}"
+                exit 1
+              fi
+            else
+              # Create new article
+              echo "Publishing new article: ${file}"
+
+              response=$(curl -s -w "\n%{http_code}" -X POST https://dev.to/api/articles \
+                -H "Content-Type: application/json" \
+                -H "api-key: ${DEVTO_API_KEY}" \
+                -d "{\"article\": {\"body_markdown\": ${content}}}")
+
+              http_code=$(echo "${response}" | tail -1)
+              body=$(echo "${response}" | sed '$d')
+
+              if [ "${http_code}" = "201" ]; then
+                url=$(echo "${body}" | jq -r '.url')
+                echo "Published: ${url}"
+              else
+                echo "Publish failed (HTTP ${http_code}): ${body}"
+                exit 1
+              fi
+            fi
+          done

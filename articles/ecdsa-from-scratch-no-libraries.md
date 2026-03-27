@@ -11,7 +11,7 @@ canonical_url: "https://ktaka.blog.ccmp.jp/2026/EcdsaFromScratch"
 
 ## はじめに
 
-[前回の記事](https://ktaka.blog.ccmp.jp/2026/WebCryptoEcdsa)では、Web Crypto API の `crypto.subtle` を使って ECDSA の署名と検証を体験した。API を呼ぶだけで署名・検証ができたが、内部で何を計算しているかはブラックボックスのままだった。
+[前回の記事](/ktaka3/articles/webcrypto-ecdsa-signing-verification)では、Web Crypto API の `crypto.subtle` を使って ECDSA の署名と検証を体験した。API を呼ぶだけで署名・検証ができたが、内部で何を計算しているかはブラックボックスのままだった。
 
 この記事では、暗号ライブラリを使わず、四則演算と mod だけで ECDSA の署名・検証を実装する。全ステップの中間値を出力し、何が起きているかを確認する。
 

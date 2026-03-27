@@ -6,10 +6,11 @@ This directory contains issue/task tracking files for the project.
 
 <!-- AUTO-UPDATED: Do not edit manually. Updated by /issue command. -->
 
-### Open (11)
+### Open (12)
 
 | ID | Priority | Difficulty | Title |
 |----|----------|------------|-------|
+| `20260328-0100` | high | small | [Zenn クロスポスト — ECDSA 記事 2 本](open/20260328-0100-zenn-crosspost-ecdsa.md) |
 | `20260326-0419` | high | large | [シリーズ — Web Crypto API で学ぶ暗号技術](open/20260326-0419-blog-series-webcrypto-learn-crypto.md) |
 | `20260326-0421` | high | small | [暗号化と鍵交換 — ハイブリッド暗号を体験する](open/20260326-0421-blog-webcrypto-02-hybrid-encryption.md) |
 | `20260326-0422` | medium | medium | [TLS 1.2 ハンドシェイクを再現する](open/20260326-0422-blog-webcrypto-03-tls12.md) |

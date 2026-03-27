@@ -13,7 +13,7 @@ lang = "en"
 
 In the [previous article](/en/2026/WebCryptoEcdsa), we used the Web Crypto API's `crypto.subtle` to sign and verify with ECDSA. The API made it easy, but the internals remained a black box.
 
-In this article, we implement ECDSA signing and verification from scratch using only JavaScript's `BigInt` — no crypto libraries. We output intermediate values at every step to see exactly what's happening.
+In this article, we implement ECDSA signing and verification from scratch using only basic arithmetic and mod — no crypto libraries. We output intermediate values at every step to see exactly what's happening.
 
 The code and explanations in this article were developed through conversation with AI (Claude). The idea of using a small curve to keep all values to two digits, and the structure of showing intermediate values at each step, emerged from that discussion.
 
@@ -23,15 +23,14 @@ The code and explanations in this article were developed through conversation wi
 
 Real ECDSA (P-256) uses 256-bit numbers, but the algorithm is independent of curve size. Here we use `y² = x³ + x + 4 (mod 97)`, a small curve where all values fit in two digits.
 
-On this curve, the finite field prime `p = 97` and the group order `n = 89` are different. In real P-256, `p ≠ n` as well — the `mod n` in the signature formula and the `mod p` in point coordinate calculations use different values.
-
 ```javascript
 const p = 97n;  // Finite field prime
 const a = 1n;   // Curve parameter a
 const b = 4n;   // Curve parameter b
 // Curve: y² = x³ + ax + b (mod p)
-// Group order n = 89 (different from p)
 ```
+
+*The `n` suffix on number literals denotes JavaScript's `BigInt` (arbitrary-precision integers).*
 
 ---
 
@@ -51,7 +50,7 @@ We'll implement these from the bottom up.
 
 ## Layer 1: Modular Arithmetic
 
-All ECDSA calculations are performed in the "mod n world." Two operations are needed: mod and modular inverse.
+All ECDSA calculations are performed in the world of modular arithmetic (mod). Two operations are needed: mod and modular inverse.
 
 ### mod Function
 
@@ -80,7 +79,7 @@ const modInverse = (a, m) => {
 };
 ```
 
-For example, `modInverse(42n, 89n)` returns `53n`. Since 42 × 53 = 2226 = 89 × 25 + 1, indeed 42 × 53 mod 89 = 1.
+For example, `modInverse(37n, 97n)` returns `21n`. Since 37 × 21 = 777 = 97 × 8 + 1, indeed 37 × 21 mod 97 = 1.
 
 ---
 
@@ -119,7 +118,7 @@ const pointAdd = (P, Q, a, p) => {
 
 ### Scalar Multiplication k · P
 
-Adding G to itself k times. A naive loop would be slow, so we use the double-and-add method. We look at k in binary and accumulate the corresponding `2^i · G` terms.
+Adding G to itself k times. A naive loop would be slow, so we use the double-and-add method. We look at k in binary and accumulate the corresponding `2^i · G` terms. The parameter `n` is the group order (a value related to the number of points on the curve), computed by `findOrder` below.
 
 ```javascript
 const scalarMul = (k, P, a, p, n) => {
@@ -255,7 +254,7 @@ Recovering private key d = 23 from public key Q = (63, 57) is the Elliptic Curve
 
 ### Signing
 
-Sign a message with private key d to produce the pair (r, s).
+Sign a message with private key d to produce the pair (r, s). First, the message is hashed into a numeric value h, then the signature values are computed using an ephemeral key k.
 
 ```javascript
 const message = "Hello, ECDSA!";

@@ -1,7 +1,7 @@
 ---
 title: "Implementing ECDSA from Scratch Without Libraries"
 published: false
-description: "Implementing ECDSA signing and verification using only basic arithmetic and mod — tracing every step with intermediate values on a tiny curve."
+description: "Implementing ECDSA signing and verification from scratch using only basic arithmetic and mod, with all intermediate values on a tiny curve."
 tags: ecdsa, cryptography, javascript, ellipticcurve
 canonical_url: https://ktaka.blog.ccmp.jp/en/2026/EcdsaFromScratch
 ---

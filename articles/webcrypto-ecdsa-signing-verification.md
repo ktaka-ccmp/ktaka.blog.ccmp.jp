@@ -184,3 +184,70 @@ $ bun ecdsa.mjs
 ## まとめ
 
 Web Crypto API はブラウザに標準で組み込まれた暗号 API で、ブラウザコンソール、Bun、Node.js で簡単にコードを試すことができる。`crypto.subtle` を使い、ECDSA による電子署名の生成と検証を確認した。秘密鍵で署名し、公開鍵で検証するという非対称暗号の基本を、簡単に確認できることがわかった。
+
+---
+
+:::details 付録: ECDSA の署名・検証で何を計算しているか
+
+**鍵ペア生成:**
+
+1. ランダムな整数 `d` を生成（`1 ≤ d ≤ n-1`、n は曲線の位数）→ これが**秘密鍵**
+2. 楕円曲線上の点を計算: `Q = d · G`（G は曲線の基準点）→ これが**公開鍵**
+
+秘密鍵はただの乱数であり、公開鍵はそこから楕円曲線上のスカラー倍算で導出される点である。`Q` と `G` から `d` を逆算することは極めて困難なため、公開鍵から秘密鍵を割り出すことはできない。
+
+**署名（秘密鍵側）:**
+
+1. データをハッシュする: `h = SHA-256(data)`
+2. ランダムな数 `k` を生成
+3. 楕円曲線上の点を計算: `R = k · G`（G は曲線の基準点）
+4. `r = R.x mod n`（R の x 座標）
+5. `s = k⁻¹ × (h + r × 秘密鍵) mod n`
+6. シグネチャは `(r, s)` のペア
+
+**検証（公開鍵側）:**
+
+1. データをハッシュする: `h = SHA-256(data)`
+2. `u1 = h × s⁻¹ mod n`
+3. `u2 = r × s⁻¹ mod n`
+4. 楕円曲線上の点を復元: `R' = u1 · G + u2 · 公開鍵`
+5. `R'.x mod n == r` なら `true`
+
+検証では、データのハッシュ・シグネチャの `s`・公開鍵から楕円曲線上の点を復元し、その x 座標がシグネチャの `r` と一致するかを確認している。
+
+**楕円曲線上の「点の加算」と「スカラー倍算」:**
+
+`k · G` は、楕円曲線上の点 G を k 回足し合わせた点である。
+
+楕円曲線上の点の加算は、通常の足し算とは異なる幾何学的な操作である。
+
+点の加算（P + Q）:
+1. 曲線上の 2 点 P, Q を通る直線を引く
+2. その直線が曲線と交わる第 3 の点を見つける
+3. その点を x 軸で反転 → これが `P + Q`
+
+点の 2 倍（P + P）:
+1. P における接線を引く
+2. 接線が曲線と交わる点を見つける
+3. x 軸で反転 → これが `2P`
+
+スカラー倍算 `k · G` は、この加算を k 回繰り返す操作である（`G + G + G + ... + G`）。実際には「ダブル＆アド」という手法で高速に計算できる。
+
+暗号として成り立つ理由:
+- `k` と `G` から `k · G` を計算するのは**高速**
+- `G` と `k · G` から `k` を逆算するのは**極めて困難**（楕円曲線離散対数問題）
+
+この一方向性が ECDSA の安全性の基盤になっている。
+
+**`k⁻¹` について:**
+
+`k⁻¹` は `k` のモジュラー逆元（`k⁻¹ × k ≡ 1 (mod n)` を満たす整数）である。通常の割り算（`1/k`）とは異なり、`mod n` の世界で整数のまま「割り算」に相当する操作を行う。
+
+これらの計算を実際にコードで実装した記事: [ECDSA の計算をライブラリなしで実装する](/ktaka3/articles/ecdsa-from-scratch-no-libraries)
+
+参考:
+- [Wikipedia — Elliptic Curve Digital Signature Algorithm](https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm)
+- [Practical Cryptography — ECDSA: Sign / Verify](https://cryptobook.nakov.com/digital-signatures/ecdsa-sign-verify-messages)
+- [Andrea Corbellini — Elliptic Curve Cryptography: ECDH and ECDSA](https://andrea.corbellini.name/2015/05/30/elliptic-curve-cryptography-ecdh-and-ecdsa/)
+
+:::

@@ -56,6 +56,24 @@ This is a Zola-based blog containing technical articles in Markdown, organized b
 - `zola build` — Build static site to `public/`
 - `zola check` — Check for broken links and other issues
 
+## Cross-posting
+
+ブログ記事を外部プラットフォームにクロスポストする仕組みがある。
+
+| プラットフォーム | 対象 | ディレクトリ | スキル | 投稿方法 |
+|---|---|---|---|---|
+| **Zenn** | 日本語記事 | `articles/` | `/zenn-crosspost` | GitHub 連携（Push 型） |
+| **dev.to** | 英語記事 | `devto/` | `/devto-crosspost` | GitHub Actions（API） |
+| **Qiita** | 日本語記事 | `qiita/` | 未作成 | Qiita CLI |
+
+### 方針
+
+- **canonical_url**: Zenn・dev.to は `canonical_url` を設定し、元ブログが正であることを宣言する。Qiita は非対応なので冒頭にクロスポスト注記を入れる
+- **画像・GIF**: ブログの `content/` に置き、`https://ktaka.blog.ccmp.jp/...` の URL で全プラットフォームから参照する（プラットフォーム個別のストレージにアップロードしない）
+- **動画**: ブログでは mp4（`<video>` タグ）を使用。クロスポスト時は mp4 から GIF を生成し、同じディレクトリに配置してブログ URL で参照する（Zenn・dev.to・Qiita はいずれも `<video>` タグが使えない）
+- **折りたたみ**: Zenn は `:::details`、dev.to は `{% details %}`、Qiita は `<details>`（各プラットフォームで記法が異なる）
+- **公開制御**: `published: false` で下書き投稿し、確認後に `true` に変更
+
 ## Workflow Tools
 
 This project uses Claude Code commands for workflow management.

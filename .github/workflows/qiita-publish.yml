@@ -17,10 +17,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: increments/qiita-cli/actions/publish@v1
+      - uses: actions/setup-node@v4
         with:
-          qiita-token: ${{ secrets.QIITA_TOKEN }}
-          root: qiita
+          node-version: '20'
+
+      - name: Install and run Qiita CLI
+        env:
+          QIITA_TOKEN: ${{ secrets.QIITA_TOKEN }}
+        run: |
+          npm install -g @qiita/qiita-cli@v1.8.0
+          qiita publish --all --root qiita
 
       - name: Create PR for Qiita metadata updates
         env:

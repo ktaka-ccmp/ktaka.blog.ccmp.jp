@@ -64,7 +64,7 @@ This is a Zola-based blog containing technical articles in Markdown, organized b
 |---|---|---|---|---|
 | **Zenn** | 日本語記事 | `articles/` | `/zenn-crosspost` | GitHub 連携（Push 型） |
 | **dev.to** | 英語記事 | `devto/` | `/devto-crosspost` | GitHub Actions（API） |
-| **Qiita** | 日本語記事 | `qiita/public/` | 未作成 | GitHub Actions（Qiita CLI） |
+| **Qiita** | 日本語記事 | `qiita/public/` | `/qiita-crosspost` | GitHub Actions（Qiita CLI） |
 
 ### 方針
 

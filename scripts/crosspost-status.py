@@ -107,10 +107,24 @@ def status_str(info):
         return "📝 draft"
 
 def main():
+    import sys
+    args = [a.lower() for a in sys.argv[1:]]
+    missing_only = "--missing" in args
+    platform = next((a for a in args if a != "--missing"), None)
+
     articles = find_articles()
     crosspost = build_crosspost_map()
 
-    headers = ["記事", "言語", "Blog", "Zenn", "dev.to", "Qiita"]
+    all_cols = {"zenn": 3, "devto": 4, "dev.to": 4, "qiita": 5}
+    all_headers = ["記事", "言語", "Blog", "Zenn", "dev.to", "Qiita"]
+
+    if platform and platform in all_cols:
+        col_idx = all_cols[platform]
+        headers = ["記事", "言語", "Blog", all_headers[col_idx]]
+    else:
+        headers = all_headers
+        platform = None
+
     rows = []
 
     for art in articles:
@@ -133,7 +147,22 @@ def main():
             devto = status_str(info.get("devto"))
             qiita = "-"
 
-        rows.append([name, lang, "✅", zenn, devto, qiita])
+        all_values = [name, lang, "✅", zenn, devto, qiita]
+
+        if platform:
+            col_idx = all_cols[platform]
+            row = [name, lang, "✅", all_values[col_idx]]
+            if all_values[col_idx] == "-":
+                continue
+            if missing_only and all_values[col_idx] != "❌":
+                continue
+            rows.append(row)
+        else:
+            if missing_only:
+                has_missing = any(v == "❌" for v in all_values[3:])
+                if not has_missing:
+                    continue
+            rows.append(all_values)
 
     # Calculate column widths (accounting for wide chars: emoji, CJK)
     import unicodedata

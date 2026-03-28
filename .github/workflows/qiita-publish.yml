@@ -46,5 +46,5 @@ jobs:
           gh pr create \
             --title "Update Qiita article metadata" \
             --body "Qiita CLI が投稿後に書き戻した id と updated_at を反映するための自動 PR です。" \
-            --base master \
+            --base dev \
             --head "${branch}"

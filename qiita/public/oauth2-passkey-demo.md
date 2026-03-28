@@ -1,14 +1,14 @@
 ---
-title: "パスワードなしの認証を試す: oauth2-passkey ライブデモ"
+title: 'パスワードなしの認証を試す: oauth2-passkey ライブデモ'
 tags:
-  - "Rust"
-  - "WebAuthn"
-  - "Passkey"
-  - "OAuth2"
-  - "認証"
+  - Rust
+  - oauth2
+  - 認証
+  - passkey
+  - WebAuthn
 private: false
-updated_at: ""
-id: null
+updated_at: '2026-03-28T15:46:44+09:00'
+id: ea549b5d798d1d23b922
 organization_url_name: null
 slide: false
 ignorePublish: false

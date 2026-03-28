@@ -25,7 +25,7 @@ ignorePublish: false
 
 ## デモ 1: Google で登録して Passkey を追加
 
-![デモ1: Google登録とPasskey追加](https://storage.googleapis.com/zenn-user-upload/40d3978dd840-20260302.gif)
+![デモ1: Google登録とPasskey追加](https://ktaka.blog.ccmp.jp/2026/Oauth2PasskeyDemo/video/o2p-demo1.gif)
 
 まず新規ユーザーとしてログインする流れです。
 
@@ -39,7 +39,7 @@ ignorePublish: false
 
 ## デモ 2: Passkey でサインイン
 
-![デモ2: Passkeyでサインイン](https://storage.googleapis.com/zenn-user-upload/eb8f0b28ff22-20260302.gif)
+![デモ2: Passkeyでサインイン](https://ktaka.blog.ccmp.jp/2026/Oauth2PasskeyDemo/video/o2p-demo2.gif)
 
 続いて、同じユーザーが Passkey だけでログインする流れです。
 

@@ -24,10 +24,11 @@ This directory contains issue/task tracking files for the project.
 | `20260301-1751` | medium | large | [ブログ記事 — Rust アプリを 27MB Docker イメージで Cloud Run にデプロイ](open/20260301-1751-blog-rust-cloud-run-deploy.md) |
 | `20260301-1752` | medium | medium | [ブログ記事 — Async Rust の落とし穴（JWKS デッドロック + SQLite Pool）](open/20260301-1752-blog-async-rust-pitfalls.md) |
 
-### Completed (8)
+### Completed (9)
 
 | ID | Title |
 |----|-------|
+| `20260328-0300` | [Qiita クロスポスト](completed/20260328-0300-qiita-crosspost.md) |
 | `20260327-0200` | [ECDSA 記事 2 本の英語版](completed/20260327-0200-blog-ecdsa-english-versions.md) |
 | `20260327-0100` | [ECDSA の計算をライブラリなしで実装する](completed/20260327-0100-blog-ecdsa-from-scratch.md) |
 | `20260326-0420` | [Web Crypto API で ECDSA 署名・検証を理解する](completed/20260326-0420-blog-webcrypto-01-ecdsa.md) |
@@ -42,11 +43,10 @@ This directory contains issue/task tracking files for the project.
 | ID | Title |
 |----|-------|
 
-### Deferred (2)
+### Deferred (1)
 
 | ID | Title |
 |----|-------|
-| `20260328-0300` | [Qiita クロスポスト検討](deferred/20260328-0300-qiita-crosspost.md) |
 | `20260220-0207` | [ブログの見た目改善（テーマ・CSS・レイアウト）](deferred/20260220-0207-theme-css-improvement.md) |
 
 <!-- END AUTO-UPDATED -->

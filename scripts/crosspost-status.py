@@ -110,17 +110,14 @@ def main():
     articles = find_articles()
     crosspost = build_crosspost_map()
 
-    print("| 記事 | 言語 | Blog | Zenn | dev.to | Qiita |")
-    print("|------|------|------|------|--------|-------|")
+    headers = ["記事", "言語", "Blog", "Zenn", "dev.to", "Qiita"]
+    rows = []
 
     for art in articles:
         name = art["name"]
         lang = art["lang"]
-        # Build canonical URL matching the blog's path setting
-        # EN articles: content/2026/FooEn/ -> path "en/2026/Foo" (strip trailing "En")
-        # JP articles: content/2026/Foo/ -> path "2026/Foo"
         if lang == "EN":
-            base_name = name[:-2]  # Remove "En" suffix
+            base_name = name[:-2]
             canonical = f"{BLOG_BASE}/en/2026/{base_name}"
         else:
             canonical = f"{BLOG_BASE}/2026/{name}"
@@ -136,7 +133,32 @@ def main():
             devto = status_str(info.get("devto"))
             qiita = "-"
 
-        print(f"| {name} | {lang} | ✅ | {zenn} | {devto} | {qiita} |")
+        rows.append([name, lang, "✅", zenn, devto, qiita])
+
+    # Calculate column widths (accounting for wide chars: emoji, CJK)
+    import unicodedata
+    def display_width(s):
+        w = 0
+        for c in s:
+            if unicodedata.east_asian_width(c) in ('F', 'W'):
+                w += 2
+            else:
+                w += 1
+        return w
+
+    all_rows = [headers] + rows
+    widths = [max(display_width(r[i]) for r in all_rows) for i in range(len(headers))]
+
+    def pad(s, w):
+        return s + " " * (w - display_width(s))
+
+    def fmt_row(row):
+        return "| " + " | ".join(pad(v, w) for v, w in zip(row, widths)) + " |"
+
+    print(fmt_row(headers))
+    print("|" + "|".join("-" * (w + 2) for w in widths) + "|")
+    for row in rows:
+        print(fmt_row(row))
 
 if __name__ == "__main__":
     main()

@@ -14,9 +14,19 @@ allowed-tools: Read, Glob, Grep, Bash(ls:*), Bash(grep:*)
 1. **ブログ記事を走査**: `content/2026/*/index.md` を一覧取得する。`*En/` で終わるディレクトリは英語版。
 
 2. **各プラットフォームの対応ファイルを確認**:
-   - **Zenn**: `articles/` 内のファイルを読み、`canonical_url` からブログ記事との対応を特定
-   - **dev.to**: `devto/` 内のファイルを読み、`canonical_url` からブログ記事との対応を特定
-   - **Qiita**: `qiita/public/` 内のファイルを読み、冒頭のクロスポスト注記の URL からブログ記事との対応を特定
+
+   新方式（自動デプロイ）と旧方式（手動コピペ）の両方を走査する。
+
+   **Zenn**:
+   - 新方式: `articles/` 内のファイルの `canonical_url` で対応を特定
+   - 旧方式: `docs/*-zenn/*.md` 内の冒頭クロスポスト注記の URL で対応を特定
+
+   **dev.to**:
+   - 新方式: `devto/` 内のファイルの `canonical_url` で対応を特定
+   - 旧方式: `docs/*-devto/*.md` 内の `canonical_url` で対応を特定
+
+   **Qiita**:
+   - `qiita/public/` 内のファイルの冒頭クロスポスト注記の URL で対応を特定
 
 3. **公開状態を確認**: 対応ファイルが見つかった場合、frontmatter から公開状態を判定:
    - **Zenn**: `published: true` → published、`published: false` → draft
@@ -29,11 +39,12 @@ allowed-tools: Read, Glob, Grep, Bash(ls:*), Bash(grep:*)
 | 記事 | 言語 | Blog | Zenn | dev.to | Qiita |
 |------|------|------|------|--------|-------|
 | ArticleName | JP | ✅ | ✅ published | - | ❌ |
-| ArticleNameEn | EN | ✅ | - | 📝 draft | - |
+| ArticleNameEn | EN | ✅ | - | ✅ published (docs/) | - |
 ```
 
 凡例:
-- `✅` or `✅ published` — 公開済み
+- `✅ published` — 公開済み（新方式）
+- `✅ published (docs/)` — 公開済み（旧方式、手動コピペ）
 - `📝 draft` — 下書き
 - `❌` — 未作成（対象プラットフォームにファイルがない）
 - `-` — 対象外（JP 記事の dev.to、EN 記事の Zenn/Qiita）

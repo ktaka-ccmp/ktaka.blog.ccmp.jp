@@ -5,7 +5,7 @@ tags:
   - "WebAuthn"
   - "Passkey"
   - "OAuth2"
-  - "認証"
+  - "Authentication"
 private: false
 updated_at: ""
 id: null

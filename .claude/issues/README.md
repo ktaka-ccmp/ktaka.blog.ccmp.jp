@@ -42,10 +42,11 @@ This directory contains issue/task tracking files for the project.
 | ID | Title |
 |----|-------|
 
-### Deferred (1)
+### Deferred (2)
 
 | ID | Title |
 |----|-------|
+| `20260328-0300` | [Qiita クロスポスト検討](deferred/20260328-0300-qiita-crosspost.md) |
 | `20260220-0207` | [ブログの見た目改善（テーマ・CSS・レイアウト）](deferred/20260220-0207-theme-css-improvement.md) |
 
 <!-- END AUTO-UPDATED -->

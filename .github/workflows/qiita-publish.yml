@@ -1,0 +1,22 @@
+name: Publish to Qiita
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'qiita/*.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: increments/qiita-cli/actions/publish@v1
+        with:
+          qiita-token: ${{ secrets.QIITA_TOKEN }}
+          root: qiita

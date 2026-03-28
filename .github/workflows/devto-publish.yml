@@ -4,11 +4,11 @@ on:
   push:
     branches: [master]
     paths:
-      - 'docs/*-devto/*.md'
+      - 'devto/*.md'
   workflow_dispatch:
     inputs:
       file:
-        description: 'Markdown file path (e.g. docs/WebCryptoEcdsaEn-devto/dev-to-webcrypto-ecdsa.md)'
+        description: 'Markdown file path (e.g. devto/dev-to-webcrypto-ecdsa.md)'
         required: true
 
 permissions:
@@ -32,9 +32,9 @@ jobs:
           else
             # For merge commits, diff against first parent; for regular commits, diff against HEAD~1
             if [ "$(git rev-list --parents -n 1 HEAD | wc -w)" -gt 2 ]; then
-              files=$(git diff --name-only HEAD^1 HEAD -- 'docs/*-devto/*.md' | tr '\n' ' ')
+              files=$(git diff --name-only HEAD^1 HEAD -- 'devto/*.md' | tr '\n' ' ')
             else
-              files=$(git diff --name-only HEAD~1 HEAD -- 'docs/*-devto/*.md' | tr '\n' ' ')
+              files=$(git diff --name-only HEAD~1 HEAD -- 'devto/*.md' | tr '\n' ' ')
             fi
             echo "files=${files}" >> "$GITHUB_OUTPUT"
           fi

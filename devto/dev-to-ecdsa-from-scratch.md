@@ -1,6 +1,6 @@
 ---
 title: "Implementing ECDSA from Scratch Without Libraries"
-published: false
+published: true
 description: "Implementing ECDSA signing and verification from scratch using only basic arithmetic and mod, with all intermediate values on a tiny curve."
 tags: ecdsa, cryptography, javascript, security
 canonical_url: https://ktaka.blog.ccmp.jp/en/2026/EcdsaFromScratch

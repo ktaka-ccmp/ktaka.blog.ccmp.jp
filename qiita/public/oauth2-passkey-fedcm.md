@@ -1,14 +1,14 @@
 ---
-title: "Rust 認証ライブラリ oauth2-passkey で FedCM ログイン機能を実装した"
+title: Rust 認証ライブラリ oauth2-passkey で FedCM ログイン機能を実装した
 tags:
-  - "Rust"
-  - "FedCM"
-  - "OAuth2"
-  - "認証"
-  - "WebAPI"
+  - WebAPI
+  - Rust
+  - oauth2
+  - 認証
+  - FedCM
 private: false
-updated_at: ""
-id: null
+updated_at: '2026-04-02T13:35:40+09:00'
+id: 0627e24c9bf1e4fa595a
 organization_url_name: null
 slide: false
 ignorePublish: false

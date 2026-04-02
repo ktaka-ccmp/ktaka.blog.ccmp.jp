@@ -6,12 +6,10 @@ This directory contains issue/task tracking files for the project.
 
 <!-- AUTO-UPDATED: Do not edit manually. Updated by /issue command. -->
 
-### Open (13)
+### Open (11)
 
 | ID | Priority | Difficulty | Title |
 |----|----------|------------|-------|
-| `20260328-0200` | high | small | [dev.to クロスポスト — ECDSA 英語記事 2 本](open/20260328-0200-devto-crosspost-ecdsa.md) |
-| `20260328-0100` | high | small | [Zenn クロスポスト — ECDSA 記事 2 本](open/20260328-0100-zenn-crosspost-ecdsa.md) |
 | `20260326-0419` | high | large | [シリーズ — Web Crypto API で学ぶ暗号技術](open/20260326-0419-blog-series-webcrypto-learn-crypto.md) |
 | `20260326-0421` | high | small | [暗号化と鍵交換 — ハイブリッド暗号を体験する](open/20260326-0421-blog-webcrypto-02-hybrid-encryption.md) |
 | `20260326-0422` | medium | medium | [TLS 1.2 ハンドシェイクを再現する](open/20260326-0422-blog-webcrypto-03-tls12.md) |
@@ -24,10 +22,12 @@ This directory contains issue/task tracking files for the project.
 | `20260301-1751` | medium | large | [ブログ記事 — Rust アプリを 27MB Docker イメージで Cloud Run にデプロイ](open/20260301-1751-blog-rust-cloud-run-deploy.md) |
 | `20260301-1752` | medium | medium | [ブログ記事 — Async Rust の落とし穴（JWKS デッドロック + SQLite Pool）](open/20260301-1752-blog-async-rust-pitfalls.md) |
 
-### Completed (9)
+### Completed (11)
 
 | ID | Title |
 |----|-------|
+| `20260328-0200` | [dev.to クロスポスト — ECDSA 英語記事 2 本](completed/20260328-0200-devto-crosspost-ecdsa.md) |
+| `20260328-0100` | [Zenn クロスポスト — ECDSA 記事 2 本](completed/20260328-0100-zenn-crosspost-ecdsa.md) |
 | `20260328-0300` | [Qiita クロスポスト](completed/20260328-0300-qiita-crosspost.md) |
 | `20260327-0200` | [ECDSA 記事 2 本の英語版](completed/20260327-0200-blog-ecdsa-english-versions.md) |
 | `20260327-0100` | [ECDSA の計算をライブラリなしで実装する](completed/20260327-0100-blog-ecdsa-from-scratch.md) |

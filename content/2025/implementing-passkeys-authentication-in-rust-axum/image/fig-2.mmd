@@ -1,0 +1,18 @@
+sequenceDiagram
+    participant C as Client
+    participant A as Authenticator
+    participant S as Server
+
+    C->>S: POST /auth/start
+    Note over S: Generate & store challenge
+    S-->>C: Return options (challenge, rpId, allowCredentials)
+
+    C->>A: navigator.credentials.get()
+    Note over A: Verify user if required
+    Note over A: Sign challenge with private key
+    A-->>C: Return authenticator assertion
+
+    C->>S: POST /auth/verify
+    Note over S: Verify client & authenticator data
+    Note over S: Verify signature
+    S-->>C: Authentication success

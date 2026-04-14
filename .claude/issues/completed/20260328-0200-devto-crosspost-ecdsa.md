@@ -14,9 +14,9 @@
 
 ## Created: 2026-03-28-02-00
 
-## Closed:
+## Closed: 2026-04-03
 
-## Status: open
+## Status: completed
 
 ## Priority: high
 
@@ -55,8 +55,8 @@ ECDSA 英語記事 2 本を dev.to にクロスポストする。
 - [x] GitHub Actions ワークフロー作成（canonical_url による POST/PUT 自動判定）
 - [x] `/devto-crosspost` スキル作成
 - [x] WebCryptoEcdsa を dev.to に投稿（published: true）
-- [ ] EcdsaFromScratch を dev.to に投稿確認
-- [ ] dev.to で折りたたみ表示の確認
+- [x] EcdsaFromScratch を dev.to に投稿確認
+- [x] dev.to で折りたたみ表示の確認
 
 ## Decision Log
 
@@ -81,3 +81,5 @@ ECDSA 英語記事 2 本を dev.to にクロスポストする。
 - Reason: マージコミットの親と diff を取るために最低 2 コミット分が必要
 
 ## Resolution
+
+dev.to に ECDSA 英語記事 2 本をクロスポスト完了。WebCryptoEcdsaEn、EcdsaFromScratchEn ともに公開確認済み（4/2）。
